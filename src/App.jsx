@@ -249,7 +249,7 @@ export default function App() {
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
         <div className="flex items-start justify-between">
           <div>
-            <img src={funmapsLogo} alt="FunMaps" style={{ height: 64 }} />
+            <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
               QUEER COMPASS TRAVEL GUIDE
             </p>
@@ -355,7 +355,7 @@ export default function App() {
 
       {itinerary && (
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
-          <img src={funmapsLogo} alt="FunMaps" style={{ height: 56, marginBottom: 16, display: "none" }} className="print-only" />
+          <img src={funmapsLogo} alt="FunMaps" style={{ height: 80, marginBottom: 16, display: "none" }} className="print-only" />
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
               <h2 className="display" style={{ fontSize: 24 }}>
