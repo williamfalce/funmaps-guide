@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: max_tokens || 2400,
+        max_tokens: max_tokens || 4096,
         system,
         messages,
       }),

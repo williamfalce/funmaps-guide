@@ -59,6 +59,19 @@ async function callClaude(messages, system, max_tokens) {
   return (data.content || []).map((b) => b.text || "").join("\n");
 }
 
+function extractItineraryJson(text) {
+  let clean = text.replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+  clean = clean.slice(start, end + 1);
+  try {
+    return JSON.parse(clean);
+  } catch {
+    return null;
+  }
+}
+
 const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps. The traveler may give ONE destination or MULTIPLE (comma or "then" separated, e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca"). Split trip length sensibly across cities if multiple. Return ONLY valid JSON (no markdown fences, no preamble) matching exactly this schema:
 {
   "tripLength": number,
@@ -167,13 +180,17 @@ export default function App() {
     try {
       const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
       const prompt = `Destination(s): ${destination}\nTotal trip length: ${days} days\nInterests / notes: ${interestsStr}`;
-      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM);
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
+      const parsed = extractItineraryJson(text);
+      if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
       setItinerary(parsed);
       setChat([]);
     } catch (e) {
-      setError("Couldn't build that itinerary — try rephrasing the destination(s) or interests.");
+      setError(
+        e.message?.includes("cut off")
+          ? "That itinerary got too long to finish generating — try fewer days, fewer cities, or fewer interest tags at once."
+          : "Couldn't build that itinerary — try rephrasing the destination(s) or interests."
+      );
     } finally {
       setLoading(false);
     }
