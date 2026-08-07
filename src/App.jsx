@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Share2, FolderOpen, X, Trash2 } from "lucide-react";
+import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2 } from "lucide-react";
 
 const CATEGORY_META = {
   nightlife: { icon: Moon, color: "#FF6F61" },
@@ -59,9 +59,16 @@ const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge. Th
 }
 Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, describe the type of place instead of inventing one.`;
 
-function genCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
+const INTEREST_OPTIONS = [
+  "LGBTQ+ nightlife",
+  "Queer-owned restaurants",
+  "Gay-friendly neighborhoods to stay",
+  "Pride events & community spaces",
+  "Museums & culture",
+  "Beaches & outdoors",
+  "Low-key & relaxed pace",
+  "Party-heavy pace",
+];
 
 const LOCAL_KEY = "compass-trips";
 
@@ -82,7 +89,12 @@ function writeLocalTrips(trips) {
 export default function App() {
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState(4);
-  const [interests, setInterests] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [extraNotes, setExtraNotes] = useState("");
+
+  function toggleInterest(tag) {
+    setSelectedInterests((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [itinerary, setItinerary] = useState(null);
@@ -94,9 +106,6 @@ export default function App() {
   const [showTrips, setShowTrips] = useState(false);
   const [savedTrips, setSavedTrips] = useState([]);
   const [saveStatus, setSaveStatus] = useState("");
-  const [shareCode, setShareCode] = useState("");
-  const [shareStatus, setShareStatus] = useState("");
-  const [loadCode, setLoadCode] = useState("");
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -115,11 +124,10 @@ export default function App() {
     setError("");
     setLoading(true);
     setItinerary(null);
-    setShareCode("");
-    setShareStatus("");
     setSaveStatus("");
     try {
-      const prompt = `Destination(s): ${destination}\nTotal trip length: ${days} days\nInterests / notes: ${interests || "open to anything, surprise me"}`;
+      const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
+      const prompt = `Destination(s): ${destination}\nTotal trip length: ${days} days\nInterests / notes: ${interestsStr}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM);
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
@@ -162,27 +170,8 @@ export default function App() {
     setSaveStatus("saved");
   }
 
-  async function shareTrip() {
-    if (!itinerary) return;
-    setShareStatus("sharing");
-    try {
-      const code = genCode();
-      const label = itinerary.cities?.map((c) => c.name).join(" + ") || destination;
-      const res = await fetch("/api/trips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, data: { itinerary, label } }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setShareStatus(data.error || "Sharing isn't set up yet.");
-        return;
-      }
-      setShareCode(code);
-      setShareStatus("");
-    } catch {
-      setShareStatus("Couldn't share right now.");
-    }
+  function printTrip() {
+    window.print();
   }
 
   function loadTrip(id) {
@@ -193,8 +182,6 @@ export default function App() {
     setChat(found.chat || []);
     setDestination(found.destination || "");
     setShowTrips(false);
-    setShareCode("");
-    setShareStatus("");
     setSaveStatus("");
   }
 
@@ -204,27 +191,6 @@ export default function App() {
     setSavedTrips(trips.sort((a, b) => b.savedAt - a.savedAt));
   }
 
-  async function loadSharedByCode() {
-    if (!loadCode.trim()) return;
-    setError("");
-    try {
-      const res = await fetch(`/api/trips?code=${encodeURIComponent(loadCode.trim().toUpperCase())}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "No trip found with that code.");
-        return;
-      }
-      setItinerary(data.data.itinerary);
-      setChat([]);
-      setLoadCode("");
-      setShareCode("");
-      setShareStatus("");
-      setSaveStatus("");
-    } catch {
-      setError("No trip found with that code.");
-    }
-  }
-
   return (
     <div style={{ background: "#1B1030", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6" }}>
       <style>{`
@@ -232,9 +198,15 @@ export default function App() {
         .display { font-family: 'Fraunces', serif; }
         input, textarea { font-family: 'Inter', sans-serif; }
         ::placeholder { color: #F5EFE688; }
+
+        @media print {
+          .no-print { display: none !important; }
+          * { background: transparent !important; color: #1B1030 !important; box-shadow: none !important; border-color: #ddd !important; }
+          body { background: #ffffff !important; }
+        }
       `}</style>
 
-      <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }}>
+      <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2" style={{ color: "#E8B04B" }}>
             <Compass size={20} />
@@ -250,7 +222,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }}>
+      <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
         <h1 className="display" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.15, marginBottom: 12 }}>
           Plan a trip that feels like <span style={{ color: "#FF6F61" }}>home</span>, wherever you land.
         </h1>
@@ -259,19 +231,7 @@ export default function App() {
           community spaces, and an honest read on the local vibe for each stop.
         </p>
 
-        <div className="flex gap-2 mb-6" style={{ maxWidth: 420 }}>
-          <input
-            value={loadCode}
-            onChange={(e) => setLoadCode(e.target.value)}
-            placeholder="Have a share code? Enter it here"
-            style={{ flex: 1, background: "#241640", border: "1px solid #F5EFE620", outline: "none", color: "#F5EFE6", padding: "9px 12px", borderRadius: 8, fontSize: 13 }}
-          />
-          <button onClick={loadSharedByCode} style={{ background: "#241640", color: "#4ECDC4", border: "1px solid #4ECDC440", borderRadius: 8, padding: "0 14px", fontSize: 13, fontWeight: 600 }}>
-            Load
-          </button>
-        </div>
-
-        <div style={{ background: "#241640", borderRadius: 16, padding: 24, border: "1px solid #FF6F6120" }}>
+        <div style={{ background: "#241640", borderRadius: 16, padding: 24, border: "1px solid #FF6F6120" }} className="no-print">
           <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#E8B04B", fontWeight: 600 }}>DESTINATION(S)</label>
@@ -301,11 +261,38 @@ export default function App() {
             </div>
           </div>
           <div className="mt-4">
-            <label style={{ fontSize: 12, color: "#E8B04B", fontWeight: 600 }}>INTERESTS (optional)</label>
+            <label style={{ fontSize: 12, color: "#E8B04B", fontWeight: 600 }}>WHAT ARE YOU INTO? (optional, pick any)</label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {INTEREST_OPTIONS.map((tag) => {
+                const active = selectedInterests.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleInterest(tag)}
+                    style={{
+                      background: active ? "#E8B04B" : "#1B1030",
+                      color: active ? "#1B1030" : "#F5EFE6cc",
+                      border: active ? "1px solid #E8B04B" : "1px solid #F5EFE620",
+                      borderRadius: 999,
+                      padding: "7px 14px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-3">
+            <label style={{ fontSize: 12, color: "#E8B04B", fontWeight: 600 }}>ANYTHING ELSE? (optional)</label>
             <textarea
-              value={interests}
-              onChange={(e) => setInterests(e.target.value)}
-              placeholder="nightlife, drag shows, quiet beaches, museums, going with my partner..."
+              value={extraNotes}
+              onChange={(e) => setExtraNotes(e.target.value)}
+              placeholder="going with my partner, celebrating a birthday, prefer walkable areas..."
               rows={2}
               className="mt-1"
               style={{ width: "100%", background: "#1B1030", borderRadius: 10, padding: "10px 14px", border: "none", outline: "none", color: "#F5EFE6", resize: "none" }}
@@ -331,23 +318,15 @@ export default function App() {
               <h2 className="display" style={{ fontSize: 24 }}>
                 {itinerary.cities?.map((c) => c.name).join(" → ")}
               </h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 no-print">
                 <button onClick={saveTrip} className="flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600 }}>
                   <Save size={13} /> {saveStatus === "saved" ? "Saved ✓" : "Save trip"}
                 </button>
-                <button onClick={shareTrip} className="flex items-center gap-1.5" style={{ background: "#1B1030", color: "#4ECDC4", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600 }}>
-                  <Share2 size={13} /> {shareStatus === "sharing" ? "Sharing..." : "Share"}
+                <button onClick={printTrip} className="flex items-center gap-1.5" style={{ background: "#1B1030", color: "#4ECDC4", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600 }}>
+                  <Printer size={13} /> Print
                 </button>
               </div>
             </div>
-            {shareCode && (
-              <p style={{ fontSize: 12.5, color: "#4ECDC4", marginBottom: 10 }}>
-                Share code: <strong style={{ letterSpacing: 1 }}>{shareCode}</strong> — anyone can load this trip by entering it above. Visible to anyone with the code.
-              </p>
-            )}
-            {shareStatus && shareStatus !== "sharing" && (
-              <p style={{ fontSize: 12.5, color: "#FF6F61", marginBottom: 10 }}>{shareStatus}</p>
-            )}
             <p style={{ color: "#F5EFE6cc", fontSize: 15 }}>{itinerary.summary}</p>
           </div>
 
@@ -402,7 +381,7 @@ export default function App() {
                 href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 mt-2"
+                className="flex items-center justify-center gap-2 mt-2 no-print"
                 style={{ background: "#FF6F61", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14 }}
               >
                 <Hotel size={16} /> Find LGBTQ+-friendly stays in {city.name}
@@ -410,7 +389,7 @@ export default function App() {
             </div>
           ))}
 
-          <div style={{ background: "#241640", borderRadius: 14, padding: 16, marginTop: 8 }}>
+          <div style={{ background: "#241640", borderRadius: 14, padding: 16, marginTop: 8 }} className="no-print">
             <p style={{ fontSize: 12, color: "#E8B04B", fontWeight: 600, marginBottom: 10 }}>ASK COMPASS TO ADJUST YOUR TRIP</p>
             <div style={{ maxHeight: 220, overflowY: "auto", marginBottom: 10 }}>
               {chat.map((m, i) => (
