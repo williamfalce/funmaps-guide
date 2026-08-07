@@ -247,17 +247,17 @@ export default function App() {
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={funmapsLogo} alt="FunMaps" style={{ height: 32 }} />
-            <span style={{ letterSpacing: 1.5, fontSize: 11, fontWeight: 600, color: "#F5EFE699", borderLeft: "1px solid #F5EFE633", paddingLeft: 10 }}>
+        <div className="flex items-start justify-between">
+          <div>
+            <img src={funmapsLogo} alt="FunMaps" style={{ height: 64 }} />
+            <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
               QUEER COMPASS TRAVEL GUIDE
-            </span>
+            </p>
           </div>
           <button
             onClick={openTripsPanel}
             className="flex items-center gap-1.5"
-            style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0, marginTop: 4 }}
           >
             <FolderOpen size={14} /> My Trips
           </button>
@@ -355,7 +355,7 @@ export default function App() {
 
       {itinerary && (
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
-          <img src={funmapsLogo} alt="FunMaps" style={{ height: 36, marginBottom: 16, display: "none" }} className="print-only" />
+          <img src={funmapsLogo} alt="FunMaps" style={{ height: 56, marginBottom: 16, display: "none" }} className="print-only" />
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
               <h2 className="display" style={{ fontSize: 24 }}>
