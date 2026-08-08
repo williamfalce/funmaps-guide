@@ -169,10 +169,26 @@ export default function App() {
   const [showTrips, setShowTrips] = useState(false);
   const [savedTrips, setSavedTrips] = useState([]);
   const [saveStatus, setSaveStatus] = useState("");
+  const [cityImages, setCityImages] = useState({});
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
+
+  useEffect(() => {
+    if (!itinerary?.cities) return;
+    setCityImages({});
+    itinerary.cities.forEach(async (city) => {
+      try {
+        const res = await fetch(`/api/unsplash?query=${encodeURIComponent(city.name + " travel")}`);
+        if (!res.ok) return; // fails quietly — image section just won't render for this city
+        const data = await res.json();
+        setCityImages((prev) => ({ ...prev, [city.name]: data }));
+      } catch {
+        // ignore — no image is a fine fallback
+      }
+    });
+  }, [itinerary]);
 
   function openTripsPanel() {
     setSavedTrips(readLocalTrips().sort((a, b) => b.savedAt - a.savedAt));
@@ -403,6 +419,21 @@ export default function App() {
 
           {itinerary.cities?.map((city, ci) => (
             <div key={ci} style={{ marginBottom: 28 }}>
+              {cityImages[city.name] && (
+                <div className="no-print" style={{ position: "relative", borderRadius: 14, overflow: "hidden", marginBottom: 12, height: 200 }}>
+                  <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10.5, color: "#ffffffcc", background: "#00000055", padding: "2px 8px", borderRadius: 999 }}>
+                    Photo by{" "}
+                    <a href={cityImages[city.name].photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                      {cityImages[city.name].photographer}
+                    </a>{" "}
+                    on{" "}
+                    <a href={cityImages[city.name].unsplashUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                      Unsplash
+                    </a>
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2 mb-2">
                 <MapPin size={16} color="#B23A72" />
                 <span className="display" style={{ fontSize: 20 }}>{city.name}</span>
