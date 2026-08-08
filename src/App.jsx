@@ -59,6 +59,17 @@ async function callClaude(messages, system, max_tokens) {
   return (data.content || []).map((b) => b.text || "").join("\n");
 }
 
+const BOOKING_AID = import.meta.env.VITE_BOOKING_AID || "";
+
+function bookingUrl(cityName) {
+  const params = new URLSearchParams({ ss: cityName });
+  if (BOOKING_AID) {
+    params.set("aid", BOOKING_AID);
+    params.set("label", `compass-${cityName.toLowerCase().replace(/\s+/g, "-")}`);
+  }
+  return `https://www.booking.com/searchresults.html?${params.toString()}`;
+}
+
 function extractItineraryJson(text) {
   let clean = text.replace(/```json|```/g, "").trim();
   const start = clean.indexOf("{");
@@ -492,7 +503,7 @@ export default function App() {
 
               {/* Monetization placeholder — replace href with your affiliate booking link per city */}
               <a
-                href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city.name)}`}
+                href={bookingUrl(city.name)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 mt-2 no-print"
