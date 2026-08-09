@@ -174,9 +174,14 @@ export default function App() {
   const [geocodingProgress, setGeocodingProgress] = useState(null);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const resultsTopRef = useRef(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (itinerary) resultsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [itinerary]);
+
+  useEffect(() => {
+    if (chat.length > 0) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
   useEffect(() => {
@@ -485,7 +490,7 @@ export default function App() {
       </div>
 
       {itinerary && (
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
+        <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
           <img src={funmapsLogo} alt="FunMaps" style={{ height: 80, marginBottom: 16, display: "none" }} className="print-only" />
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
@@ -504,6 +509,29 @@ export default function App() {
             <p style={{ color: "#F5EFE6cc", fontSize: 15 }}>{itinerary.summary}</p>
           </div>
 
+          {Object.keys(cityImages).length > 0 && (
+            <div className="no-print flex gap-3 mb-5" style={{ overflowX: "auto" }}>
+              {itinerary.cities?.map((city, ci) =>
+                cityImages[city.name] ? (
+                  <div key={ci} style={{ position: "relative", borderRadius: 14, overflow: "hidden", height: 180, flex: itinerary.cities.length > 1 ? "0 0 260px" : "1 1 auto", minWidth: itinerary.cities.length > 1 ? 260 : "auto" }}>
+                    <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <span style={{ position: "absolute", top: 8, left: 10, fontSize: 13, fontWeight: 600, color: "#fff", textShadow: "0 1px 4px #000000aa" }}>{city.name}</span>
+                    <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "#ffffffcc", background: "#00000055", padding: "2px 7px", borderRadius: 999 }}>
+                      Photo by{" "}
+                      <a href={cityImages[city.name].photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                        {cityImages[city.name].photographer}
+                      </a>{" "}
+                      on{" "}
+                      <a href={cityImages[city.name].unsplashUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                        Unsplash
+                      </a>
+                    </span>
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
+
           <div className="no-print" style={{ marginBottom: 20 }}>
             <div style={{ background: "#241640", borderRadius: 16, padding: 12 }}>
               <div ref={mapContainerRef} style={{ height: 340, borderRadius: 10, overflow: "hidden", background: "#1B1030" }} />
@@ -520,21 +548,6 @@ export default function App() {
 
           {itinerary.cities?.map((city, ci) => (
             <div key={ci} style={{ marginBottom: 28 }}>
-              {cityImages[city.name] && (
-                <div className="no-print" style={{ position: "relative", borderRadius: 14, overflow: "hidden", marginBottom: 12, height: 200 }}>
-                  <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10.5, color: "#ffffffcc", background: "#00000055", padding: "2px 8px", borderRadius: 999 }}>
-                    Photo by{" "}
-                    <a href={cityImages[city.name].photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
-                      {cityImages[city.name].photographer}
-                    </a>{" "}
-                    on{" "}
-                    <a href={cityImages[city.name].unsplashUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
-                      Unsplash
-                    </a>
-                  </span>
-                </div>
-              )}
               <div className="flex items-center gap-2 mb-2">
                 <MapPin size={16} color="#B23A72" />
                 <span className="display" style={{ fontSize: 20 }}>{city.name}</span>
