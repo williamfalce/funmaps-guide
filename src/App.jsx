@@ -393,6 +393,7 @@ export default function App() {
         @media print {
           .no-print { display: none !important; }
           .print-only { display: block !important; }
+          .print-only-logo { display: inline-flex !important; }
           * { background: transparent !important; color: #1B1030 !important; box-shadow: none !important; border-color: #ddd !important; }
           body { background: #ffffff !important; }
         }
@@ -401,12 +402,12 @@ export default function App() {
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
         <div className="flex items-start justify-between">
           <div>
-            <span style={{ position: "relative", display: "inline-block" }}>
+            <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
               <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
-              <sup style={{ position: "absolute", bottom: 6, right: -14, fontSize: 13, color: "#F5EFE699" }}>™</sup>
+              <span style={{ fontSize: 14, color: "#F5EFE699", marginLeft: 2, marginBottom: 8 }}>™</span>
             </span>
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
-              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 12 }}>™</sup>
+              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: "0.65em" }}>™</sup>
             </p>
           </div>
           <button
@@ -421,7 +422,7 @@ export default function App() {
 
       <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
         <h1 className="display" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.15, marginBottom: 12 }}>
-          Your Queer <span style={{ color: "#9B2FA0" }}>Compass</span>, wherever you land.<sup style={{ fontSize: 14 }}>™</sup>
+          Your Queer <span style={{ color: "#9B2FA0" }}>Compass</span>, wherever you land.<sup style={{ fontSize: "0.4em" }}>™</sup>
         </h1>
         <p style={{ color: "#F5EFE6aa", fontSize: 16, maxWidth: 560, marginBottom: 24 }}>
           One city or several — tell Compass where you're headed and it'll map out queer-friendly spots,
@@ -510,9 +511,9 @@ export default function App() {
 
       {itinerary && (
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
-          <span className="print-only" style={{ position: "relative", display: "none", marginBottom: 16 }}>
+          <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 80 }} />
-            <sup style={{ position: "absolute", bottom: 4, right: -10, fontSize: 11, color: "#1B1030aa" }}>™</sup>
+            <span style={{ fontSize: 11, color: "#1B1030aa", marginLeft: 2, marginBottom: 4 }}>™</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
