@@ -170,6 +170,10 @@ export default function App() {
   const [savedTrips, setSavedTrips] = useState([]);
   const [saveStatus, setSaveStatus] = useState("");
   const [cityImages, setCityImages] = useState({});
+  const [mapPins, setMapPins] = useState([]);
+  const [geocodingProgress, setGeocodingProgress] = useState(null);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -190,6 +194,85 @@ export default function App() {
     });
   }, [itinerary]);
 
+  useEffect(() => {
+    if (!itinerary?.cities) return;
+    setMapPins([]);
+    let cancelled = false;
+
+    async function geocode(query) {
+      try {
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function run() {
+      // Build the full list of things to pin: city centers + every activity with an address.
+      const targets = [];
+      itinerary.cities.forEach((city) => {
+        targets.push({ query: city.name, name: city.name, category: "city" });
+        city.itinerary?.forEach((d) => {
+          d.activities?.forEach((a) => {
+            if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category });
+          });
+        });
+      });
+
+      setGeocodingProgress({ done: 0, total: targets.length });
+      for (let i = 0; i < targets.length; i++) {
+        if (cancelled) return;
+        const t = targets[i];
+        const coords = await geocode(t.query);
+        if (coords && !cancelled) {
+          setMapPins((prev) => [...prev, { ...t, ...coords }]);
+        }
+        setGeocodingProgress({ done: i + 1, total: targets.length });
+        if (i < targets.length - 1) await new Promise((r) => setTimeout(r, 1100)); // respect Nominatim's ~1req/sec policy
+      }
+      setGeocodingProgress(null);
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [itinerary]);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || !window.L || mapPins.length === 0) return;
+
+    if (!mapInstanceRef.current) {
+      mapInstanceRef.current = window.L.map(mapContainerRef.current);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(mapInstanceRef.current);
+      mapInstanceRef.current._markersLayer = window.L.layerGroup().addTo(mapInstanceRef.current);
+    }
+
+    const map = mapInstanceRef.current;
+    map._markersLayer.clearLayers();
+
+    mapPins.forEach((pin) => {
+      const isCity = pin.category === "city";
+      const color = isCity ? "#9B2FA0" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
+      const size = isCity ? 16 : 12;
+      const icon = window.L.divIcon({
+        className: "",
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
+      });
+      window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${pin.name}</strong>`).addTo(map._markersLayer);
+    });
+
+    const bounds = window.L.latLngBounds(mapPins.map((p) => [p.lat, p.lon]));
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }, [mapPins]);
+
   function openTripsPanel() {
     setSavedTrips(readLocalTrips().sort((a, b) => b.savedAt - a.savedAt));
     setShowTrips(true);
@@ -203,6 +286,10 @@ export default function App() {
     setError("");
     setLoading(true);
     setItinerary(null);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
     setSaveStatus("");
     try {
       const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
@@ -415,6 +502,20 @@ export default function App() {
               </div>
             </div>
             <p style={{ color: "#F5EFE6cc", fontSize: 15 }}>{itinerary.summary}</p>
+          </div>
+
+          <div className="no-print" style={{ marginBottom: 20 }}>
+            <div style={{ background: "#241640", borderRadius: 16, padding: 12 }}>
+              <div ref={mapContainerRef} style={{ height: 340, borderRadius: 10, overflow: "hidden", background: "#1B1030" }} />
+              {geocodingProgress && (
+                <p className="flex items-center gap-2 mt-2" style={{ fontSize: 12, color: "#F5EFE699" }}>
+                  <Loader2 size={12} className="animate-spin" /> Pinning locations on the map… {geocodingProgress.done}/{geocodingProgress.total}
+                </p>
+              )}
+              {!geocodingProgress && mapPins.length === 0 && (
+                <p style={{ fontSize: 12, color: "#F5EFE699", marginTop: 8 }}>No mappable addresses found for this trip yet.</p>
+              )}
+            </div>
           </div>
 
           {itinerary.cities?.map((city, ci) => (
