@@ -280,10 +280,10 @@ export default function App() {
       pins.forEach((pin) => {
         const isCity = pin.category === "city";
         const color = isCity ? "#9B2FA0" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
-        const size = isCity ? 16 : 12;
+        const size = isCity ? 32 : 24;
         const icon = window.L.divIcon({
           className: "",
-          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`,
           iconSize: [size, size],
           iconAnchor: [size / 2, size / 2],
         });
