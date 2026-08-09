@@ -403,7 +403,7 @@ export default function App() {
           <div>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
-              QUEER COMPASS TRAVEL GUIDE
+              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 8 }}>™</sup>
             </p>
           </div>
           <button
@@ -418,7 +418,7 @@ export default function App() {
 
       <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
         <h1 className="display" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.15, marginBottom: 12 }}>
-          Your Queer <span style={{ color: "#9B2FA0" }}>Compass</span>, wherever you land.
+          Your Queer <span style={{ color: "#9B2FA0" }}>Compass</span>, wherever you land.<sup style={{ fontSize: 14 }}>™</sup>
         </h1>
         <p style={{ color: "#F5EFE6aa", fontSize: 16, maxWidth: 560, marginBottom: 24 }}>
           One city or several — tell Compass where you're headed and it'll map out queer-friendly spots,
