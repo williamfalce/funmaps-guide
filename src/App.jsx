@@ -403,7 +403,7 @@ export default function App() {
           <div>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
-              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 8 }}>™</sup>
+              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 12 }}>™</sup>
             </p>
           </div>
           <button
