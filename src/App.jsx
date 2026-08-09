@@ -171,9 +171,9 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState("");
   const [cityImages, setCityImages] = useState({});
   const [mapPins, setMapPins] = useState([]);
-  const [geocodingProgress, setGeocodingProgress] = useState(null);
-  const mapContainerRef = useRef(null);
-  const mapInstanceRef = useRef(null);
+  const [geocodingProgress, setGeocodingProgress] = useState({});
+  const mapContainerRefs = useRef({});
+  const mapInstancesRef = useRef({});
   const resultsTopRef = useRef(null);
 
   useEffect(() => {
@@ -215,18 +215,25 @@ export default function App() {
     }
 
     async function run() {
-      // Build the full list of things to pin: city centers + every activity with an address.
+      // Build the full list of things to pin: city center + every activity with an address, tagged by city.
       const targets = [];
       itinerary.cities.forEach((city) => {
-        targets.push({ query: city.name, name: city.name, category: "city" });
+        targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
-            if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category });
+            if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category, cityName: city.name });
           });
         });
       });
 
-      setGeocodingProgress({ done: 0, total: targets.length });
+      const totalsByCity = {};
+      targets.forEach((t) => {
+        totalsByCity[t.cityName] = (totalsByCity[t.cityName] || 0) + 1;
+      });
+      const progress = {};
+      Object.keys(totalsByCity).forEach((c) => (progress[c] = { done: 0, total: totalsByCity[c] }));
+      setGeocodingProgress(progress);
+
       for (let i = 0; i < targets.length; i++) {
         if (cancelled) return;
         const t = targets[i];
@@ -234,10 +241,9 @@ export default function App() {
         if (coords && !cancelled) {
           setMapPins((prev) => [...prev, { ...t, ...coords }]);
         }
-        setGeocodingProgress({ done: i + 1, total: targets.length });
+        setGeocodingProgress((prev) => ({ ...prev, [t.cityName]: { done: (prev[t.cityName]?.done || 0) + 1, total: totalsByCity[t.cityName] } }));
         if (i < targets.length - 1) await new Promise((r) => setTimeout(r, 1100)); // respect Nominatim's ~1req/sec policy
       }
-      setGeocodingProgress(null);
     }
 
     run();
@@ -247,35 +253,47 @@ export default function App() {
   }, [itinerary]);
 
   useEffect(() => {
-    if (!mapContainerRef.current || !window.L || mapPins.length === 0) return;
-
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = window.L.map(mapContainerRef.current);
-      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(mapInstanceRef.current);
-      mapInstanceRef.current._markersLayer = window.L.layerGroup().addTo(mapInstanceRef.current);
-    }
-
-    const map = mapInstanceRef.current;
-    map._markersLayer.clearLayers();
-
+    if (!window.L) return;
+    const pinsByCity = {};
     mapPins.forEach((pin) => {
-      const isCity = pin.category === "city";
-      const color = isCity ? "#9B2FA0" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
-      const size = isCity ? 16 : 12;
-      const icon = window.L.divIcon({
-        className: "",
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-      });
-      window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${pin.name}</strong>`).addTo(map._markersLayer);
+      (pinsByCity[pin.cityName] = pinsByCity[pin.cityName] || []).push(pin);
     });
 
-    const bounds = window.L.latLngBounds(mapPins.map((p) => [p.lat, p.lon]));
-    map.fitBounds(bounds, { padding: [30, 30] });
+    Object.keys(pinsByCity).forEach((cityName) => {
+      const container = mapContainerRefs.current[cityName];
+      const pins = pinsByCity[cityName];
+      if (!container || pins.length === 0) return;
+
+      if (!mapInstancesRef.current[cityName]) {
+        const map = window.L.map(container);
+        window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
+        }).addTo(map);
+        map._markersLayer = window.L.layerGroup().addTo(map);
+        mapInstancesRef.current[cityName] = map;
+      }
+
+      const map = mapInstancesRef.current[cityName];
+      map._markersLayer.clearLayers();
+
+      pins.forEach((pin) => {
+        const isCity = pin.category === "city";
+        const color = isCity ? "#9B2FA0" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
+        const size = isCity ? 16 : 12;
+        const icon = window.L.divIcon({
+          className: "",
+          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+        window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${pin.name}</strong>`).addTo(map._markersLayer);
+      });
+
+      const bounds = window.L.latLngBounds(pins.map((p) => [p.lat, p.lon]));
+      map.fitBounds(bounds, { padding: [30, 30] });
+      setTimeout(() => map.invalidateSize(), 0);
+    });
   }, [mapPins]);
 
   function openTripsPanel() {
@@ -291,10 +309,8 @@ export default function App() {
     setError("");
     setLoading(true);
     setItinerary(null);
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    Object.values(mapInstancesRef.current).forEach((map) => map.remove());
+    mapInstancesRef.current = {};
     setSaveStatus("");
     try {
       const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
@@ -509,45 +525,35 @@ export default function App() {
             <p style={{ color: "#F5EFE6cc", fontSize: 15 }}>{itinerary.summary}</p>
           </div>
 
-          {Object.keys(cityImages).length > 0 && (
-            <div className="no-print flex gap-3 mb-5" style={{ overflowX: "auto" }}>
-              {itinerary.cities?.map((city, ci) =>
-                cityImages[city.name] ? (
-                  <div key={ci} style={{ position: "relative", borderRadius: 14, overflow: "hidden", height: 180, flex: itinerary.cities.length > 1 ? "0 0 260px" : "1 1 auto", minWidth: itinerary.cities.length > 1 ? 260 : "auto" }}>
-                    <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <span style={{ position: "absolute", top: 8, left: 10, fontSize: 13, fontWeight: 600, color: "#fff", textShadow: "0 1px 4px #000000aa" }}>{city.name}</span>
-                    <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10, color: "#ffffffcc", background: "#00000055", padding: "2px 7px", borderRadius: 999 }}>
-                      Photo by{" "}
-                      <a href={cityImages[city.name].photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
-                        {cityImages[city.name].photographer}
-                      </a>{" "}
-                      on{" "}
-                      <a href={cityImages[city.name].unsplashUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
-                        Unsplash
-                      </a>
-                    </span>
-                  </div>
-                ) : null
-              )}
-            </div>
-          )}
-
-          <div className="no-print" style={{ marginBottom: 20 }}>
-            <div style={{ background: "#241640", borderRadius: 16, padding: 12 }}>
-              <div ref={mapContainerRef} style={{ height: 340, borderRadius: 10, overflow: "hidden", background: "#1B1030" }} />
-              {geocodingProgress && (
-                <p className="flex items-center gap-2 mt-2" style={{ fontSize: 12, color: "#F5EFE699" }}>
-                  <Loader2 size={12} className="animate-spin" /> Pinning locations on the map… {geocodingProgress.done}/{geocodingProgress.total}
-                </p>
-              )}
-              {!geocodingProgress && mapPins.length === 0 && (
-                <p style={{ fontSize: 12, color: "#F5EFE699", marginTop: 8 }}>No mappable addresses found for this trip yet.</p>
-              )}
-            </div>
-          </div>
-
           {itinerary.cities?.map((city, ci) => (
             <div key={ci} style={{ marginBottom: 28 }}>
+              {cityImages[city.name] && (
+                <div className="no-print" style={{ position: "relative", borderRadius: 14, overflow: "hidden", marginBottom: 12, height: 200 }}>
+                  <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <span style={{ position: "absolute", bottom: 6, right: 8, fontSize: 10.5, color: "#ffffffcc", background: "#00000055", padding: "2px 8px", borderRadius: 999 }}>
+                    Photo by{" "}
+                    <a href={cityImages[city.name].photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                      {cityImages[city.name].photographer}
+                    </a>{" "}
+                    on{" "}
+                    <a href={cityImages[city.name].unsplashUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#ffffffcc" }}>
+                      Unsplash
+                    </a>
+                  </span>
+                </div>
+              )}
+
+              <div className="no-print" style={{ marginBottom: 12 }}>
+                <div style={{ background: "#241640", borderRadius: 16, padding: 10 }}>
+                  <div ref={(el) => (mapContainerRefs.current[city.name] = el)} style={{ height: 260, borderRadius: 10, overflow: "hidden", background: "#1B1030" }} />
+                  {geocodingProgress[city.name] && geocodingProgress[city.name].done < geocodingProgress[city.name].total && (
+                    <p className="flex items-center gap-2 mt-2" style={{ fontSize: 12, color: "#F5EFE699" }}>
+                      <Loader2 size={12} className="animate-spin" /> Pinning {city.name}… {geocodingProgress[city.name].done}/{geocodingProgress[city.name].total}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 mb-2">
                 <MapPin size={16} color="#B23A72" />
                 <span className="display" style={{ fontSize: 20 }}>{city.name}</span>
