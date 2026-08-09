@@ -401,7 +401,10 @@ export default function App() {
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
         <div className="flex items-start justify-between">
           <div>
-            <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
+            <span style={{ position: "relative", display: "inline-block" }}>
+              <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
+              <sup style={{ position: "absolute", bottom: 6, right: -14, fontSize: 13, color: "#F5EFE699" }}>™</sup>
+            </span>
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
               QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 12 }}>™</sup>
             </p>
@@ -507,7 +510,10 @@ export default function App() {
 
       {itinerary && (
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
-          <img src={funmapsLogo} alt="FunMaps" style={{ height: 80, marginBottom: 16, display: "none" }} className="print-only" />
+          <span className="print-only" style={{ position: "relative", display: "none", marginBottom: 16 }}>
+            <img src={funmapsLogo} alt="FunMaps" style={{ height: 80 }} />
+            <sup style={{ position: "absolute", bottom: 4, right: -10, fontSize: 11, color: "#1B1030aa" }}>™</sup>
+          </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
               <h2 className="display" style={{ fontSize: 24 }}>
