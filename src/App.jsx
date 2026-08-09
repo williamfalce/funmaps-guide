@@ -404,10 +404,10 @@ export default function App() {
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
               <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
-              <span style={{ fontSize: 14, color: "#F5EFE699", marginLeft: 2, marginBottom: 8 }}>™</span>
+              <span style={{ fontSize: 15, color: "#F5EFE699", marginLeft: -14, marginBottom: 36 }}>™</span>
             </span>
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
-              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: "0.65em" }}>™</sup>
+              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 10 }}>™</sup>
             </p>
           </div>
           <button
@@ -513,7 +513,7 @@ export default function App() {
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
           <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 80 }} />
-            <span style={{ fontSize: 11, color: "#1B1030aa", marginLeft: 2, marginBottom: 4 }}>™</span>
+            <span style={{ fontSize: 11, color: "#1B1030aa", marginLeft: -9, marginBottom: 26 }}>™</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
