@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
+import { getFeaturedVenues } from "./featuredVenues.js";
 
 const CATEGORY_META = {
   nightlife: { icon: Moon, color: "#B23A72" },
@@ -176,6 +177,22 @@ export default function App() {
   const mapInstancesRef = useRef({});
   const resultsTopRef = useRef(null);
 
+  // Deep-linking: /?destination=Fort%20Lauderdale&days=4&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
+  // Pre-fills the form and auto-generates the itinerary, so buttons on other
+  // FunMaps pages can link straight into a ready-made trip for that city.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlDestination = params.get("destination");
+    if (!urlDestination) return;
+    const urlDays = params.get("days") ? parseInt(params.get("days"), 10) : days;
+    const urlInterests = params.get("interests") ? params.get("interests").split(",").map((s) => s.trim()).filter(Boolean) : [];
+    setDestination(urlDestination);
+    if (params.get("days")) setDays(urlDays);
+    if (urlInterests.length) setSelectedInterests(urlInterests);
+    planTrip(urlDestination, urlDays, urlInterests);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (itinerary) resultsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [itinerary]);
@@ -219,6 +236,9 @@ export default function App() {
       const targets = [];
       itinerary.cities.forEach((city) => {
         targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
+        city.featuredVenues?.forEach((v) => {
+          if (v.address) targets.push({ query: `${v.address}, ${city.name}`, name: v.name, category: "featured", cityName: city.name });
+        });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
             if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category, cityName: city.name });
@@ -279,15 +299,15 @@ export default function App() {
 
       pins.forEach((pin) => {
         const isCity = pin.category === "city";
-        const color = isCity ? "#9B2FA0" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
-        const size = isCity ? 32 : 24;
-        const icon = window.L.divIcon({
-          className: "",
-          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-        window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${pin.name}</strong>`).addTo(map._markersLayer);
+        const isFeatured = pin.category === "featured";
+        const color = isCity ? "#9B2FA0" : isFeatured ? "#D9662E" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
+        const size = isCity ? 32 : isFeatured ? 30 : 24;
+        const html = isFeatured
+          ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 8px rgba(217,102,46,0.8);display:flex;align-items:center;justify-content:center;color:white;font-size:${size * 0.55}px;line-height:1;">★</div>`
+          : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`;
+        const icon = window.L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+        const label = isFeatured ? `★ ${pin.name} (Featured Partner)` : pin.name;
+        window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${label}</strong>`).addTo(map._markersLayer);
       });
 
       const bounds = window.L.latLngBounds(pins.map((p) => [p.lat, p.lon]));
@@ -301,8 +321,11 @@ export default function App() {
     setShowTrips(true);
   }
 
-  async function planTrip() {
-    if (!destination.trim()) {
+  async function planTrip(destOverride, daysOverride, interestsOverride) {
+    const dest = destOverride !== undefined ? destOverride : destination;
+    const dayCount = daysOverride !== undefined ? daysOverride : days;
+    const interestsList = interestsOverride !== undefined ? interestsOverride : selectedInterests;
+    if (!dest.trim()) {
       setError("Tell me where you're headed first.");
       return;
     }
@@ -313,11 +336,14 @@ export default function App() {
     mapInstancesRef.current = {};
     setSaveStatus("");
     try {
-      const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
-      const prompt = `Destination(s): ${destination}\nTotal trip length: ${days} days\nInterests / notes: ${interestsStr}`;
+      const interestsStr = [interestsList.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
+      const prompt = `Destination(s): ${dest}\nTotal trip length: ${dayCount} days\nInterests / notes: ${interestsStr}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
+      parsed.cities?.forEach((city) => {
+        city.featuredVenues = getFeaturedVenues(city.name);
+      });
       setItinerary(parsed);
       setChat([]);
     } catch (e) {
@@ -369,7 +395,11 @@ export default function App() {
     const trips = readLocalTrips();
     const found = trips.find((t) => t.id === id);
     if (!found) return;
-    setItinerary(found.itinerary);
+    const itin = found.itinerary;
+    itin.cities?.forEach((city) => {
+      city.featuredVenues = getFeaturedVenues(city.name);
+    });
+    setItinerary(itin);
     setChat(found.chat || []);
     setDestination(found.destination || "");
     setShowTrips(false);
@@ -615,6 +645,38 @@ export default function App() {
                       {n.name} · {n.vibe}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {city.featuredVenues?.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, color: "#D9662E", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>★ FEATURED PARTNERS</p>
+                  <div style={{ background: "#241640", borderRadius: 14, padding: 16, border: "1px solid #D9662E40" }}>
+                    {city.featuredVenues.map((v, i) => (
+                      <div key={i} className="flex gap-3" style={{ padding: "10px 0", borderTop: i > 0 ? "1px solid #F5EFE612" : "none" }}>
+                        <VibeDot category={v.category} />
+                        <div style={{ flex: 1 }}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span style={{ fontWeight: 600, fontSize: 14.5 }}>{v.name}</span>
+                            <span style={{ background: "#D9662E22", color: "#D9662E", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>FEATURED PARTNER</span>
+                          </div>
+                          {v.note && <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginTop: 2 }}>{v.note}</p>}
+                          <div className="flex flex-wrap items-center gap-3 mt-1.5 no-print">
+                            {v.address && (
+                              <a href={directionsUrl(v.address, city.name)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#F5EFE688", fontSize: 12, textDecoration: "none" }}>
+                                <Navigation size={11} /> {v.address}
+                              </a>
+                            )}
+                            {v.website && (
+                              <a href={v.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#1C9C9C", fontSize: 12, textDecoration: "none" }}>
+                                <Globe size={11} /> Website
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
