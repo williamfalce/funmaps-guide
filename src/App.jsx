@@ -177,22 +177,6 @@ export default function App() {
   const mapInstancesRef = useRef({});
   const resultsTopRef = useRef(null);
 
-  // Deep-linking: /?destination=Fort%20Lauderdale&days=4&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
-  // Pre-fills the form and auto-generates the itinerary, so buttons on other
-  // FunMaps pages can link straight into a ready-made trip for that city.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlDestination = params.get("destination");
-    if (!urlDestination) return;
-    const urlDays = params.get("days") ? parseInt(params.get("days"), 10) : days;
-    const urlInterests = params.get("interests") ? params.get("interests").split(",").map((s) => s.trim()).filter(Boolean) : [];
-    setDestination(urlDestination);
-    if (params.get("days")) setDays(urlDays);
-    if (urlInterests.length) setSelectedInterests(urlInterests);
-    planTrip(urlDestination, urlDays, urlInterests);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     if (itinerary) resultsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [itinerary]);
@@ -321,11 +305,8 @@ export default function App() {
     setShowTrips(true);
   }
 
-  async function planTrip(destOverride, daysOverride, interestsOverride) {
-    const dest = destOverride !== undefined ? destOverride : destination;
-    const dayCount = daysOverride !== undefined ? daysOverride : days;
-    const interestsList = interestsOverride !== undefined ? interestsOverride : selectedInterests;
-    if (!dest.trim()) {
+  async function planTrip() {
+    if (!destination.trim()) {
       setError("Tell me where you're headed first.");
       return;
     }
@@ -336,8 +317,8 @@ export default function App() {
     mapInstancesRef.current = {};
     setSaveStatus("");
     try {
-      const interestsStr = [interestsList.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
-      const prompt = `Destination(s): ${dest}\nTotal trip length: ${dayCount} days\nInterests / notes: ${interestsStr}`;
+      const interestsStr = [selectedInterests.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
+      const prompt = `Destination(s): ${destination}\nTotal trip length: ${days} days\nInterests / notes: ${interestsStr}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
