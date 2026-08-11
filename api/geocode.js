@@ -3,15 +3,25 @@
 // User-Agent identifying the app — do not remove it or bulk-request without delay.
 // Policy: https://operations.osmfoundation.org/policies/nominatim/
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*"; // set to https://guide.funmaps.com (or your real domain) in Vercel env vars once ready
+
 module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   const q = req.query.q;
-  if (!q) {
-    res.status(400).json({ error: "Missing 'q' param" });
+  if (!q || q.length > 200) {
+    res.status(400).json({ error: "Missing or invalid 'q' param" });
     return;
   }
 

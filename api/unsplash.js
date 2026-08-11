@@ -2,15 +2,25 @@
 // Set UNSPLASH_ACCESS_KEY in your Vercel project's Environment Variables.
 // Get a free key at https://unsplash.com/developers (create an app, use its Access Key).
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*"; // set to https://guide.funmaps.com (or your real domain) in Vercel env vars once ready
+
 module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   if (req.method !== "GET") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
   const query = req.query.query;
-  if (!query) {
-    res.status(400).json({ error: "Missing 'query' param" });
+  if (!query || query.length > 200) {
+    res.status(400).json({ error: "Missing or invalid 'query' param" });
     return;
   }
 
