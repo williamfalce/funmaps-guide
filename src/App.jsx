@@ -528,7 +528,7 @@ export default function App() {
           </div>
           {error && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 10 }}>{error}</p>}
           <button
-            onClick={planTrip}
+            onClick={() => planTrip()}
             disabled={loading}
             className="mt-4 flex items-center justify-center gap-2"
             style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer" }}
