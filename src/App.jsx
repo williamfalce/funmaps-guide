@@ -415,7 +415,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ background: "#7D2950", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6" }}>
+    <div style={{ background: "#3D1428", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
         .display { font-family: 'Fraunces', serif; }
