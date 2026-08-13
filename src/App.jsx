@@ -120,7 +120,9 @@ const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for
     }
   ]
 }
-Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, address, or website, describe the type of place and use a neighborhood-level location instead of inventing details.`;
+Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, address, or website, describe the type of place and use a neighborhood-level location instead of inventing details.
+
+CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.`;
 
 const INTEREST_OPTIONS = [
   "LGBTQ+ nightlife",
@@ -413,7 +415,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ background: "#1B1030", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6" }}>
+    <div style={{ background: "#B23A72", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
         .display { font-family: 'Fraunces', serif; }
@@ -526,7 +528,7 @@ export default function App() {
               style={{ width: "100%", background: "#1B1030", borderRadius: 10, padding: "10px 14px", border: "none", outline: "none", color: "#F5EFE6", resize: "none" }}
             />
           </div>
-          {error && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 10 }}>{error}</p>}
+          {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
           <button
             onClick={() => planTrip()}
             disabled={loading}
@@ -631,7 +633,7 @@ export default function App() {
                   <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
                     <Stethoscope size={16} color="#B23A72" style={{ marginTop: 1, flexShrink: 0 }} />
                     <div>
-                      <p style={{ fontSize: 11, color: "#B23A72", fontWeight: 600, marginBottom: 2 }}>HEALTH & VACCINES</p>
+                      <p style={{ fontSize: 11, color: "#F5EFE6", fontWeight: 600, marginBottom: 2 }}>HEALTH & VACCINES</p>
                       <p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.healthTips} {city.vaccinesNote}</p>
                     </div>
                   </div>
@@ -641,7 +643,7 @@ export default function App() {
               {city.neighborhoods?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {city.neighborhoods.map((n, i) => (
-                    <span key={i} style={{ background: "#B23A7222", color: "#B23A72", fontSize: 12.5, padding: "5px 12px", borderRadius: 999 }}>
+                    <span key={i} style={{ background: "#B23A7222", color: "#F5EFE6", fontSize: 12.5, padding: "5px 12px", borderRadius: 999 }}>
                       {n.name} · {n.vibe}
                     </span>
                   ))}
@@ -777,7 +779,7 @@ export default function App() {
                 <button onClick={() => loadTrip(t.id)} style={{ background: "none", border: "none", color: "#F5EFE6", fontSize: 13.5, textAlign: "left", flex: 1, cursor: "pointer" }}>
                   {t.label}
                 </button>
-                <button onClick={() => deleteTrip(t.id)} style={{ background: "none", border: "none", color: "#B23A72", cursor: "pointer" }}>
+                <button onClick={() => deleteTrip(t.id)} style={{ background: "none", border: "none", color: "#F5EFE6", cursor: "pointer" }}>
                   <Trash2 size={14} />
                 </button>
               </div>
