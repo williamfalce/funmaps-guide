@@ -536,7 +536,7 @@ export default function App() {
             style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer" }}
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-            {loading ? "Mapping your trip..." : "Plan my trip"}
+            {loading ? "Please be patient. We are Mapping and creating a detailed itinerary of your trip..." : "Plan my trip"}
           </button>
         </div>
       </div>
