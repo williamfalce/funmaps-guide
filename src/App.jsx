@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck } from "lucide-react";
+import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
+import vintageCompass from "./assets/vintage-compass.png";
 import { getFeaturedVenues } from "./featuredVenues.js";
 
 const CATEGORY_META = {
@@ -453,13 +454,29 @@ export default function App() {
       </div>
 
       <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
-        <h1 className="display" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.15, marginBottom: 12 }}>
-          Your Queer <span style={{ color: "#9B2FA0" }}>Compass</span>, wherever you land.<sup style={{ fontSize: "0.4em" }}>™</sup>
-        </h1>
-        <p style={{ color: "#F5EFE6aa", fontSize: 16, maxWidth: 560, marginBottom: 24 }}>
-          One city or several — tell Compass where you're headed and it'll map out queer-friendly spots,
-          community spaces, and an honest read on the local vibe for each stop.
-        </p>
+        <div className="flex items-center gap-6 flex-wrap" style={{ marginBottom: 24 }}>
+          <img src={vintageCompass} alt="FunMaps Compass" style={{ width: 140, height: "auto", flexShrink: 0 }} />
+          <div style={{ flex: "1 1 320px" }}>
+            <h1 className="display" style={{ fontSize: 32, fontWeight: 600, lineHeight: 1.2, marginBottom: 14 }}>
+              <span style={{ color: "#E8B84B" }}>FunMaps Compass,</span>
+              <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>™</sup>
+              <br />
+              <span style={{ color: "#F5EFE6" }}>Your Guide to </span>
+              <span style={{ color: "#1C9C9C" }}>LGBTQ+ Friendly Adventures.</span>
+            </h1>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <span className="flex items-center gap-2" style={{ fontSize: 14.5, color: "#F5EFE6" }}>
+                <Camera size={17} color="#D9662E" /> <strong>Discover</strong>&nbsp;Amazing Places
+              </span>
+              <span className="flex items-center gap-2" style={{ fontSize: 14.5, color: "#F5EFE6" }}>
+                <Globe size={17} color="#1C9C9C" /> <strong>Book</strong>&nbsp;Everything Online
+              </span>
+              <span className="flex items-center gap-2" style={{ fontSize: 14.5, color: "#F5EFE6" }}>
+                <Smile size={17} color="#E8B84B" /> <strong>Experience</strong>&nbsp;Like a Local
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div style={{ background: "#241640", borderRadius: 16, padding: 24, border: "1px solid #B23A7220" }} className="no-print">
           <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr", display: "grid" }}>
