@@ -430,6 +430,10 @@ export default function App() {
           * { background: transparent !important; color: #1B1030 !important; box-shadow: none !important; border-color: #ddd !important; }
           body { background: #ffffff !important; }
         }
+
+        .qc-btn-dark:hover { background: #2A1B47 !important; }
+        .qc-btn-booking:hover { background: #00265E !important; }
+        .qc-btn-send:hover:not(:disabled) { background: #17847F !important; }
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
@@ -567,10 +571,10 @@ export default function App() {
                 {itinerary.cities?.map((c) => c.name).join(" → ")}
               </h2>
               <div className="flex gap-2 no-print">
-                <button onClick={saveTrip} className="flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600 }}>
+                <button onClick={saveTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
                   <Save size={13} /> {saveStatus === "saved" ? "Saved ✓" : "Save trip"}
                 </button>
-                <button onClick={printTrip} className="flex items-center gap-1.5" style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600 }}>
+                <button onClick={printTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
                   <Printer size={13} /> Print
                 </button>
               </div>
@@ -742,8 +746,8 @@ export default function App() {
                 href={bookingUrl(city.name)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 mt-2 no-print"
-                style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14 }}
+                className="qc-btn-booking flex items-center justify-center gap-2 mt-2 no-print"
+                style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14, transition: "background 0.15s ease" }}
               >
                 <span style={{ background: "#ffffff", color: "#003580", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 4, letterSpacing: -0.2 }}>
                   Booking.com
@@ -773,7 +777,7 @@ export default function App() {
                 placeholder="e.g. swap day 2 for something more low-key"
                 style={{ flex: 1, background: "#1B1030", border: "none", outline: "none", color: "#F5EFE6", padding: "10px 14px", borderRadius: 10 }}
               />
-              <button onClick={sendChat} disabled={chatLoading} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 10, padding: "0 16px" }}>
+              <button onClick={sendChat} disabled={chatLoading} className="qc-btn-send" style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 10, padding: "0 16px", cursor: "pointer", transition: "background 0.15s ease" }}>
                 {chatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </button>
             </div>
