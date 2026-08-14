@@ -743,8 +743,11 @@ export default function App() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 mt-2 no-print"
-                style={{ background: "#B23A72", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14 }}
+                style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14 }}
               >
+                <span style={{ background: "#ffffff", color: "#003580", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 4, letterSpacing: -0.2 }}>
+                  Booking.com
+                </span>
                 <Hotel size={16} /> Find LGBTQ+-friendly stays in {city.name}
               </a>
             </div>
