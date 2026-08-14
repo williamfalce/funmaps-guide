@@ -437,7 +437,7 @@ export default function App() {
         .qc-btn-orange:hover:not(:disabled) { background: #C1571F !important; }
 
         @media (max-width: 480px) {
-          .qc-header-logo { height: 64px !important; }
+          .qc-header-logo { height: 44px !important; }
         }
       `}</style>
 
@@ -445,7 +445,7 @@ export default function App() {
         <div className="flex items-center justify-between">
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
-              <img src={funmapsLogo} alt="FunMaps" className="qc-header-logo" style={{ height: 100, width: "auto", maxWidth: "100%" }} />
+              <img src={funmapsLogo} alt="FunMaps" className="qc-header-logo" style={{ height: 70, width: "auto", maxWidth: "100%" }} />
               <span style={{ fontSize: 16, color: "#F5EFE699", marginLeft: -6, marginBottom: 4 }}>™</span>
             </span>
           </div>
