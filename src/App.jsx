@@ -439,9 +439,6 @@ export default function App() {
               <img src={funmapsLogo} alt="FunMaps" style={{ height: 170, maxWidth: "100%" }} />
               <span style={{ fontSize: 28, color: "#F5EFE699", marginLeft: -23, marginBottom: 56 }}>™</span>
             </span>
-            <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
-              QUEER COMPASS TRAVEL GUIDE<sup style={{ fontSize: 10 }}>™</sup>
-            </p>
           </div>
           <button
             onClick={openTripsPanel}
@@ -453,7 +450,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: "24px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
+      <div style={{ padding: "8px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
         <div className="flex items-center gap-6 flex-wrap" style={{ marginBottom: 24 }}>
           <img src={vintageCompass} alt="FunMaps Compass" style={{ width: 140, height: "auto", flexShrink: 0 }} />
           <div style={{ flex: "1 1 320px" }}>
