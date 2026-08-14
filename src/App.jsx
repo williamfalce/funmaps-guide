@@ -436,7 +436,7 @@ export default function App() {
         <div className="flex items-start justify-between">
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
-              <img src={funmapsLogo} alt="FunMaps" style={{ height: 110 }} />
+              <img src={funmapsLogo} alt="FunMaps" style={{ height: 90, maxWidth: "100%" }} />
               <span style={{ fontSize: 15, color: "#F5EFE699", marginLeft: -14, marginBottom: 36 }}>™</span>
             </span>
             <p style={{ letterSpacing: 1.5, fontSize: 12, fontWeight: 600, color: "#F5EFE699", marginTop: 8 }}>
@@ -561,7 +561,7 @@ export default function App() {
       {itinerary && (
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
           <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
-            <img src={funmapsLogo} alt="FunMaps" style={{ height: 80 }} />
+            <img src={funmapsLogo} alt="FunMaps" style={{ height: 65, maxWidth: "100%" }} />
             <span style={{ fontSize: 11, color: "#1B1030aa", marginLeft: -9, marginBottom: 26 }}>™</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
