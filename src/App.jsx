@@ -434,6 +434,7 @@ export default function App() {
         .qc-btn-dark:hover { background: #2A1B47 !important; }
         .qc-btn-booking:hover { background: #00265E !important; }
         .qc-btn-send:hover:not(:disabled) { background: #17847F !important; }
+        .qc-btn-orange:hover:not(:disabled) { background: #C1571F !important; }
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
@@ -550,8 +551,8 @@ export default function App() {
           <button
             onClick={() => planTrip()}
             disabled={loading}
-            className="mt-4 flex items-center justify-center gap-2"
-            style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer" }}
+            className="qc-btn-orange mt-4 flex items-center justify-center gap-2"
+            style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer", transition: "background 0.15s ease" }}
           >
             {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
             {loading ? "Please be patient. We are Mapping and creating a detailed itinerary of your trip..." : "Plan my trip"}
