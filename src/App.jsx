@@ -458,8 +458,8 @@ export default function App() {
               <span style={{ color: "#E8B84B" }}>FunMaps Compass,</span>
               <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>™</sup>
               <br />
-              <span style={{ color: "#F5EFE6" }}>Your Guide to </span>
-              <span style={{ color: "#1C9C9C" }}>LGBTQ+ Friendly Adventures.</span>
+              <span style={{ color: "#F5EFE6", fontSize: 22 }}>Your Guide to </span>
+              <span style={{ color: "#1C9C9C", fontSize: 22 }}>LGBTQ+ Friendly Adventures.</span>
             </h1>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <span className="flex items-center gap-2" style={{ fontSize: 14.5, color: "#F5EFE6" }}>
