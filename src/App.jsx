@@ -433,7 +433,7 @@ export default function App() {
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
               <img src={funmapsLogo} alt="FunMaps" style={{ height: 170, maxWidth: "100%" }} />
@@ -443,7 +443,7 @@ export default function App() {
           <button
             onClick={openTripsPanel}
             className="flex items-center gap-1.5"
-            style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0, marginTop: 4 }}
+            style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
           >
             <FolderOpen size={14} /> My Trips
           </button>
