@@ -436,8 +436,8 @@ export default function App() {
         <div className="flex items-center justify-between">
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
-              <img src={funmapsLogo} alt="FunMaps" style={{ height: 170, maxWidth: "100%" }} />
-              <span style={{ fontSize: 28, color: "#F5EFE699", marginLeft: -23, marginBottom: 56 }}>™</span>
+              <img src={funmapsLogo} alt="FunMaps" style={{ height: 100, maxWidth: "100%" }} />
+              <span style={{ fontSize: 16, color: "#F5EFE699", marginLeft: -6, marginBottom: 4 }}>™</span>
             </span>
           </div>
           <button
@@ -450,7 +450,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: "8px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
+      <div style={{ padding: "4px 24px 32px", maxWidth: 880, margin: "0 auto" }} className="no-print">
         <div className="flex items-center gap-6 flex-wrap" style={{ marginBottom: 24 }}>
           <img src={vintageCompass} alt="FunMaps Compass" style={{ width: 140, height: "auto", flexShrink: 0 }} />
           <div style={{ flex: "1 1 320px" }}>
@@ -558,8 +558,8 @@ export default function App() {
       {itinerary && (
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
           <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
-            <img src={funmapsLogo} alt="FunMaps" style={{ height: 65, maxWidth: "100%" }} />
-            <span style={{ fontSize: 11, color: "#1B1030aa", marginLeft: -7, marginBottom: 21 }}>™</span>
+            <img src={funmapsLogo} alt="FunMaps" style={{ height: 55, maxWidth: "100%" }} />
+            <span style={{ fontSize: 9, color: "#1B1030aa", marginLeft: -3, marginBottom: 2 }}>™</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
