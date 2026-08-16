@@ -439,6 +439,9 @@ export default function App() {
         @media (max-width: 480px) {
           .qc-header-logo { height: 44px !important; }
         }
+
+        .qc-input-field:hover { background: #3D2A63 !important; }
+        .qc-input-field:focus-within { background: #3D2A63 !important; }
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
@@ -488,7 +491,7 @@ export default function App() {
           <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>DESTINATION(S)</label>
-              <div className="flex items-center gap-2 mt-1" style={{ background: "#3D2A63", borderRadius: 10, padding: "10px 14px" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <MapPin size={16} color="#B23A72" />
                 <input
                   value={destination}
@@ -500,7 +503,7 @@ export default function App() {
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>TOTAL DAYS</label>
-              <div className="flex items-center gap-2 mt-1" style={{ background: "#3D2A63", borderRadius: 10, padding: "10px 14px" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="number"
@@ -547,8 +550,8 @@ export default function App() {
               onChange={(e) => setExtraNotes(e.target.value)}
               placeholder="going with my partner, celebrating a birthday, prefer walkable areas..."
               rows={2}
-              className="mt-1"
-              style={{ width: "100%", background: "#3D2A63", borderRadius: 10, padding: "10px 14px", border: "none", outline: "none", color: "#F5EFE6", resize: "none" }}
+              className="qc-input-field mt-1"
+              style={{ width: "100%", background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", outline: "none", color: "#F5EFE6", resize: "none", transition: "background 0.15s ease" }}
             />
           </div>
           {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
@@ -780,7 +783,8 @@ export default function App() {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendChat()}
                 placeholder="e.g. swap day 2 for something more low-key"
-                style={{ flex: 1, background: "#1B1030", border: "none", outline: "none", color: "#F5EFE6", padding: "10px 14px", borderRadius: 10 }}
+                className="qc-input-field"
+                style={{ flex: 1, background: "#1B1030", border: "1px solid #F5EFE620", outline: "none", color: "#F5EFE6", padding: "10px 14px", borderRadius: 10, transition: "background 0.15s ease" }}
               />
               <button onClick={sendChat} disabled={chatLoading} className="qc-btn-send" style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 10, padding: "0 16px", cursor: "pointer", transition: "background 0.15s ease" }}>
                 {chatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
