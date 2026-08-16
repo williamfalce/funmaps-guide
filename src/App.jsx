@@ -12,6 +12,21 @@ const CATEGORY_META = {
   community: { icon: Heart, color: "#D9662E" },
 };
 
+function WaveText({ text }) {
+  return (
+    <span>
+      {text.split("").map((ch, i) => (
+        <span
+          key={i}
+          style={{ display: "inline-block", animation: "qc-letterwave 1.6s ease-in-out infinite", animationDelay: `${i * 0.035}s` }}
+        >
+          {ch === " " ? "\u00A0" : ch}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function VibeDot({ category }) {
   const meta = CATEGORY_META[category] || CATEGORY_META.culture;
   const Icon = meta.icon;
@@ -442,6 +457,11 @@ export default function App() {
 
         .qc-input-field:hover { background: #3D2A63 !important; }
         .qc-input-field:focus-within { background: #3D2A63 !important; }
+
+        @keyframes qc-letterwave {
+          0%, 100% { color: #1B1030; }
+          50% { color: #FFFFFF; }
+        }
       `}</style>
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
@@ -561,8 +581,8 @@ export default function App() {
             className="qc-btn-orange mt-4 flex items-center justify-center gap-2"
             style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer", transition: "background 0.15s ease" }}
           >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-            {loading ? "Please be patient. We are Mapping and creating a detailed itinerary of your trip..." : "Plan my trip"}
+            {!loading && <Sparkles size={18} />}
+            {loading ? <WaveText text="Please be patient. We are Mapping and creating a detailed itinerary of your trip..." /> : "Plan my trip"}
           </button>
         </div>
       </div>
