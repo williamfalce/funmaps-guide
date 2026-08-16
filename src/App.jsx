@@ -488,19 +488,19 @@ export default function App() {
           <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>DESTINATION(S)</label>
-              <div className="flex items-center gap-2 mt-1" style={{ background: "#1B1030", borderRadius: 10, padding: "10px 14px" }}>
+              <div className="flex items-center gap-2 mt-1" style={{ background: "#3D2A63", borderRadius: 10, padding: "10px 14px" }}>
                 <MapPin size={16} color="#B23A72" />
                 <input
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  placeholder="e.g. Bangkok then Chiang Mai, or just Lisbon"
+                  placeholder="e.g. Wilton Manors then Miami"
                   style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%" }}
                 />
               </div>
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>TOTAL DAYS</label>
-              <div className="flex items-center gap-2 mt-1" style={{ background: "#1B1030", borderRadius: 10, padding: "10px 14px" }}>
+              <div className="flex items-center gap-2 mt-1" style={{ background: "#3D2A63", borderRadius: 10, padding: "10px 14px" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="number"
@@ -548,7 +548,7 @@ export default function App() {
               placeholder="going with my partner, celebrating a birthday, prefer walkable areas..."
               rows={2}
               className="mt-1"
-              style={{ width: "100%", background: "#1B1030", borderRadius: 10, padding: "10px 14px", border: "none", outline: "none", color: "#F5EFE6", resize: "none" }}
+              style={{ width: "100%", background: "#3D2A63", borderRadius: 10, padding: "10px 14px", border: "none", outline: "none", color: "#F5EFE6", resize: "none" }}
             />
           </div>
           {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
