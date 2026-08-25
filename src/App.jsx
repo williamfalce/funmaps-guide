@@ -82,11 +82,26 @@ async function callClaude(messages, system, max_tokens) {
 const CJ_PID = import.meta.env.VITE_CJ_PID || "101859204";
 const CJ_AID = import.meta.env.VITE_CJ_AID || "17323532";
 
-function bookingUrl(cityName) {
-  const destination = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(cityName)}`;
+function bookingUrl(cityName, checkIn, checkOut) {
+  const params = new URLSearchParams({ ss: cityName });
+  if (checkIn) params.set("checkin", checkIn);
+  if (checkOut) params.set("checkout", checkOut);
+  const destination = `https://www.booking.com/searchresults.html?${params.toString()}`;
   if (!CJ_PID || !CJ_AID) return destination; // fallback if not configured
   const label = `compass-${cityName.toLowerCase().replace(/\s+/g, "-")}`;
   return `http://www.jdoqocy.com/click-${CJ_PID}-${CJ_AID}?url=${encodeURIComponent(destination)}&sid=${encodeURIComponent(label)}`;
+}
+
+function nightsBetween(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return null;
+  const d1 = new Date(checkIn + "T00:00:00");
+  const d2 = new Date(checkOut + "T00:00:00");
+  const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : null;
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function extractItineraryJson(text) {
@@ -172,7 +187,8 @@ function writeLocalTrips(trips) {
 
 export default function App() {
   const [destination, setDestination] = useState("");
-  const [days, setDays] = useState(4);
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
   const [selectedInterests, setSelectedInterests] = useState([]);
   const [extraNotes, setExtraNotes] = useState("");
 
@@ -197,19 +213,23 @@ export default function App() {
   const mapInstancesRef = useRef({});
   const resultsTopRef = useRef(null);
 
-  // Deep-linking: /?destination=Fort%20Lauderdale&days=4&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
+  // Deep-linking: /?destination=Fort%20Lauderdale&checkin=2026-11-10&checkout=2026-11-14&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
+  // Also still supports the older ?days=4 format (without dates) for any existing links already out there.
   // Pre-fills the form and auto-generates the itinerary, so buttons on other
   // FunMaps pages can link straight into a ready-made trip for that city.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlDestination = params.get("destination");
     if (!urlDestination) return;
-    const urlDays = params.get("days") ? parseInt(params.get("days"), 10) : days;
+    const urlCheckIn = params.get("checkin") || "";
+    const urlCheckOut = params.get("checkout") || "";
+    const legacyDays = params.get("days") ? parseInt(params.get("days"), 10) : null;
     const urlInterests = params.get("interests") ? params.get("interests").split(",").map((s) => s.trim()).filter(Boolean) : [];
     setDestination(urlDestination);
-    if (params.get("days")) setDays(urlDays);
+    if (urlCheckIn) setCheckIn(urlCheckIn);
+    if (urlCheckOut) setCheckOut(urlCheckOut);
     if (urlInterests.length) setSelectedInterests(urlInterests);
-    planTrip(urlDestination, urlDays, urlInterests);
+    planTrip(urlDestination, urlCheckIn, urlCheckOut, urlInterests, legacyDays);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -341,12 +361,20 @@ export default function App() {
     setShowTrips(true);
   }
 
-  async function planTrip(destOverride, daysOverride, interestsOverride) {
+  async function planTrip(destOverride, checkInOverride, checkOutOverride, interestsOverride, legacyDaysOverride) {
     const dest = destOverride !== undefined ? destOverride : destination;
-    const dayCount = daysOverride !== undefined ? daysOverride : days;
+    const ci = checkInOverride !== undefined ? checkInOverride : checkIn;
+    const co = checkOutOverride !== undefined ? checkOutOverride : checkOut;
     const interestsList = interestsOverride !== undefined ? interestsOverride : selectedInterests;
+    const legacyDays = legacyDaysOverride !== undefined ? legacyDaysOverride : null;
+
     if (!dest.trim()) {
       setError("Tell me where you're headed first.");
+      return;
+    }
+    const nights = nightsBetween(ci, co);
+    if (!nights && !legacyDays) {
+      setError("Pick your check-in and check-out dates.");
       return;
     }
     setError("");
@@ -356,8 +384,12 @@ export default function App() {
     mapInstancesRef.current = {};
     setSaveStatus("");
     try {
+      const dayCount = nights || legacyDays;
       const interestsStr = [interestsList.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
-      const prompt = `Destination(s): ${dest}\nTotal trip length: ${dayCount} days\nInterests / notes: ${interestsStr}`;
+      const dateLine = nights
+        ? `Travel dates: ${ci} to ${co} (${nights} day${nights === 1 ? "" : "s"}) — use these actual dates for seasonal/weather guidance.`
+        : `Total trip length: ${dayCount} days (no specific dates given).`;
+      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
@@ -455,6 +487,7 @@ export default function App() {
 
         @media (max-width: 480px) {
           .qc-header-logo { height: 44px !important; }
+          .qc-trip-grid { grid-template-columns: 1fr !important; }
         }
 
         .qc-input-field:hover { background: #3D2A63 !important; }
@@ -510,7 +543,7 @@ export default function App() {
         </div>
 
         <div style={{ background: "#241640", borderRadius: 16, padding: 24, border: "1px solid #B23A7220" }} className="no-print">
-          <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr", display: "grid" }}>
+          <div className="qc-trip-grid grid gap-4" style={{ gridTemplateColumns: "1.6fr 1fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>DESTINATION(S)</label>
               <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
@@ -524,20 +557,37 @@ export default function App() {
               </div>
             </div>
             <div>
-              <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>TOTAL DAYS</label>
+              <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-IN</label>
               <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
-                  type="number"
-                  min={1}
-                  max={21}
-                  value={days}
-                  onChange={(e) => setDays(Number(e.target.value))}
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%" }}
+                  type="date"
+                  value={checkIn}
+                  min={todayISO()}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%", colorScheme: "dark" }}
+                />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-OUT</label>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+                <Calendar size={16} color="#1C9C9C" />
+                <input
+                  type="date"
+                  value={checkOut}
+                  min={checkIn || todayISO()}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%", colorScheme: "dark" }}
                 />
               </div>
             </div>
           </div>
+          {nightsBetween(checkIn, checkOut) && (
+            <p style={{ fontSize: 12.5, color: "#F5EFE699", marginTop: 8 }}>
+              {nightsBetween(checkIn, checkOut)} day{nightsBetween(checkIn, checkOut) === 1 ? "" : "s"} trip
+            </p>
+          )}
           <div className="mt-4">
             <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>WHAT ARE YOU INTO? (optional, pick any)</label>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -773,7 +823,7 @@ export default function App() {
 
               {/* Booking.com affiliate button, via CJ deep link */}
               <a
-                href={bookingUrl(city.name)}
+                href={bookingUrl(city.name, checkIn, checkOut)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="qc-btn-booking flex items-center justify-center gap-2 mt-2 no-print"
