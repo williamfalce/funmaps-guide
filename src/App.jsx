@@ -76,15 +76,17 @@ async function callClaude(messages, system, max_tokens) {
   return (data.content || []).map((b) => b.text || "").join("\n");
 }
 
-const BOOKING_AID = import.meta.env.VITE_BOOKING_AID || "";
+// Booking.com affiliate link, routed through CJ (Commission Junction).
+// PID/AID identify your CJ account + this specific Booking.com program.
+// Format confirmed working: base click-tracking link + ?url=<destination>&sid=<label>
+const CJ_PID = import.meta.env.VITE_CJ_PID || "101859204";
+const CJ_AID = import.meta.env.VITE_CJ_AID || "17323532";
 
 function bookingUrl(cityName) {
-  const params = new URLSearchParams({ ss: cityName });
-  if (BOOKING_AID) {
-    params.set("aid", BOOKING_AID);
-    params.set("label", `compass-${cityName.toLowerCase().replace(/\s+/g, "-")}`);
-  }
-  return `https://www.booking.com/searchresults.html?${params.toString()}`;
+  const destination = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(cityName)}`;
+  if (!CJ_PID || !CJ_AID) return destination; // fallback if not configured
+  const label = `compass-${cityName.toLowerCase().replace(/\s+/g, "-")}`;
+  return `http://www.jdoqocy.com/click-${CJ_PID}-${CJ_AID}?url=${encodeURIComponent(destination)}&sid=${encodeURIComponent(label)}`;
 }
 
 function extractItineraryJson(text) {
@@ -769,7 +771,7 @@ export default function App() {
                 </div>
               ))}
 
-              {/* Monetization placeholder — replace href with your affiliate booking link per city */}
+              {/* Booking.com affiliate button, via CJ deep link */}
               <a
                 href={bookingUrl(city.name)}
                 target="_blank"
