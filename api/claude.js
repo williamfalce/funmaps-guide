@@ -6,7 +6,7 @@
 // embedding calls to your API and running up your bill on their traffic.
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*"; // set to https://guide.funmaps.com (or your real domain) in Vercel env vars once ready
 
-module.exports = async (req, res) => {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -68,4 +68,12 @@ module.exports = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Failed to reach Claude API" });
   }
-};
+}
+
+// Explicitly request the maximum function duration Vercel's Hobby plan allows
+// (60s) instead of relying on the default, which can be as low as 5-10s —
+// itinerary generation for longer/multi-city trips can genuinely take longer
+// than that default, causing the request to be killed mid-generation.
+handler.config = { maxDuration: 60 };
+
+module.exports = handler;

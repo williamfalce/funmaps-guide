@@ -104,6 +104,14 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+const MAX_TRIP_DAYS = 14; // longer trips risk timing out the itinerary generation
+
+function maxCheckoutISO(checkInDate) {
+  const base = checkInDate ? new Date(checkInDate + "T00:00:00") : new Date();
+  base.setDate(base.getDate() + MAX_TRIP_DAYS);
+  return base.toISOString().slice(0, 10);
+}
+
 function extractItineraryJson(text) {
   let clean = text.replace(/```json|```/g, "").trim();
   const start = clean.indexOf("{");
@@ -377,6 +385,10 @@ export default function App() {
       setError("Pick your check-in and check-out dates.");
       return;
     }
+    if (nights && nights > MAX_TRIP_DAYS) {
+      setError(`Trips longer than ${MAX_TRIP_DAYS} days can take too long to generate reliably — try splitting it into shorter date ranges.`);
+      return;
+    }
     setError("");
     setLoading(true);
     setItinerary(null);
@@ -577,6 +589,7 @@ export default function App() {
                   type="date"
                   value={checkOut}
                   min={checkIn || todayISO()}
+                  max={maxCheckoutISO(checkIn)}
                   onChange={(e) => setCheckOut(e.target.value)}
                   style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%", colorScheme: "dark" }}
                 />
@@ -586,6 +599,7 @@ export default function App() {
           {nightsBetween(checkIn, checkOut) && (
             <p style={{ fontSize: 12.5, color: "#F5EFE699", marginTop: 8 }}>
               {nightsBetween(checkIn, checkOut)} day{nightsBetween(checkIn, checkOut) === 1 ? "" : "s"} trip
+              {nightsBetween(checkIn, checkOut) > 10 && " — longer trips take a bit more time to generate"}
             </p>
           )}
           <div className="mt-4">
