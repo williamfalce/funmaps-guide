@@ -74,6 +74,6 @@ async function handler(req, res) {
 // (60s) instead of relying on the default, which can be as low as 5-10s —
 // itinerary generation for longer/multi-city trips can genuinely take longer
 // than that default, causing the request to be killed mid-generation.
-handler.config = { maxDuration: 60 };
+handler.config = { maxDuration: 300 };
 
 module.exports = handler;
