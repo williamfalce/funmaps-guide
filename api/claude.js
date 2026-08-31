@@ -34,7 +34,7 @@ async function handler(req, res) {
     res.status(413).json({ error: "Request too large" });
     return;
   }
-  const cappedTokens = Math.min(max_tokens || 4096, 8000);
+  const cappedTokens = Math.min(max_tokens || 4096, 16000);
 
   if (!process.env.ANTHROPIC_API_KEY) {
     res.status(500).json({ error: "ANTHROPIC_API_KEY is not configured on the server" });

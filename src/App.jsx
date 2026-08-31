@@ -104,7 +104,7 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-const MAX_TRIP_DAYS = 14; // longer trips risk timing out the itinerary generation
+const MAX_TRIP_DAYS = 10; // longer trips produce more content than fits in one response reliably
 
 function maxCheckoutISO(checkInDate) {
   const base = checkInDate ? new Date(checkInDate + "T00:00:00") : new Date();
@@ -402,7 +402,7 @@ export default function App() {
         ? `Travel dates: ${ci} to ${co} (${nights} day${nights === 1 ? "" : "s"}) — use these actual dates for seasonal/weather guidance.`
         : `Total trip length: ${dayCount} days (no specific dates given).`;
       const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}`;
-      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
+      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 16000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
       parsed.cities?.forEach((city) => {
