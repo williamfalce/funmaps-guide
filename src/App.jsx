@@ -600,9 +600,11 @@ export default function App() {
           {nightsBetween(checkIn, checkOut) && (
             <p style={{ fontSize: 12.5, color: "#F5EFE699", marginTop: 8 }}>
               {nightsBetween(checkIn, checkOut)} day{nightsBetween(checkIn, checkOut) === 1 ? "" : "s"} trip
-              {nightsBetween(checkIn, checkOut) > 10 && " — longer trips take a bit more time to generate"}
             </p>
           )}
+          <p style={{ fontSize: 12, color: "#F5EFE688", marginTop: 4 }}>
+            Planning something longer than {MAX_TRIP_DAYS} days? Plan it in {MAX_TRIP_DAYS}-day stretches — e.g. days 1–{MAX_TRIP_DAYS} first, then start a new plan for the days after that.
+          </p>
           <div className="mt-4">
             <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>WHAT ARE YOU INTO? (optional, pick any)</label>
             <div className="flex flex-wrap gap-2 mt-2">
