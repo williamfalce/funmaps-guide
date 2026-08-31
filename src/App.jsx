@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Component } from "react";
 import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
 import vintageCompass from "./assets/vintage-compass.png";
@@ -198,7 +198,7 @@ function writeLocalTrips(trips) {
   } catch {}
 }
 
-export default function App() {
+function CompassApp() {
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -494,6 +494,9 @@ export default function App() {
     itin.cities?.forEach((city) => {
       city.featuredVenues = getFeaturedVenues(city.name);
     });
+    Object.values(mapInstancesRef.current).forEach((map) => map.remove());
+    mapInstancesRef.current = {};
+    setMapPins([]);
     setItinerary(itin);
     setChat(found.chat || []);
     setDestination(found.destination || "");
@@ -966,5 +969,43 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    console.error("Compass crashed:", error, info); // check browser console (F12) for the real error
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ background: "#1B1030", minHeight: "100vh", color: "#F5EFE6", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center", fontFamily: "Inter, sans-serif" }}>
+          <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Something went wrong loading that trip.</p>
+          <p style={{ fontSize: 14, color: "#F5EFE699", marginBottom: 20 }}>Try refreshing the page — your saved trips are still safe.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 24px", borderRadius: 10, border: "none", cursor: "pointer" }}
+          >
+            Refresh
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <CompassApp />
+    </ErrorBoundary>
   );
 }
