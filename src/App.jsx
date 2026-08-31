@@ -104,6 +104,11 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatDate(iso) {
+  if (!iso) return "";
+  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 const MAX_TRIP_DAYS = 10; // longer trips produce more content than fits in one response reliably
 
 function maxCheckoutISO(checkInDate) {
@@ -214,6 +219,8 @@ export default function App() {
   const [showTrips, setShowTrips] = useState(false);
   const [savedTrips, setSavedTrips] = useState([]);
   const [saveStatus, setSaveStatus] = useState("");
+  const [segmentNumber, setSegmentNumber] = useState(1);
+  const [plannedDates, setPlannedDates] = useState({ checkIn: "", checkOut: "" });
   const [cityImages, setCityImages] = useState({});
   const [mapPins, setMapPins] = useState([]);
   const [geocodingProgress, setGeocodingProgress] = useState({});
@@ -431,6 +438,8 @@ export default function App() {
       });
       setItinerary(parsed);
       setChat([]);
+      setPlannedDates({ checkIn: ci, checkOut: co });
+      setSegmentNumber(avoidVenues && avoidVenues.length > 0 ? segmentNumber + 1 : 1);
     } catch (e) {
       console.error("planTrip failed:", e); // check browser console (F12) for the real underlying error if this keeps happening
       setError(
@@ -466,9 +475,11 @@ export default function App() {
 
   function saveTrip() {
     if (!itinerary) return;
-    const label = itinerary.cities?.map((c) => c.name).join(" + ") || destination;
+    const cityLabel = itinerary.cities?.map((c) => c.name).join(" + ") || destination;
+    const dateLabel = plannedDates.checkIn && plannedDates.checkOut ? ` (${formatDate(plannedDates.checkIn)} – ${formatDate(plannedDates.checkOut)})` : "";
+    const label = `${cityLabel}${dateLabel}`;
     const trips = readLocalTrips();
-    trips.push({ id: `${Date.now()}`, label, savedAt: Date.now(), itinerary, chat, destination });
+    trips.push({ id: `${Date.now()}`, label, savedAt: Date.now(), itinerary, chat, destination, plannedDates, segmentNumber });
     writeLocalTrips(trips);
     setSaveStatus("saved");
   }
@@ -488,6 +499,8 @@ export default function App() {
     setItinerary(itin);
     setChat(found.chat || []);
     setDestination(found.destination || "");
+    setPlannedDates(found.plannedDates || { checkIn: "", checkOut: "" });
+    setSegmentNumber(found.segmentNumber || 1);
     setShowTrips(false);
     setSaveStatus("");
   }
@@ -685,9 +698,17 @@ export default function App() {
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-              <h2 className="display" style={{ fontSize: 24 }}>
-                {itinerary.cities?.map((c) => c.name).join(" → ")}
-              </h2>
+              <div>
+                <h2 className="display" style={{ fontSize: 24 }}>
+                  {itinerary.cities?.map((c) => c.name).join(" → ")}
+                </h2>
+                {plannedDates.checkIn && plannedDates.checkOut && (
+                  <p style={{ fontSize: 13, color: "#D9662E", fontWeight: 600, marginTop: 2 }}>
+                    {segmentNumber > 1 ? `Segment ${segmentNumber}: ` : ""}
+                    {formatDate(plannedDates.checkIn)} – {formatDate(plannedDates.checkOut)}
+                  </p>
+                )}
+              </div>
               <div className="flex gap-2 no-print">
                 <button onClick={saveTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
                   <Save size={13} /> {saveStatus === "saved" ? "Saved ✓" : "Save trip"}
