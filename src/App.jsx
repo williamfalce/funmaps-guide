@@ -221,6 +221,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState("");
   const [segmentNumber, setSegmentNumber] = useState(1);
   const [plannedDates, setPlannedDates] = useState({ checkIn: "", checkOut: "" });
+  const [pendingAvoidVenues, setPendingAvoidVenues] = useState([]);
   const [cityImages, setCityImages] = useState({});
   const [mapPins, setMapPins] = useState([]);
   const [geocodingProgress, setGeocodingProgress] = useState({});
@@ -372,20 +373,17 @@ export default function App() {
   }, [mapPins]);
 
   function continueTrip(city) {
-    const tripLen = nightsBetween(checkIn, checkOut) || 1;
     const nextCheckInDate = new Date(checkOut + "T00:00:00"); // checkout day becomes next check-in
     const nextCheckIn = nextCheckInDate.toISOString().slice(0, 10);
-    const nextCheckOutDate = new Date(nextCheckIn + "T00:00:00");
-    nextCheckOutDate.setDate(nextCheckOutDate.getDate() + tripLen);
-    const nextCheckOut = nextCheckOutDate.toISOString().slice(0, 10);
 
     const avoidVenues = [];
     city.itinerary?.forEach((d) => d.activities?.forEach((a) => a.name && avoidVenues.push(a.name)));
 
     setDestination(city.name);
     setCheckIn(nextCheckIn);
-    setCheckOut(nextCheckOut);
-    planTrip(city.name, nextCheckIn, nextCheckOut, selectedInterests, null, avoidVenues);
+    setCheckOut(""); // left blank — traveler picks how many more days they want
+    setPendingAvoidVenues(avoidVenues);
+    window.scrollTo({ top: 0, behavior: "smooth" }); // bring them back to the form to pick check-out
   }
 
   function openTripsPanel() {
@@ -631,6 +629,11 @@ export default function App() {
               </div>
             </div>
           </div>
+          {pendingAvoidVenues.length > 0 && (
+            <p style={{ fontSize: 12.5, color: "#D9662E", fontWeight: 600, marginTop: 8 }}>
+              Continuing your trip — check-in is set to right after your last stretch. Pick a check-out date for how many more days you want, then hit Plan my trip.
+            </p>
+          )}
           {nightsBetween(checkIn, checkOut) && (
             <p style={{ fontSize: 12.5, color: "#F5EFE699", marginTop: 8 }}>
               {nightsBetween(checkIn, checkOut)} day{nightsBetween(checkIn, checkOut) === 1 ? "" : "s"} trip
@@ -679,7 +682,10 @@ export default function App() {
           </div>
           {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
           <button
-            onClick={() => planTrip()}
+            onClick={() => {
+              planTrip(undefined, undefined, undefined, undefined, undefined, pendingAvoidVenues);
+              setPendingAvoidVenues([]);
+            }}
             disabled={loading}
             className="qc-btn-orange mt-4 flex items-center justify-center gap-2"
             style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer", transition: "background 0.15s ease" }}
