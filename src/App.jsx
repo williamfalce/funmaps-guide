@@ -402,7 +402,7 @@ export default function App() {
         ? `Travel dates: ${ci} to ${co} (${nights} day${nights === 1 ? "" : "s"}) — use these actual dates for seasonal/weather guidance.`
         : `Total trip length: ${dayCount} days (no specific dates given).`;
       const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}`;
-      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 16000);
+      const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
       parsed.cities?.forEach((city) => {
@@ -411,6 +411,7 @@ export default function App() {
       setItinerary(parsed);
       setChat([]);
     } catch (e) {
+      console.error("planTrip failed:", e); // check browser console (F12) for the real underlying error if this keeps happening
       setError(
         e.message?.includes("cut off")
           ? "That itinerary got too long to finish generating — try fewer days, fewer cities, or fewer interest tags at once."
