@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Component } from "react";
-import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight } from "lucide-react";
+import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight, Share2, Download } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
 import vintageCompass from "./assets/vintage-compass.png";
 import { getFeaturedVenues } from "./featuredVenues.js";
@@ -486,6 +486,58 @@ function CompassApp() {
     window.print();
   }
 
+  function buildShareText() {
+    if (!itinerary) return "";
+    const lines = [];
+    const cityNames = itinerary.cities?.map((c) => c.name).join(" → ") || destination;
+    lines.push(`✈️ ${cityNames} — Queer Compass Travel Guide`);
+    if (plannedDates.checkIn && plannedDates.checkOut) {
+      lines.push(`${segmentNumber > 1 ? `Segment ${segmentNumber}: ` : ""}${formatDate(plannedDates.checkIn)} – ${formatDate(plannedDates.checkOut)}`);
+    }
+    lines.push("");
+    lines.push(itinerary.summary || "");
+    itinerary.cities?.forEach((city) => {
+      lines.push("");
+      lines.push(`📍 ${city.name} (${city.days} day${city.days === 1 ? "" : "s"})`);
+      city.itinerary?.forEach((d) => {
+        lines.push(`Day ${d.day} — ${d.title}`);
+        d.activities?.forEach((a) => {
+          lines.push(`  ${a.time} · ${a.name}`);
+        });
+      });
+    });
+    lines.push("");
+    lines.push("Plan your own trip: https://funmaps-guide-lemon.vercel.app/");
+    return lines.join("\n");
+  }
+
+  async function shareTrip() {
+    const text = buildShareText();
+    try {
+      await navigator.share({
+        title: `${itinerary.cities?.map((c) => c.name).join(" + ")} — Queer Compass Trip`,
+        text,
+      });
+    } catch (e) {
+      // AbortError just means the person closed the share sheet without picking anything — not a real error
+      if (e.name !== "AbortError") console.error("Share failed:", e);
+    }
+  }
+
+  function downloadTrip() {
+    const text = buildShareText();
+    const cityLabel = itinerary.cities?.map((c) => c.name).join("-").toLowerCase().replace(/\s+/g, "-") || "trip";
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${cityLabel}-itinerary.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function loadTrip(id) {
     const trips = readLocalTrips();
     const found = trips.find((t) => t.id === id);
@@ -718,12 +770,20 @@ function CompassApp() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 no-print">
+              <div className="flex gap-2 flex-wrap no-print">
                 <button onClick={saveTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
                   <Save size={13} /> {saveStatus === "saved" ? "Saved ✓" : "Save trip"}
                 </button>
                 <button onClick={printTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
                   <Printer size={13} /> Print
+                </button>
+                {typeof navigator !== "undefined" && navigator.share && (
+                  <button onClick={shareTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#D9662E", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+                    <Share2 size={13} /> Share
+                  </button>
+                )}
+                <button onClick={downloadTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+                  <Download size={13} /> Download
                 </button>
               </div>
             </div>
