@@ -590,6 +590,11 @@ function CompassApp() {
           .qc-trip-grid { grid-template-columns: 1fr !important; }
         }
 
+        @media (max-width: 900px) {
+          .qc-itin-header { flex-direction: column !important; align-items: flex-start !important; }
+          .qc-itin-actions { width: 100% !important; }
+        }
+
         .qc-input-field:hover { background: #3D2A63 !important; }
         .qc-input-field:focus-within { background: #3D2A63 !important; }
 
@@ -758,7 +763,7 @@ function CompassApp() {
             <span style={{ fontSize: 9, color: "#1B1030aa", marginLeft: -3, marginBottom: 2 }}>™</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div className="qc-itin-header flex items-center justify-between gap-3 mb-2">
               <div>
                 <h2 className="display" style={{ fontSize: 24 }}>
                   {itinerary.cities?.map((c) => c.name).join(" → ")}
@@ -770,19 +775,19 @@ function CompassApp() {
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 flex-wrap no-print">
-                <button onClick={saveTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+              <div className="qc-itin-actions flex gap-2 flex-wrap no-print" style={{ flexShrink: 0 }}>
+                <button onClick={saveTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease", flexShrink: 0, whiteSpace: "nowrap" }}>
                   <Save size={13} /> {saveStatus === "saved" ? "Saved ✓" : "Save trip"}
                 </button>
-                <button onClick={printTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+                <button onClick={printTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease", flexShrink: 0, whiteSpace: "nowrap" }}>
                   <Printer size={13} /> Print
                 </button>
                 {typeof navigator !== "undefined" && navigator.share && (
-                  <button onClick={shareTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#D9662E", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+                  <button onClick={shareTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#D9662E", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease", flexShrink: 0, whiteSpace: "nowrap" }}>
                     <Share2 size={13} /> Share
                   </button>
                 )}
-                <button onClick={downloadTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease" }}>
+                <button onClick={downloadTrip} className="qc-btn-dark flex items-center gap-1.5" style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", transition: "background 0.15s ease", flexShrink: 0, whiteSpace: "nowrap" }}>
                   <Download size={13} /> Download
                 </button>
               </div>
