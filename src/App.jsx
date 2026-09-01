@@ -92,6 +92,20 @@ function bookingUrl(cityName, checkIn, checkOut) {
   return `http://www.jdoqocy.com/click-${CJ_PID}-${CJ_AID}?url=${encodeURIComponent(destination)}&sid=${encodeURIComponent(label)}`;
 }
 
+function cjWrap(destination, label) {
+  if (!CJ_PID || !CJ_AID) return destination; // fallback if not configured
+  return `http://www.jdoqocy.com/click-${CJ_PID}-${CJ_AID}?url=${encodeURIComponent(destination)}&sid=${encodeURIComponent(label)}`;
+}
+
+function flightsUrl() {
+  return cjWrap("https://www.booking.com/flights/index.html", "compass-flights");
+}
+
+function attractionsUrl(cityName) {
+  const label = `compass-attractions-${cityName.toLowerCase().replace(/\s+/g, "-")}`;
+  return cjWrap("https://www.booking.com/attractions/index.html", label);
+}
+
 function nightsBetween(checkIn, checkOut) {
   if (!checkIn || !checkOut) return null;
   const d1 = new Date(checkIn + "T00:00:00");
@@ -821,6 +835,18 @@ function CompassApp() {
               </div>
             </div>
             <p style={{ color: "#F5EFE6cc", fontSize: 15 }}>{itinerary.summary}</p>
+            <a
+              href={flightsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="qc-btn-booking flex items-center justify-center gap-2 mt-3 no-print"
+              style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "10px 0", borderRadius: 10, textDecoration: "none", fontSize: 13.5, transition: "background 0.15s ease" }}
+            >
+              <span style={{ background: "#ffffff", color: "#003580", fontWeight: 700, fontSize: 11, padding: "2px 7px", borderRadius: 4, letterSpacing: -0.2 }}>
+                Booking.com
+              </span>
+              <Plane size={15} /> Find Flights
+            </a>
           </div>
 
           {itinerary.cities?.map((city, ci) => (
@@ -991,6 +1017,19 @@ function CompassApp() {
                   Booking.com
                 </span>
                 <Hotel size={16} /> Find LGBTQ+-friendly stays in {city.name}
+              </a>
+
+              <a
+                href={attractionsUrl(city.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="qc-btn-booking flex items-center justify-center gap-2 mt-2 no-print"
+                style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14, transition: "background 0.15s ease" }}
+              >
+                <span style={{ background: "#ffffff", color: "#003580", fontWeight: 700, fontSize: 12, padding: "2px 8px", borderRadius: 4, letterSpacing: -0.2 }}>
+                  Booking.com
+                </span>
+                <Sparkles size={16} /> Find Attractions & Activities in {city.name}
               </a>
 
               {checkIn && checkOut && (
