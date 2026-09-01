@@ -103,7 +103,8 @@ function flightsUrl() {
 
 function attractionsUrl(cityName) {
   const label = `compass-attractions-${cityName.toLowerCase().replace(/\s+/g, "-")}`;
-  return cjWrap("https://www.booking.com/attractions/index.html", label);
+  const destination = `https://www.booking.com/attractions/index.html?ss=${encodeURIComponent(cityName)}`;
+  return cjWrap(destination, label);
 }
 
 function nightsBetween(checkIn, checkOut) {
