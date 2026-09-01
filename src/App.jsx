@@ -773,7 +773,7 @@ function CompassApp() {
                   value={checkIn}
                   min={todayISO()}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%", colorScheme: "light" }}
+                  style={{ background: "transparent", border: "none", outline: "none", color: checkIn ? "#1B1030" : "#6B6B6B", width: "100%", colorScheme: "light" }}
                 />
               </div>
             </div>
@@ -787,7 +787,7 @@ function CompassApp() {
                   min={checkIn || todayISO()}
                   max={maxCheckoutISO(checkIn)}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%", colorScheme: "light" }}
+                  style={{ background: "transparent", border: "none", outline: "none", color: checkOut ? "#1B1030" : "#6B6B6B", width: "100%", colorScheme: "light" }}
                 />
               </div>
             </div>
