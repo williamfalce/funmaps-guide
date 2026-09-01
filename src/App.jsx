@@ -130,6 +130,17 @@ function nightsBetween(checkIn, checkOut) {
   return diff > 0 ? diff : null;
 }
 
+function safeDestroyAllMaps(mapInstancesRef) {
+  Object.values(mapInstancesRef.current).forEach((map) => {
+    try {
+      map.remove();
+    } catch (e) {
+      console.error("Map cleanup failed (non-fatal):", e);
+    }
+  });
+  mapInstancesRef.current = {};
+}
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -261,6 +272,7 @@ function CompassApp() {
   const [segmentNumber, setSegmentNumber] = useState(1);
   const [plannedDates, setPlannedDates] = useState({ checkIn: "", checkOut: "" });
   const [pendingAvoidVenues, setPendingAvoidVenues] = useState([]);
+  const [tripLoadId, setTripLoadId] = useState(0);
   const [cityImages, setCityImages] = useState({});
   const [mapPins, setMapPins] = useState([]);
   const [geocodingProgress, setGeocodingProgress] = useState({});
@@ -375,39 +387,43 @@ function CompassApp() {
     });
 
     Object.keys(pinsByCity).forEach((cityName) => {
-      const container = mapContainerRefs.current[cityName];
-      const pins = pinsByCity[cityName];
-      if (!container || pins.length === 0) return;
+      try {
+        const container = mapContainerRefs.current[cityName];
+        const pins = pinsByCity[cityName];
+        if (!container || !container.isConnected || pins.length === 0) return;
 
-      if (!mapInstancesRef.current[cityName]) {
-        const map = window.L.map(container);
-        window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 19,
-        }).addTo(map);
-        map._markersLayer = window.L.layerGroup().addTo(map);
-        mapInstancesRef.current[cityName] = map;
+        if (!mapInstancesRef.current[cityName]) {
+          const map = window.L.map(container);
+          window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+          }).addTo(map);
+          map._markersLayer = window.L.layerGroup().addTo(map);
+          mapInstancesRef.current[cityName] = map;
+        }
+
+        const map = mapInstancesRef.current[cityName];
+        map._markersLayer.clearLayers();
+
+        pins.forEach((pin) => {
+          const isCity = pin.category === "city";
+          const isFeatured = pin.category === "featured";
+          const color = isCity ? "#9B2FA0" : isFeatured ? "#D9662E" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
+          const size = isCity ? 32 : isFeatured ? 30 : 24;
+          const html = isFeatured
+            ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 8px rgba(217,102,46,0.8);display:flex;align-items:center;justify-content:center;color:white;font-size:${size * 0.55}px;line-height:1;">★</div>`
+            : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`;
+          const icon = window.L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+          const label = isFeatured ? `★ ${pin.name} (Featured Partner)` : pin.name;
+          window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${label}</strong>`).addTo(map._markersLayer);
+        });
+
+        const bounds = window.L.latLngBounds(pins.map((p) => [p.lat, p.lon]));
+        map.fitBounds(bounds, { padding: [30, 30] });
+        setTimeout(() => map.invalidateSize(), 0);
+      } catch (e) {
+        console.error(`Map render failed for ${cityName} (non-fatal):`, e);
       }
-
-      const map = mapInstancesRef.current[cityName];
-      map._markersLayer.clearLayers();
-
-      pins.forEach((pin) => {
-        const isCity = pin.category === "city";
-        const isFeatured = pin.category === "featured";
-        const color = isCity ? "#9B2FA0" : isFeatured ? "#D9662E" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
-        const size = isCity ? 32 : isFeatured ? 30 : 24;
-        const html = isFeatured
-          ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 8px rgba(217,102,46,0.8);display:flex;align-items:center;justify-content:center;color:white;font-size:${size * 0.55}px;line-height:1;">★</div>`
-          : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`;
-        const icon = window.L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
-        const label = isFeatured ? `★ ${pin.name} (Featured Partner)` : pin.name;
-        window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${label}</strong>`).addTo(map._markersLayer);
-      });
-
-      const bounds = window.L.latLngBounds(pins.map((p) => [p.lat, p.lon]));
-      map.fitBounds(bounds, { padding: [30, 30] });
-      setTimeout(() => map.invalidateSize(), 0);
     });
   }, [mapPins]);
 
@@ -453,8 +469,7 @@ function CompassApp() {
     setError("");
     setLoading(true);
     setItinerary(null);
-    Object.values(mapInstancesRef.current).forEach((map) => map.remove());
-    mapInstancesRef.current = {};
+    safeDestroyAllMaps(mapInstancesRef);
     setSaveStatus("");
     try {
       const dayCount = nights || legacyDays;
@@ -474,6 +489,7 @@ function CompassApp() {
         city.featuredVenues = getFeaturedVenues(city.name);
       });
       setItinerary(parsed);
+      setTripLoadId((id) => id + 1);
       setChat([]);
       setPlannedDates({ checkIn: ci, checkOut: co });
       setSegmentNumber(avoidVenues && avoidVenues.length > 0 ? segmentNumber + 1 : 1);
@@ -504,10 +520,10 @@ function CompassApp() {
         updated.cities.forEach((city) => {
           city.featuredVenues = getFeaturedVenues(city.name);
         });
-        Object.values(mapInstancesRef.current).forEach((map) => map.remove());
-        mapInstancesRef.current = {};
+        safeDestroyAllMaps(mapInstancesRef);
         setMapPins([]);
         setItinerary(updated);
+        setTripLoadId((id) => id + 1);
         setChat([...nextChat, { role: "assistant", content: "Done — updated your itinerary above with that change." }]);
       } else {
         // Fall back to a plain conversational reply if the structured update didn't come back cleanly
@@ -599,10 +615,10 @@ function CompassApp() {
     itin.cities?.forEach((city) => {
       city.featuredVenues = getFeaturedVenues(city.name);
     });
-    Object.values(mapInstancesRef.current).forEach((map) => map.remove());
-    mapInstancesRef.current = {};
+    safeDestroyAllMaps(mapInstancesRef);
     setMapPins([]);
     setItinerary(itin);
+    setTripLoadId((id) => id + 1);
     setChat(found.chat || []);
     setDestination(found.destination || "");
     setPlannedDates(found.plannedDates || { checkIn: "", checkOut: "" });
@@ -866,7 +882,7 @@ function CompassApp() {
           </div>
 
           {itinerary.cities?.map((city, ci) => (
-            <div key={ci} style={{ marginBottom: 28 }}>
+            <div key={`${tripLoadId}-${ci}`} style={{ marginBottom: 28 }}>
               {cityImages[city.name] && (
                 <div className="no-print" style={{ position: "relative", borderRadius: 14, overflow: "hidden", marginBottom: 12, height: 200 }}>
                   <img src={cityImages[city.name].url} alt={city.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
