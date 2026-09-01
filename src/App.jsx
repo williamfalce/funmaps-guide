@@ -668,7 +668,7 @@ function CompassApp() {
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
         .display { font-family: 'Fraunces', serif; }
         input, textarea { font-family: 'Inter', sans-serif; }
-        ::placeholder { color: #1B1030EE; }
+        ::placeholder { color: #1B1030EE !important; opacity: 1 !important; }
 
         @media print {
           .no-print { display: none !important; }
