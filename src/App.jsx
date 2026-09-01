@@ -593,6 +593,7 @@ function CompassApp() {
 
         @media (min-width: 481px) and (max-width: 700px) {
           .qc-info-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
 
         @media (max-width: 900px) {
           .qc-itin-header { flex-direction: column !important; align-items: flex-start !important; }
