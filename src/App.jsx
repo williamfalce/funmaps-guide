@@ -110,6 +110,7 @@ const ATTRACTIONS_CITY_SLUGS = {
   "fort lauderdale": { country: "us", slug: "fort-lauderdale" },
   "new york": { country: "us", slug: "new-york" },
   atlanta: { country: "us", slug: "atlanta" },
+  "wilton manors": { country: "us", slug: "fort-lauderdale" }, // Wilton Manors doesn't have a confirmed dedicated Attractions page; routed to Fort Lauderdale since it's part of that metro area
 };
 
 function attractionsUrl(cityName) {
