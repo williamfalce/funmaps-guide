@@ -570,7 +570,7 @@ function CompassApp() {
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
         .display { font-family: 'Fraunces', serif; }
         input, textarea { font-family: 'Inter', sans-serif; }
-        ::placeholder { color: #F5EFE688; }
+        ::placeholder { color: #1B103088; }
 
         @media print {
           .no-print { display: none !important; }
@@ -595,8 +595,8 @@ function CompassApp() {
           .qc-itin-actions { width: 100% !important; }
         }
 
-        .qc-input-field:hover { background: #3D2A63 !important; }
-        .qc-input-field:focus-within { background: #3D2A63 !important; }
+        .qc-input-field:hover { background: #FFFFFF !important; }
+        .qc-input-field:focus-within { background: #FFFFFF !important; }
 
         @keyframes qc-letterwave {
           0%, 100% { color: #1B1030; }
@@ -651,32 +651,32 @@ function CompassApp() {
           <div className="qc-trip-grid grid gap-4" style={{ gridTemplateColumns: "1.6fr 1fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>DESTINATION(S)</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#F5EFE6", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <MapPin size={16} color="#B23A72" />
                 <input
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   placeholder="e.g. Wilton Manors then Miami"
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%" }}
+                  style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%" }}
                 />
               </div>
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-IN</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#F5EFE6", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="date"
                   value={checkIn}
                   min={todayISO()}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%", colorScheme: "dark" }}
+                  style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%", colorScheme: "light" }}
                 />
               </div>
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-OUT</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#F5EFE6", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="date"
@@ -684,7 +684,7 @@ function CompassApp() {
                   min={checkIn || todayISO()}
                   max={maxCheckoutISO(checkIn)}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  style={{ background: "transparent", border: "none", outline: "none", color: "#F5EFE6", width: "100%", colorScheme: "dark" }}
+                  style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%", colorScheme: "light" }}
                 />
               </div>
             </div>
@@ -737,7 +737,7 @@ function CompassApp() {
               placeholder="going with my partner, celebrating a birthday, prefer walkable areas..."
               rows={2}
               className="qc-input-field mt-1"
-              style={{ width: "100%", background: "#1B1030", border: "1px solid #F5EFE620", borderRadius: 10, padding: "10px 14px", outline: "none", color: "#F5EFE6", resize: "none", transition: "background 0.15s ease" }}
+              style={{ width: "100%", background: "#F5EFE6", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", outline: "none", color: "#1B1030", resize: "none", transition: "background 0.15s ease" }}
             />
           </div>
           {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
@@ -1000,7 +1000,7 @@ function CompassApp() {
                 onKeyDown={(e) => e.key === "Enter" && sendChat()}
                 placeholder="e.g. swap day 2 for something more low-key"
                 className="qc-input-field"
-                style={{ flex: 1, background: "#1B1030", border: "1px solid #F5EFE620", outline: "none", color: "#F5EFE6", padding: "10px 14px", borderRadius: 10, transition: "background 0.15s ease" }}
+                style={{ flex: 1, background: "#F5EFE6", border: "1px solid #1B103015", outline: "none", color: "#1B1030", padding: "10px 14px", borderRadius: 10, transition: "background 0.15s ease" }}
               />
               <button onClick={sendChat} disabled={chatLoading} className="qc-btn-send" style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 10, padding: "0 16px", cursor: "pointer", transition: "background 0.15s ease" }}>
                 {chatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
