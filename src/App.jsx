@@ -588,7 +588,11 @@ function CompassApp() {
         @media (max-width: 480px) {
           .qc-header-logo { height: 44px !important; }
           .qc-trip-grid { grid-template-columns: 1fr !important; }
+          .qc-info-grid { grid-template-columns: 1fr !important; }
         }
+
+        @media (min-width: 481px) and (max-width: 700px) {
+          .qc-info-grid { grid-template-columns: repeat(2, 1fr) !important; }
 
         @media (max-width: 900px) {
           .qc-itin-header { flex-direction: column !important; align-items: flex-start !important; }
@@ -835,41 +839,38 @@ function CompassApp() {
                 <p style={{ fontSize: 13.5, color: "#F5EFE6dd" }}>{city.safetyOverview}</p>
               </div>
 
-              <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", display: "grid" }}>
-                {city.weather && (
-                  <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
-                    <CloudSun size={16} color="#F2984A" style={{ marginTop: 1, flexShrink: 0 }} />
-                    <div><p style={{ fontSize: 11, color: "#F2984A", fontWeight: 600, marginBottom: 2 }}>WEATHER</p><p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.weather}</p></div>
+              {(() => {
+                const infoCards = [
+                  city.weather && { key: "weather", icon: CloudSun, color: "#F2984A", label: "WEATHER", value: city.weather },
+                  city.airport && { key: "airport", icon: Plane, color: "#9B2FA0", label: "AIRPORT", value: city.airport },
+                  city.transportation && { key: "transport", icon: Bus, color: "#1C9C9C", label: "GETTING AROUND", value: city.transportation },
+                  city.currency && { key: "currency", icon: DollarSign, color: "#D9662E", label: "CURRENCY", value: city.currency },
+                  (city.healthTips || city.vaccinesNote) && { key: "health", icon: Stethoscope, color: "#B23A72", labelColor: "#F5EFE6", label: "HEALTH & VACCINES", value: `${city.healthTips || ""} ${city.vaccinesNote || ""}`.trim() },
+                ].filter(Boolean);
+                const COLS = 3;
+                const lonelyLast = infoCards.length % COLS === 1;
+                return (
+                  <div className="qc-info-grid grid gap-2 mb-4" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)`, display: "grid" }}>
+                    {infoCards.map((card, i) => {
+                      const Icon = card.icon;
+                      const isLast = i === infoCards.length - 1;
+                      return (
+                        <div
+                          key={card.key}
+                          className="flex items-start gap-2"
+                          style={{ background: "#241640", padding: 12, borderRadius: 10, gridColumn: isLast && lonelyLast ? "1 / -1" : undefined }}
+                        >
+                          <Icon size={16} color={card.color} style={{ marginTop: 1, flexShrink: 0 }} />
+                          <div>
+                            <p style={{ fontSize: 11, color: card.labelColor || card.color, fontWeight: 600, marginBottom: 2 }}>{card.label}</p>
+                            <p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{card.value}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-                {city.airport && (
-                  <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
-                    <Plane size={16} color="#9B2FA0" style={{ marginTop: 1, flexShrink: 0 }} />
-                    <div><p style={{ fontSize: 11, color: "#9B2FA0", fontWeight: 600, marginBottom: 2 }}>AIRPORT</p><p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.airport}</p></div>
-                  </div>
-                )}
-                {city.transportation && (
-                  <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
-                    <Bus size={16} color="#1C9C9C" style={{ marginTop: 1, flexShrink: 0 }} />
-                    <div><p style={{ fontSize: 11, color: "#1C9C9C", fontWeight: 600, marginBottom: 2 }}>GETTING AROUND</p><p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.transportation}</p></div>
-                  </div>
-                )}
-                {city.currency && (
-                  <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
-                    <DollarSign size={16} color="#D9662E" style={{ marginTop: 1, flexShrink: 0 }} />
-                    <div><p style={{ fontSize: 11, color: "#D9662E", fontWeight: 600, marginBottom: 2 }}>CURRENCY</p><p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.currency}</p></div>
-                  </div>
-                )}
-                {(city.healthTips || city.vaccinesNote) && (
-                  <div className="flex items-start gap-2" style={{ background: "#241640", padding: 12, borderRadius: 10 }}>
-                    <Stethoscope size={16} color="#B23A72" style={{ marginTop: 1, flexShrink: 0 }} />
-                    <div>
-                      <p style={{ fontSize: 11, color: "#F5EFE6", fontWeight: 600, marginBottom: 2 }}>HEALTH & VACCINES</p>
-                      <p style={{ fontSize: 12.5, color: "#F5EFE6bb" }}>{city.healthTips} {city.vaccinesNote}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               {city.neighborhoods?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
