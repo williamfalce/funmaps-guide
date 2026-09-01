@@ -595,8 +595,8 @@ function CompassApp() {
           .qc-itin-actions { width: 100% !important; }
         }
 
-        .qc-input-field:hover { background: #EEE1EE !important; }
-        .qc-input-field:focus-within { background: #EEE1EE !important; }
+        .qc-input-field:hover { background: #D6BFD4 !important; }
+        .qc-input-field:focus-within { background: #D6BFD4 !important; }
 
         @keyframes qc-letterwave {
           0%, 100% { color: #1B1030; }
@@ -651,7 +651,7 @@ function CompassApp() {
           <div className="qc-trip-grid grid gap-4" style={{ gridTemplateColumns: "1.6fr 1fr 1fr", display: "grid" }}>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>DESTINATION(S)</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#E4D3E4", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <MapPin size={16} color="#B23A72" />
                 <input
                   value={destination}
@@ -663,7 +663,7 @@ function CompassApp() {
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-IN</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#E4D3E4", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="date"
@@ -676,7 +676,7 @@ function CompassApp() {
             </div>
             <div>
               <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>CHECK-OUT</label>
-              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#E4D3E4", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
+              <div className="qc-input-field flex items-center gap-2 mt-1" style={{ background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", transition: "background 0.15s ease" }}>
                 <Calendar size={16} color="#1C9C9C" />
                 <input
                   type="date"
@@ -737,7 +737,7 @@ function CompassApp() {
               placeholder="going with my partner, celebrating a birthday, prefer walkable areas..."
               rows={2}
               className="qc-input-field mt-1"
-              style={{ width: "100%", background: "#E4D3E4", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", outline: "none", color: "#1B1030", resize: "none", transition: "background 0.15s ease" }}
+              style={{ width: "100%", background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 10, padding: "10px 14px", outline: "none", color: "#1B1030", resize: "none", transition: "background 0.15s ease" }}
             />
           </div>
           {error && <p style={{ color: "#F5EFE6", fontSize: 13, marginTop: 10 }}>{error}</p>}
@@ -1000,7 +1000,7 @@ function CompassApp() {
                 onKeyDown={(e) => e.key === "Enter" && sendChat()}
                 placeholder="e.g. swap day 2 for something more low-key"
                 className="qc-input-field"
-                style={{ flex: 1, background: "#E4D3E4", border: "1px solid #1B103015", outline: "none", color: "#1B1030", padding: "10px 14px", borderRadius: 10, transition: "background 0.15s ease" }}
+                style={{ flex: 1, background: "#C9AEC7", border: "1px solid #1B103015", outline: "none", color: "#1B1030", padding: "10px 14px", borderRadius: 10, transition: "background 0.15s ease" }}
               />
               <button onClick={sendChat} disabled={chatLoading} className="qc-btn-send" style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 10, padding: "0 16px", cursor: "pointer", transition: "background 0.15s ease" }}>
                 {chatLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
