@@ -101,9 +101,23 @@ function flightsUrl() {
   return cjWrap("https://www.booking.com/flights/index.html", "compass-flights");
 }
 
+// Booking.com's Attractions pages need an exact country code + URL slug per city
+// (unlike Hotels, which accepts any free-text city name). Add confirmed real
+// entries here as you verify them — anything not listed falls back to the
+// safe generic Attractions landing page instead of risking a broken link.
+const ATTRACTIONS_CITY_SLUGS = {
+  miami: { country: "us", slug: "miami" },
+  "fort lauderdale": { country: "us", slug: "fort-lauderdale" },
+  "new york": { country: "us", slug: "new-york" },
+  atlanta: { country: "us", slug: "atlanta" },
+};
+
 function attractionsUrl(cityName) {
   const label = `compass-attractions-${cityName.toLowerCase().replace(/\s+/g, "-")}`;
-  const destination = `https://www.booking.com/attractions/index.html?ss=${encodeURIComponent(cityName)}`;
+  const match = ATTRACTIONS_CITY_SLUGS[cityName.toLowerCase().trim()];
+  const destination = match
+    ? `https://www.booking.com/attractions/city/${match.country}/${match.slug}.html`
+    : "https://www.booking.com/attractions/index.html";
   return cjWrap(destination, label);
 }
 
