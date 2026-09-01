@@ -130,8 +130,7 @@ function extractItineraryJson(text) {
   }
 }
 
-const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps. The traveler may give ONE destination or MULTIPLE (comma or "then" separated, e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca"). Split trip length sensibly across cities if multiple. Return ONLY valid JSON (no markdown fences, no preamble) matching exactly this schema:
-{
+const ITINERARY_JSON_SCHEMA = `{
   "tripLength": number,
   "summary": string (2-3 sentences covering the whole trip),
   "cities": [
@@ -165,10 +164,20 @@ const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for
       ]
     }
   ]
-}
+}`;
+
+const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps. The traveler may give ONE destination or MULTIPLE (comma or "then" separated, e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca"). Split trip length sensibly across cities if multiple. Return ONLY valid JSON (no markdown fences, no preamble) matching exactly this schema:
+${ITINERARY_JSON_SCHEMA}
 Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, address, or website, describe the type of place and use a neighborhood-level location instead of inventing details.
 
 CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.`;
+
+const ITINERARY_MODIFY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps, helping a traveler modify an itinerary they already have. You will be given the current itinerary as JSON, plus a request describing the change they want (e.g. "add another day," "swap day 2 for something more low-key," "add more nightlife to Miami").
+
+Apply the requested change and return the COMPLETE UPDATED itinerary as JSON, matching exactly this schema:
+${ITINERARY_JSON_SCHEMA}
+
+Keep everything unrelated to the request unchanged. If adding a day, continue numbering from the highest existing day number for that city and update that city's "days" count and the overall "tripLength" to match. Return ONLY the JSON — no markdown fences, no preamble, no explanation text outside the JSON. Follow the same realism and honesty standards as the original itinerary: don't invent addresses/websites you're not confident about, and never confidently claim a destination lacks LGBTQ+ spaces just from a knowledge gap.`;
 
 const INTEREST_OPTIONS = [
   "LGBTQ+ nightlife",
@@ -458,12 +467,26 @@ function CompassApp() {
     setChatInput("");
     setChatLoading(true);
     try {
-      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler follow-up request: ${userMsg}\n\nRespond conversationally, plain text, 2-5 sentences.`;
-      const text = await callClaude(
-        [...nextChat.slice(0, -1).map((m) => ({ role: m.role, content: m.content })), { role: "user", content: contextPrompt }],
-        "You are Compass, a warm, knowledgeable LGBTQ+ travel concierge helping refine an existing itinerary."
-      );
-      setChat([...nextChat, { role: "assistant", content: text }]);
+      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}`;
+      const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
+      const updated = extractItineraryJson(text);
+      if (updated && updated.cities) {
+        updated.cities.forEach((city) => {
+          city.featuredVenues = getFeaturedVenues(city.name);
+        });
+        Object.values(mapInstancesRef.current).forEach((map) => map.remove());
+        mapInstancesRef.current = {};
+        setMapPins([]);
+        setItinerary(updated);
+        setChat([...nextChat, { role: "assistant", content: "Done — updated your itinerary above with that change." }]);
+      } else {
+        // Fall back to a plain conversational reply if the structured update didn't come back cleanly
+        const fallbackText = await callClaude(
+          [{ role: "user", content: `${contextPrompt}\n\nRespond conversationally, plain text, 2-5 sentences, since I couldn't apply this as a direct edit.` }],
+          "You are Compass, a warm, knowledgeable LGBTQ+ travel concierge helping refine an existing itinerary."
+        );
+        setChat([...nextChat, { role: "assistant", content: fallbackText }]);
+      }
     } catch (e) {
       setChat([...nextChat, { role: "assistant", content: "Hmm, I lost my signal there — mind trying that again?" }]);
     } finally {
