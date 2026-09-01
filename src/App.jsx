@@ -130,7 +130,15 @@ function nightsBetween(checkIn, checkOut) {
   return diff > 0 ? diff : null;
 }
 
-function safeDestroyAllMaps(mapInstancesRef) {
+function safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef) {
+  Object.values(mapResizeObserversRef.current).forEach((observer) => {
+    try {
+      observer.disconnect();
+    } catch (e) {
+      console.error("Observer cleanup failed (non-fatal):", e);
+    }
+  });
+  mapResizeObserversRef.current = {};
   Object.values(mapInstancesRef.current).forEach((map) => {
     try {
       map.remove();
@@ -278,6 +286,7 @@ function CompassApp() {
   const [geocodingProgress, setGeocodingProgress] = useState({});
   const mapContainerRefs = useRef({});
   const mapInstancesRef = useRef({});
+  const mapResizeObserversRef = useRef({});
   const resultsTopRef = useRef(null);
 
   // Deep-linking: /?destination=Fort%20Lauderdale&checkin=2026-11-10&checkout=2026-11-14&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
@@ -400,6 +409,26 @@ function CompassApp() {
           }).addTo(map);
           map._markersLayer = window.L.layerGroup().addTo(map);
           mapInstancesRef.current[cityName] = map;
+
+          // Keep the map correctly sized even if the layout shifts later
+          // (e.g. the city photo above it finishing loading) — Leaflet
+          // otherwise caches the container size from the moment of creation
+          // and tiles can render blank/misaligned after any later resize.
+          if (typeof ResizeObserver !== "undefined") {
+            try {
+              const observer = new ResizeObserver(() => {
+                try {
+                  map.invalidateSize();
+                } catch (e) {
+                  // ignore — map may have just been destroyed
+                }
+              });
+              observer.observe(container);
+              mapResizeObserversRef.current[cityName] = observer;
+            } catch (e) {
+              console.error("Could not attach map ResizeObserver (non-fatal):", e);
+            }
+          }
         }
 
         const map = mapInstancesRef.current[cityName];
@@ -469,7 +498,7 @@ function CompassApp() {
     setError("");
     setLoading(true);
     setItinerary(null);
-    safeDestroyAllMaps(mapInstancesRef);
+    safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef);
     setSaveStatus("");
     try {
       const dayCount = nights || legacyDays;
@@ -520,7 +549,7 @@ function CompassApp() {
         updated.cities.forEach((city) => {
           city.featuredVenues = getFeaturedVenues(city.name);
         });
-        safeDestroyAllMaps(mapInstancesRef);
+        safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef);
         setMapPins([]);
         setItinerary(updated);
         setTripLoadId((id) => id + 1);
@@ -615,7 +644,7 @@ function CompassApp() {
     itin.cities?.forEach((city) => {
       city.featuredVenues = getFeaturedVenues(city.name);
     });
-    safeDestroyAllMaps(mapInstancesRef);
+    safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef);
     setMapPins([]);
     setItinerary(itin);
     setTripLoadId((id) => id + 1);
