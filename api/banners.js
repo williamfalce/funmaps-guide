@@ -70,9 +70,14 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, category, tagline, imageUrl, ctaText, ctaLink, promoCode, commissionRate } = req.body || {};
-      if (!city || !businessName || !imageUrl) {
-        res.status(400).json({ error: "City, business name, and image are required" });
+      const { city, businessName, category, tier, tagline, address, phone, imageUrl, ctaText, ctaLink, promoCode, promoIncentive } = req.body || {};
+      if (!city || !businessName) {
+        res.status(400).json({ error: "City and business name are required" });
+        return;
+      }
+      const resolvedTier = tier === "premium" ? "premium" : "basic";
+      if (resolvedTier === "premium" && !imageUrl) {
+        res.status(400).json({ error: "Premium tier requires an uploaded image or logo" });
         return;
       }
       const all = await readAll(db);
@@ -80,13 +85,17 @@ module.exports = async (req, res) => {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         city: city.trim(),
         businessName: businessName.trim(),
-        category: category || "nightlife",
+        category: category || "Attractions",
+        tier: resolvedTier,
         tagline: tagline || "",
-        imageUrl,
+        address: address || "",
+        phone: phone || "",
+        imageUrl: imageUrl || "",
         ctaText: ctaText || "Learn More",
         ctaLink: ctaLink || "",
         promoCode: promoCode || "",
-        commissionRate: commissionRate || 15,
+        promoIncentive: promoIncentive || "",
+        commissionRate: resolvedTier === "premium" ? 22 : 15,
         active: true,
         clicks: 0,
         createdAt: Date.now(),
