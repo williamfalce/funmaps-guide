@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Component } from "react";
-import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight, Share2, Download, Phone } from "lucide-react";
+import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight, Share2, Download, Phone, Ticket, ShoppingBag, Info } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
 import vintageCompass from "./assets/vintage-compass.png";
 async function getBanners(cityName) {
@@ -43,6 +43,39 @@ const CATEGORY_META = {
   community: { icon: Heart, color: "#D9662E" },
 };
 
+// Business partner categories — separate from the AI's activity-tagging categories
+// above. These are what shows in the admin dropdown for Featured Partners and
+// Banner Ads, since partners are real businesses, not itinerary activities.
+const PARTNER_CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
+
+const PARTNER_CATEGORY_META = {
+  "Accommodations": { icon: Hotel, color: "#9B2FA0" },
+  "Arts&Entertainment": { icon: Ticket, color: "#B23A72" },
+  "Attractions": { icon: Camera, color: "#F2984A" },
+  "Bars&Clubs": { icon: Moon, color: "#8C3AA8" },
+  "Events": { icon: Calendar, color: "#1C9C9C" },
+  "Resources": { icon: Info, color: "#6B8FA3" },
+  "Restaurants": { icon: Utensils, color: "#D9662E" },
+  "Shopping&Services": { icon: ShoppingBag, color: "#C77D2E" },
+  "Weddings": { icon: Heart, color: "#C2477A" },
+};
+
+// Maps a partner category to the AI's activity category, so a "Bars&Clubs" banner
+// still correctly slots in after nightlife activities, etc. Categories with no
+// natural day-by-day match (Accommodations, Resources, Weddings) return null —
+// those use their own dedicated placement instead (see banner placement logic).
+const PARTNER_TO_ACTIVITY_CATEGORY = {
+  "Bars&Clubs": "nightlife",
+  "Restaurants": "food",
+  "Arts&Entertainment": "culture",
+  "Attractions": "culture",
+  "Events": "community",
+  "Shopping&Services": "culture",
+  "Accommodations": null,
+  "Resources": null,
+  "Weddings": null,
+};
+
 function WaveText({ text }) {
   return (
     <span>
@@ -60,7 +93,6 @@ function WaveText({ text }) {
 
 function BannerAd({ banner }) {
   if (!banner) return null;
-  const iconCategory = ["nightlife", "food", "culture", "outdoors", "community"].includes(banner.category) ? banner.category : "culture";
   return (
     <a
       href={banner.ctaLink || "#"}
@@ -73,7 +105,7 @@ function BannerAd({ banner }) {
       {banner.imageUrl ? (
         <img src={banner.imageUrl} alt={banner.businessName} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
       ) : (
-        <VibeDot category={iconCategory} />
+        <PartnerIcon category={banner.category} />
       )}
       <div style={{ flex: 1 }}>
         <div className="flex items-center gap-2 flex-wrap">
@@ -89,6 +121,19 @@ function BannerAd({ banner }) {
 
 function VibeDot({ category }) {
   const meta = CATEGORY_META[category] || CATEGORY_META.culture;
+  const Icon = meta.icon;
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full shrink-0"
+      style={{ width: 26, height: 26, background: `${meta.color}22`, color: meta.color }}
+    >
+      <Icon size={14} />
+    </span>
+  );
+}
+
+function PartnerIcon({ category }) {
+  const meta = PARTNER_CATEGORY_META[category] || PARTNER_CATEGORY_META["Attractions"];
   const Icon = meta.icon;
   return (
     <span
@@ -988,15 +1033,19 @@ function CompassApp() {
 
           {itinerary.cities?.map((city, ci) => {
             const banners = cityBanners[city.name] || [];
-            const hotelBanner = banners.find((b) => b.category === "hotel");
+            const hotelBanner = banners.find((b) => b.category === "Accommodations");
             const placedIds = new Set(hotelBanner ? [hotelBanner.id] : []);
             // For each day, find the first not-yet-placed banner whose category
-            // matches something actually happening that day (e.g. a nightlife
+            // maps to something actually happening that day (e.g. a Bars&Clubs
             // banner slots in right after a day that has nightlife activities).
             const dayBannerMap = {}; // day number -> banner to show after that day's card
             city.itinerary?.forEach((d) => {
               const dayCategories = new Set((d.activities || []).map((a) => a.category));
-              const match = banners.find((b) => !placedIds.has(b.id) && b.category !== "hotel" && dayCategories.has(b.category));
+              const match = banners.find((b) => {
+                if (placedIds.has(b.id) || b.category === "Accommodations") return false;
+                const activityCategory = PARTNER_TO_ACTIVITY_CATEGORY[b.category];
+                return activityCategory && dayCategories.has(activityCategory);
+              });
               if (match) {
                 dayBannerMap[d.day] = match;
                 placedIds.add(match.id);
@@ -1106,7 +1155,7 @@ function CompassApp() {
                         {v.tier === "premium" && v.imageUrl ? (
                           <img src={v.imageUrl} alt={v.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
                         ) : (
-                          <VibeDot category={v.category} />
+                          <PartnerIcon category={v.category} />
                         )}
                         <div style={{ flex: 1 }}>
                           <div className="flex items-center gap-2 flex-wrap">

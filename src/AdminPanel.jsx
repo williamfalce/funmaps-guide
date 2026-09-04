@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const CATEGORIES = ["nightlife", "food", "culture", "outdoors", "community", "hotel"];
+const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
 const ADMIN_KEY_STORAGE = "compass-admin-key";
 
 async function apiCall(endpoint, method, body, adminKey, query) {
