@@ -1,8 +1,39 @@
 import { useState, useRef, useEffect, Component } from "react";
-import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight, Share2, Download } from "lucide-react";
+import { Compass, MapPin, Sparkles, Shield, Calendar, Hotel, Send, Loader2, Heart, Sun, Moon, Utensils, Save, Printer, FolderOpen, X, Trash2, Plane, Bus, DollarSign, Stethoscope, CloudSun, Globe, Navigation, BadgeCheck, Camera, Smile, ArrowRight, Share2, Download, Phone } from "lucide-react";
 import funmapsLogo from "./assets/funmaps-logo.png";
 import vintageCompass from "./assets/vintage-compass.png";
-import { getFeaturedVenues } from "./featuredVenues.js";
+async function getBanners(cityName) {
+  try {
+    const res = await fetch(`/api/banners?city=${encodeURIComponent(cityName)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.banners || [];
+  } catch {
+    return []; // fails quietly — itinerary still works fine without banner ads
+  }
+}
+
+function trackBannerClick(bannerId) {
+  // fire-and-forget — never block or delay the user's click-through
+  fetch("/api/banner-click", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: bannerId }),
+  }).catch(() => {});
+}
+
+async function getFeaturedVenues(cityName) {
+  try {
+    const res = await fetch(`/api/venues?city=${encodeURIComponent(cityName)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const venues = data.venues || [];
+    // Premium tier shows first
+    return venues.sort((a, b) => (a.tier === "premium" ? -1 : 1) - (b.tier === "premium" ? -1 : 1));
+  } catch {
+    return []; // fails quietly — itinerary still works fine without featured venues
+  }
+}
 
 const CATEGORY_META = {
   nightlife: { icon: Moon, color: "#B23A72" },
@@ -24,6 +55,35 @@ function WaveText({ text }) {
         </span>
       ))}
     </span>
+  );
+}
+
+function BannerAd({ banner }) {
+  if (!banner) return null;
+  const iconCategory = ["nightlife", "food", "culture", "outdoors", "community"].includes(banner.category) ? banner.category : "culture";
+  return (
+    <a
+      href={banner.ctaLink || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => trackBannerClick(banner.id)}
+      className="flex gap-3 no-print"
+      style={{ textDecoration: "none", background: "#241640", borderRadius: 14, padding: 16, marginBottom: 12, display: "flex" }}
+    >
+      {banner.imageUrl ? (
+        <img src={banner.imageUrl} alt={banner.businessName} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
+      ) : (
+        <VibeDot category={iconCategory} />
+      )}
+      <div style={{ flex: 1 }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span style={{ fontWeight: 600, fontSize: 14.5, color: "#F5EFE6" }}>{banner.businessName}</span>
+          <span style={{ background: "#1C9C9C22", color: "#1C9C9C", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>PAID PARTNER</span>
+        </div>
+        {banner.tagline && <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginTop: 2 }}>{banner.tagline}</p>}
+        <span style={{ fontSize: 12, color: "#D9662E", fontWeight: 600, marginTop: 4, display: "inline-block" }}>{banner.ctaText || "Learn More"} →</span>
+      </div>
+    </a>
   );
 }
 
@@ -282,6 +342,7 @@ function CompassApp() {
   const [pendingAvoidVenues, setPendingAvoidVenues] = useState([]);
   const [tripLoadId, setTripLoadId] = useState(0);
   const [cityImages, setCityImages] = useState({});
+  const [cityBanners, setCityBanners] = useState({});
   const [mapPins, setMapPins] = useState([]);
   const [geocodingProgress, setGeocodingProgress] = useState({});
   const mapContainerRefs = useRef({});
@@ -329,6 +390,15 @@ function CompassApp() {
       } catch {
         // ignore — no image is a fine fallback
       }
+    });
+  }, [itinerary]);
+
+  useEffect(() => {
+    if (!itinerary?.cities) return;
+    setCityBanners({});
+    itinerary.cities.forEach(async (city) => {
+      const banners = await getBanners(city.name);
+      if (banners.length) setCityBanners((prev) => ({ ...prev, [city.name]: banners }));
     });
   }, [itinerary]);
 
@@ -514,9 +584,11 @@ function CompassApp() {
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
-      parsed.cities?.forEach((city) => {
-        city.featuredVenues = getFeaturedVenues(city.name);
-      });
+      await Promise.all(
+        (parsed.cities || []).map(async (city) => {
+          city.featuredVenues = await getFeaturedVenues(city.name);
+        })
+      );
       setItinerary(parsed);
       setTripLoadId((id) => id + 1);
       setChat([]);
@@ -546,9 +618,11 @@ function CompassApp() {
       const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
       const updated = extractItineraryJson(text);
       if (updated && updated.cities) {
-        updated.cities.forEach((city) => {
-          city.featuredVenues = getFeaturedVenues(city.name);
-        });
+        await Promise.all(
+          updated.cities.map(async (city) => {
+            city.featuredVenues = await getFeaturedVenues(city.name);
+          })
+        );
         safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef);
         setMapPins([]);
         setItinerary(updated);
@@ -636,14 +710,16 @@ function CompassApp() {
     URL.revokeObjectURL(url);
   }
 
-  function loadTrip(id) {
+  async function loadTrip(id) {
     const trips = readLocalTrips();
     const found = trips.find((t) => t.id === id);
     if (!found) return;
     const itin = found.itinerary;
-    itin.cities?.forEach((city) => {
-      city.featuredVenues = getFeaturedVenues(city.name);
-    });
+    await Promise.all(
+      (itin.cities || []).map(async (city) => {
+        city.featuredVenues = await getFeaturedVenues(city.name);
+      })
+    );
     safeDestroyAllMaps(mapInstancesRef, mapResizeObserversRef);
     setMapPins([]);
     setItinerary(itin);
@@ -910,7 +986,27 @@ function CompassApp() {
             </a>
           </div>
 
-          {itinerary.cities?.map((city, ci) => (
+          {itinerary.cities?.map((city, ci) => {
+            const banners = cityBanners[city.name] || [];
+            const hotelBanner = banners.find((b) => b.category === "hotel");
+            const placedIds = new Set(hotelBanner ? [hotelBanner.id] : []);
+            // For each day, find the first not-yet-placed banner whose category
+            // matches something actually happening that day (e.g. a nightlife
+            // banner slots in right after a day that has nightlife activities).
+            const dayBannerMap = {}; // day number -> banner to show after that day's card
+            city.itinerary?.forEach((d) => {
+              const dayCategories = new Set((d.activities || []).map((a) => a.category));
+              const match = banners.find((b) => !placedIds.has(b.id) && b.category !== "hotel" && dayCategories.has(b.category));
+              if (match) {
+                dayBannerMap[d.day] = match;
+                placedIds.add(match.id);
+              }
+            });
+            // Anything left over never found a contextual match — show it once
+            // at the end of the city, so a paying partner is never silently skipped.
+            const fallbackBanners = banners.filter((b) => !placedIds.has(b.id));
+
+            return (
             <div key={`${tripLoadId}-${ci}`} style={{ marginBottom: 28 }}>
               {cityImages[city.name] && (
                 <div className="no-print" style={{ position: "relative", borderRadius: 14, overflow: "hidden", marginBottom: 12, height: 200 }}>
@@ -998,18 +1094,39 @@ function CompassApp() {
                   <p style={{ fontSize: 11, color: "#D9662E", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>★ FEATURED PARTNERS</p>
                   <div style={{ background: "#241640", borderRadius: 14, padding: 16, border: "1px solid #D9662E40" }}>
                     {city.featuredVenues.map((v, i) => (
-                      <div key={i} className="flex gap-3" style={{ padding: "10px 0", borderTop: i > 0 ? "1px solid #F5EFE612" : "none" }}>
-                        <VibeDot category={v.category} />
+                      <div
+                        key={i}
+                        className="flex gap-3"
+                        style={{
+                          padding: "10px 0",
+                          borderTop: i > 0 ? "1px solid #F5EFE612" : "none",
+                          ...(v.tier === "premium" ? { background: "#D9662E10", margin: "0 -16px", padding: "10px 16px" } : {}),
+                        }}
+                      >
+                        {v.tier === "premium" && v.imageUrl ? (
+                          <img src={v.imageUrl} alt={v.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 10, flexShrink: 0 }} />
+                        ) : (
+                          <VibeDot category={v.category} />
+                        )}
                         <div style={{ flex: 1 }}>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span style={{ fontWeight: 600, fontSize: 14.5 }}>{v.name}</span>
-                            <span style={{ background: "#D9662E22", color: "#D9662E", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>FEATURED PARTNER</span>
+                            {v.tier === "premium" ? (
+                              <span style={{ background: "#D9662E", color: "#1B1030", fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999, boxShadow: "0 0 6px #D9662E80" }}>★ PREMIUM PARTNER</span>
+                            ) : (
+                              <span style={{ background: "#D9662E22", color: "#D9662E", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>FEATURED PARTNER</span>
+                            )}
                           </div>
                           {v.note && <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginTop: 2 }}>{v.note}</p>}
                           <div className="flex flex-wrap items-center gap-3 mt-1.5 no-print">
                             {v.address && (
                               <a href={directionsUrl(v.address, city.name)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#F5EFE688", fontSize: 12, textDecoration: "none" }}>
                                 <Navigation size={11} /> {v.address}
+                              </a>
+                            )}
+                            {v.phone && (
+                              <a href={`tel:${v.phone.replace(/[^0-9+]/g, "")}`} className="flex items-center gap-1" style={{ color: "#F5EFE688", fontSize: 12, textDecoration: "none" }}>
+                                <Phone size={11} /> {v.phone}
                               </a>
                             )}
                             {v.website && (
@@ -1025,7 +1142,9 @@ function CompassApp() {
                 </div>
               )}
 
-              {city.itinerary?.map((d) => (
+              {city.itinerary?.map((d) => {
+                const dayBanner = dayBannerMap[d.day];
+                return (
                 <div key={d.day} style={{ marginBottom: 14 }}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span style={{ color: "#D9662E", fontSize: 14, fontWeight: 600 }}>Day {d.day}</span>
@@ -1063,8 +1182,20 @@ function CompassApp() {
                       </div>
                     ))}
                   </div>
+                  {dayBanner && (
+                    <div style={{ marginTop: 10 }}>
+                      <BannerAd banner={dayBanner} />
+                    </div>
+                  )}
                 </div>
+                );
+              })}
+
+              {fallbackBanners.map((b) => (
+                <BannerAd key={b.id} banner={b} />
               ))}
+
+              {hotelBanner && <BannerAd banner={hotelBanner} />}
 
               {/* Booking.com affiliate button, via CJ deep link */}
               <a
@@ -1104,7 +1235,8 @@ function CompassApp() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
 
           <div style={{ background: "#241640", borderRadius: 14, padding: 16, marginTop: 8 }} className="no-print">
             <p style={{ fontSize: 12, color: "#D9662E", fontWeight: 600, marginBottom: 10 }}>ASK COMPASS TO ADJUST YOUR TRIP</p>

@@ -3,5 +3,8 @@
     "api/claude.js": {
       "maxDuration": 300
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/admin", "destination": "/index.html" }
+  ]
 }
