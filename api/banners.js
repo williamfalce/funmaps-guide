@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, category, tier, tagline, address, phone, imageUrl, ctaText, ctaLink, promoCode, promoIncentive } = req.body || {};
+      const { city, businessName, category, tier, tagline, address, phone, imageUrl, ctaText, ctaLink, bookingLink, promoCode, promoIncentive } = req.body || {};
       if (!city || !businessName) {
         res.status(400).json({ error: "City and business name are required" });
         return;
@@ -93,6 +93,7 @@ module.exports = async (req, res) => {
         imageUrl: imageUrl || "",
         ctaText: ctaText || "Learn More",
         ctaLink: ctaLink || "",
+        bookingLink: bookingLink || "",
         promoCode: promoCode || "",
         promoIncentive: promoIncentive || "",
         commissionRate: resolvedTier === "premium" ? 22 : 15,

@@ -157,7 +157,7 @@ function BannerAd({ banner, cityName }) {
 
       {banner.tagline && <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginBottom: 8 }}>{banner.tagline}</p>}
 
-      {(banner.address || banner.phone || banner.ctaLink) && (
+      {(banner.address || banner.phone || banner.ctaLink || banner.bookingLink) && (
         <div className="flex flex-wrap items-center gap-3 mb-2">
           {banner.address && (
             <a href={directionsUrl(banner.address, cityName || banner.city)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#F5EFE688", fontSize: 12, textDecoration: "none" }}>
@@ -172,6 +172,11 @@ function BannerAd({ banner, cityName }) {
           {banner.ctaLink && (
             <a href={normalizeUrl(banner.ctaLink)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#1C9C9C", fontSize: 12, textDecoration: "none" }}>
               <Globe size={11} /> Website
+            </a>
+          )}
+          {banner.bookingLink && (
+            <a href={normalizeUrl(banner.bookingLink)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#D9662E", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+              <Calendar size={11} /> Book Now
             </a>
           )}
         </div>

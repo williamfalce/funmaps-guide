@@ -27,6 +27,7 @@ const emptyPartnerForm = {
   imageUrl: "",
   ctaText: "Learn More",
   ctaLink: "",
+  bookingLink: "",
   promoCode: "",
   promoIncentive: "",
   commissionRate: 15,
@@ -190,6 +191,7 @@ export default function AdminPanel() {
       imageUrl: p.imageUrl || "",
       ctaText: p.ctaText || "Learn More",
       ctaLink: p.ctaLink || "",
+      bookingLink: p.bookingLink || "",
       promoCode: p.promoCode || "",
       promoIncentive: p.promoIncentive || "",
       commissionRate: p.commissionRate || 15,
@@ -404,6 +406,10 @@ export default function AdminPanel() {
                 <div>
                   <label style={labelStyle}>CTA BUTTON TEXT</label>
                   <input value={partnerForm.ctaText} onChange={(e) => setPartnerForm({ ...partnerForm, ctaText: e.target.value })} placeholder="e.g. Reserve Now" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>BOOKING LINK (optional — OpenTable, Resy, Eventbrite, etc.)</label>
+                  <input value={partnerForm.bookingLink} onChange={(e) => setPartnerForm({ ...partnerForm, bookingLink: e.target.value })} placeholder="https://..." style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>PROMO CODE</label>
