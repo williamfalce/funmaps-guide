@@ -1,9 +1,10 @@
 // Vercel serverless function — handles Premium tier venue image uploads.
 // Stores the image in Vercel Blob storage and returns a public URL.
 //
-// Requires the BLOB_READ_WRITE_TOKEN environment variable, which Vercel
-// auto-provisions once you enable Blob storage on this project:
-// Vercel Dashboard -> your project -> Storage tab -> Create Database -> Blob.
+// Works with either of Vercel's two Blob auth methods automatically — the
+// newer default (BLOB_STORE_ID + an auto-rotated OIDC token) or the older
+// static BLOB_READ_WRITE_TOKEN — since the @vercel/blob SDK resolves whichever
+// is actually present on its own. We don't need to check for one specifically.
 
 const { put } = require("@vercel/blob");
 
@@ -32,11 +33,6 @@ module.exports = async (req, res) => {
 
   if (!checkAdmin(req)) {
     res.status(401).json({ error: "Invalid admin key" });
-    return;
-  }
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    res.status(501).json({ error: "Image storage not configured — enable Blob storage for this project in the Vercel dashboard (Storage tab)." });
     return;
   }
 
@@ -69,6 +65,6 @@ module.exports = async (req, res) => {
     res.status(200).json({ url: blob.url });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Upload failed" });
+    res.status(500).json({ error: `Upload failed: ${err.message || "unknown error"}` });
   }
 };
