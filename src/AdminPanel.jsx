@@ -356,7 +356,7 @@ export default function AdminPanel() {
             <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{partnerForm.id ? "Edit Partner" : "Add New Partner"}</h2>
               <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
-                Commission-based. <strong>Featured Partner (Basic)</strong> = 15%. <strong>Recommended Partner (Premium)</strong> = 22%, gets a white border and image/logo shown first.
+                Commission-based. Tier controls the <strong>visual style</strong> only — <strong>Recommended Partner (Premium)</strong> gets a white border and image/logo shown first. The commission rate below is fully independent — set it to whatever you actually negotiate with each partner (15% and 22% are just common starting points, not fixed values).
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
@@ -368,17 +368,14 @@ export default function AdminPanel() {
                   <input value={partnerForm.businessName} onChange={(e) => setPartnerForm({ ...partnerForm, businessName: e.target.value })} placeholder="e.g. Club Neon" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>TIER</label>
+                  <label style={labelStyle}>TIER (controls visual style — border, image layout, badge — not pricing)</label>
                   <select
                     value={partnerForm.tier}
-                    onChange={(e) => {
-                      const newTier = e.target.value;
-                      setPartnerForm({ ...partnerForm, tier: newTier, commissionRate: newTier === "premium" ? 22 : 15 });
-                    }}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, tier: e.target.value })}
                     style={inputStyle}
                   >
-                    <option value="basic">Featured Partner (Basic) — 15%</option>
-                    <option value="premium">Recommended Partner (Premium) — 22%</option>
+                    <option value="basic">Featured Partner (Basic display)</option>
+                    <option value="premium">Recommended Partner (Premium display — white border, image first)</option>
                   </select>
                 </div>
                 <div>
@@ -416,7 +413,7 @@ export default function AdminPanel() {
                   <input value={partnerForm.promoCode} onChange={(e) => setPartnerForm({ ...partnerForm, promoCode: e.target.value })} placeholder="e.g. COMPASSMIA15" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>COMMISSION RATE (%) — auto-set by tier</label>
+                  <label style={labelStyle}>COMMISSION RATE (%) — set whatever you negotiated with this partner</label>
                   <input type="number" value={partnerForm.commissionRate} onChange={(e) => setPartnerForm({ ...partnerForm, commissionRate: Number(e.target.value) })} style={inputStyle} />
                 </div>
               </div>
