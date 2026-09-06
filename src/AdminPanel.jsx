@@ -1,6 +1,56 @@
 import { useState, useEffect } from "react";
 
 const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
+
+const US_STATES = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
+  ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"],
+  ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"],
+  ["IA", "Iowa"], ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"],
+  ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"],
+  ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"],
+  ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"],
+  ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"],
+  ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"],
+  ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"],
+  ["WY", "Wyoming"],
+];
+const US_STATE_ABBRS = new Set(US_STATES.map(([abbr]) => abbr));
+const US_STATE_NAME_TO_ABBR = Object.fromEntries(US_STATES.map(([abbr, name]) => [name.toLowerCase(), abbr]));
+
+const COUNTRIES = [
+  "United States", "Canada", "Mexico", "United Kingdom", "Ireland", "France", "Spain", "Portugal", "Germany",
+  "Italy", "Netherlands", "Belgium", "Switzerland", "Austria", "Greece", "Sweden", "Norway", "Denmark", "Finland",
+  "Iceland", "Poland", "Czech Republic", "Hungary", "Croatia", "Turkey", "Israel", "United Arab Emirates",
+  "Thailand", "Japan", "South Korea", "Singapore", "Australia", "New Zealand", "Brazil", "Argentina", "Colombia",
+  "Chile", "Peru", "Costa Rica", "Puerto Rico", "Dominican Republic", "Jamaica", "Bahamas", "Cuba", "South Africa",
+  "Other",
+];
+
+// Splits a stored "City, ST" or "City, Country" string back into parts for editing.
+function parseCityString(fullCity) {
+  const parts = (fullCity || "").split(",").map((s) => s.trim());
+  if (parts.length < 2) return { cityName: parts[0] || "", country: "United States", state: "" };
+  const cityName = parts[0];
+  const region = parts[1];
+  if (US_STATE_ABBRS.has(region.toUpperCase())) {
+    return { cityName, country: "United States", state: region.toUpperCase() };
+  }
+  const matchedAbbr = US_STATE_NAME_TO_ABBR[region.toLowerCase()];
+  if (matchedAbbr) {
+    return { cityName, country: "United States", state: matchedAbbr };
+  }
+  return { cityName, country: region, state: "" };
+}
+
+// Builds the final consistent "City, ST" / "City, Country" string from the parts.
+function buildCityString(cityName, country, state) {
+  if (!cityName?.trim()) return "";
+  if (country === "United States") {
+    return state ? `${cityName.trim()}, ${state}` : cityName.trim();
+  }
+  return country ? `${cityName.trim()}, ${country}` : cityName.trim();
+}
 const ADMIN_KEY_STORAGE = "compass-admin-key";
 
 async function apiCall(endpoint, method, body, adminKey, query) {
@@ -17,7 +67,9 @@ async function apiCall(endpoint, method, body, adminKey, query) {
 
 const emptyPartnerForm = {
   id: null,
-  city: "",
+  cityName: "",
+  country: "United States",
+  state: "",
   businessName: "",
   category: "Attractions",
   tier: "basic",
@@ -33,7 +85,7 @@ const emptyPartnerForm = {
   commissionRate: 15,
 };
 
-const emptySponsorshipForm = { id: null, city: "", businessName: "", tagline: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
+const emptySponsorshipForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", tagline: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
 
 function generatePromoCode(businessName, existingCodes) {
   const cleaned = (businessName || "").replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -158,8 +210,12 @@ export default function AdminPanel() {
   }
 
   async function handlePartnerSave() {
-    if (!partnerForm.city.trim() || !partnerForm.businessName.trim()) {
+    if (!partnerForm.cityName.trim() || !partnerForm.businessName.trim()) {
       setPartnerError("City and business name are required.");
+      return;
+    }
+    if (partnerForm.country === "United States" && !partnerForm.state) {
+      setPartnerError("Please select a state.");
       return;
     }
     if (partnerForm.tier === "premium" && !partnerForm.imageUrl) {
@@ -169,10 +225,11 @@ export default function AdminPanel() {
     setPartnerSaving(true);
     setPartnerError("");
     try {
+      const payload = { ...partnerForm, city: buildCityString(partnerForm.cityName, partnerForm.country, partnerForm.state) };
       if (partnerForm.id) {
-        await apiCall("banners", "PUT", partnerForm, adminKey);
+        await apiCall("banners", "PUT", payload, adminKey);
       } else {
-        await apiCall("banners", "POST", partnerForm, adminKey);
+        await apiCall("banners", "POST", payload, adminKey);
       }
       setPartnerForm(emptyPartnerForm);
       await loadPartners();
@@ -207,9 +264,12 @@ export default function AdminPanel() {
   }
 
   function startPartnerEdit(p) {
+    const { cityName, country, state } = parseCityString(p.city);
     setPartnerForm({
       id: p.id,
-      city: p.city,
+      cityName,
+      country,
+      state,
       businessName: p.businessName,
       category: p.category,
       tier: p.tier || "basic",
@@ -275,17 +335,22 @@ export default function AdminPanel() {
   }
 
   async function handleSponsorshipSave() {
-    if (!sponsorshipForm.city.trim() || !sponsorshipForm.businessName.trim() || !sponsorshipForm.imageUrl) {
+    if (!sponsorshipForm.cityName.trim() || !sponsorshipForm.businessName.trim() || !sponsorshipForm.imageUrl) {
       setSponsorshipError("City, business name, and an uploaded image are all required.");
+      return;
+    }
+    if (sponsorshipForm.country === "United States" && !sponsorshipForm.state) {
+      setSponsorshipError("Please select a state.");
       return;
     }
     setSponsorshipSaving(true);
     setSponsorshipError("");
     try {
+      const payload = { ...sponsorshipForm, city: buildCityString(sponsorshipForm.cityName, sponsorshipForm.country, sponsorshipForm.state) };
       if (sponsorshipForm.id) {
-        await apiCall("sponsorships", "PUT", sponsorshipForm, adminKey);
+        await apiCall("sponsorships", "PUT", payload, adminKey);
       } else {
-        await apiCall("sponsorships", "POST", sponsorshipForm, adminKey);
+        await apiCall("sponsorships", "POST", payload, adminKey);
       }
       setSponsorshipForm(emptySponsorshipForm);
       await loadSponsorships();
@@ -320,9 +385,12 @@ export default function AdminPanel() {
   }
 
   function startSponsorshipEdit(s) {
+    const { cityName, country, state } = parseCityString(s.city);
     setSponsorshipForm({
       id: s.id,
-      city: s.city,
+      cityName,
+      country,
+      state,
       businessName: s.businessName,
       tagline: s.tagline || "",
       imageUrl: s.imageUrl || "",
@@ -388,9 +456,32 @@ export default function AdminPanel() {
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>CITY * (format: "City, ST" or "City, Country" — e.g. "Miami, FL" or "Paris, France")</label>
-                  <input value={partnerForm.city} onChange={(e) => setPartnerForm({ ...partnerForm, city: e.target.value })} placeholder="e.g. Miami, FL" style={inputStyle} />
+                  <label style={labelStyle}>CITY *</label>
+                  <input value={partnerForm.cityName} onChange={(e) => setPartnerForm({ ...partnerForm, cityName: e.target.value })} placeholder="e.g. Miami" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={labelStyle}>COUNTRY *</label>
+                  <select value={partnerForm.country} onChange={(e) => setPartnerForm({ ...partnerForm, country: e.target.value, state: e.target.value === "United States" ? partnerForm.state : "" })} style={inputStyle}>
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {partnerForm.country === "United States" && (
+                  <div>
+                    <label style={labelStyle}>STATE *</label>
+                    <select value={partnerForm.state} onChange={(e) => setPartnerForm({ ...partnerForm, state: e.target.value })} style={inputStyle}>
+                      <option value="">Select a state...</option>
+                      {US_STATES.map(([abbr, name]) => (
+                        <option key={abbr} value={abbr}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label style={labelStyle}>BUSINESS NAME *</label>
                   <input value={partnerForm.businessName} onChange={(e) => setPartnerForm({ ...partnerForm, businessName: e.target.value })} placeholder="e.g. Club Neon" style={inputStyle} />
@@ -499,7 +590,7 @@ export default function AdminPanel() {
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <input value={partnerFilterCity} onChange={(e) => setPartnerFilterCity(e.target.value)} placeholder="Filter by city..." style={{ ...inputStyle, maxWidth: 300 }} />
+              <input value={partnerFilterCity} onChange={(e) => setPartnerFilterCity(e.target.value)} placeholder="Filter by city (e.g. Miami, FL)..." style={{ ...inputStyle, maxWidth: 300 }} />
             </div>
 
             {partners.length === 0 && <p style={{ color: "#F5EFE699" }}>No partners yet — add one above.</p>}
@@ -551,9 +642,36 @@ export default function AdminPanel() {
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>CITY * (format: "City, ST" or "City, Country" — e.g. "Miami, FL" or "Paris, France")</label>
-                  <input value={sponsorshipForm.city} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, city: e.target.value })} placeholder="e.g. Miami, FL" style={inputStyle} />
+                  <label style={labelStyle}>CITY *</label>
+                  <input value={sponsorshipForm.cityName} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, cityName: e.target.value })} placeholder="e.g. Miami" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={labelStyle}>COUNTRY *</label>
+                  <select
+                    value={sponsorshipForm.country}
+                    onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, country: e.target.value, state: e.target.value === "United States" ? sponsorshipForm.state : "" })}
+                    style={inputStyle}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {sponsorshipForm.country === "United States" && (
+                  <div>
+                    <label style={labelStyle}>STATE *</label>
+                    <select value={sponsorshipForm.state} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, state: e.target.value })} style={inputStyle}>
+                      <option value="">Select a state...</option>
+                      {US_STATES.map(([abbr, name]) => (
+                        <option key={abbr} value={abbr}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label style={labelStyle}>BUSINESS NAME *</label>
                   <input value={sponsorshipForm.businessName} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, businessName: e.target.value })} placeholder="e.g. Grand Resort Miami" style={inputStyle} />
@@ -617,7 +735,7 @@ export default function AdminPanel() {
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <input value={sponsorshipFilterCity} onChange={(e) => setSponsorshipFilterCity(e.target.value)} placeholder="Filter by city..." style={{ ...inputStyle, maxWidth: 300 }} />
+              <input value={sponsorshipFilterCity} onChange={(e) => setSponsorshipFilterCity(e.target.value)} placeholder="Filter by city (e.g. Miami, FL)..." style={{ ...inputStyle, maxWidth: 300 }} />
             </div>
 
             {sponsorships.length === 0 && <p style={{ color: "#F5EFE699" }}>No sponsorships yet — add one above.</p>}
