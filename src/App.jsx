@@ -422,6 +422,41 @@ function maxCheckoutISO(checkInDate) {
   return base.toISOString().slice(0, 10);
 }
 
+// Known clusters of small, closely-adjacent cities that should always be
+// combined into ONE itinerary entry (one map, one section) rather than split
+// apart or forced into separate structural entries — the AI reliably treats
+// these as one practical area anyway, so this leans into that instead of
+// fighting it. Add more clusters here if other adjacent-city groups show the
+// same behavior.
+const CITY_CLUSTERS = [
+  {
+    label: "Wilton Manors / Oakland Park / Fort Lauderdale, FL",
+    members: ["Wilton Manors", "Oakland Park", "Fort Lauderdale"],
+  },
+];
+
+function detectCityCluster(destText) {
+  const lower = (destText || "").toLowerCase();
+  return CITY_CLUSTERS.find((cluster) => cluster.members.some((m) => lower.includes(m.toLowerCase())));
+}
+
+function collapseClusteredDestinations(destArray) {
+  const result = [];
+  const usedClusterLabels = new Set();
+  destArray.forEach((d) => {
+    const cluster = detectCityCluster(d);
+    if (cluster) {
+      if (!usedClusterLabels.has(cluster.label)) {
+        usedClusterLabels.add(cluster.label);
+        result.push(cluster.label);
+      }
+    } else {
+      result.push(d);
+    }
+  });
+  return result;
+}
+
 function parseExpectedDestinations(destString) {
   // Splits on "then" or commas — matches how the AI is instructed to interpret
   // multi-destination input (e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca").
@@ -852,7 +887,15 @@ function CompassApp() {
           : "";
       const allPartners = await getAllActivePartners();
       const partnerLine = buildPartnerPromptSection(allPartners);
-      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}`;
+      const matchedCluster = detectCityCluster(dest);
+      const clusterLine = matchedCluster
+        ? `\n\nCITY CLUSTER INSTRUCTION: The traveler's destination includes one or more of these closely-clustered adjacent cities: ${matchedCluster.members.join(
+            ", "
+          )}, FL. Treat ALL of these as ONE SINGLE combined "cities" array entry named exactly "${matchedCluster.label}" — do NOT create separate entries for each one. Within that one combined entry's day-by-day itinerary, include a genuinely BALANCED mix of venues from all of ${matchedCluster.members.join(
+            ", "
+          )} — not mostly from just one of them. If the traveler also named other unrelated destinations outside this cluster, still create separate normal entries for those.`
+        : "";
+      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       let parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
@@ -861,7 +904,9 @@ function CompassApp() {
       // returned as separate cities (e.g. it merged two adjacent small towns into
       // one), retry once with an explicit, forceful correction — prompting alone
       // doesn't always reliably prevent this for closely-clustered cities.
-      const expectedDestinations = parseExpectedDestinations(dest);
+      // A recognized cluster collapses to ONE expected destination, since that's
+      // now the intentional behavior for those specific cities.
+      const expectedDestinations = collapseClusteredDestinations(parseExpectedDestinations(dest));
       if (expectedDestinations.length > 1 && (parsed.cities?.length || 0) < expectedDestinations.length) {
         console.error(`City count mismatch: expected ${expectedDestinations.length} (${expectedDestinations.join(", ")}), got ${parsed.cities?.length || 0}. Retrying once.`);
         const retryPrompt = `${prompt}\n\nIMPORTANT CORRECTION: your previous attempt merged some of these destinations together into fewer cities than requested. The traveler named these ${expectedDestinations.length} SEPARATE destinations: ${expectedDestinations.join(", ")}. You MUST return exactly ${expectedDestinations.length} separate entries in the "cities" array, one for each — even if some are small towns right next to each other. Do not merge any of them.`;
@@ -903,7 +948,12 @@ function CompassApp() {
     try {
       const allPartners = await getAllActivePartners();
       const partnerLine = buildPartnerPromptSection(allPartners);
-      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}`;
+      const existingCityNames = (itinerary.cities || []).map((c) => c.name).join(", ");
+      const matchedCluster = detectCityCluster(existingCityNames);
+      const clusterLine = matchedCluster
+        ? `\n\nCITY CLUSTER INSTRUCTION: this itinerary includes the combined "${matchedCluster.label}" entry, covering ${matchedCluster.members.join(", ")}, FL together. Keep it as ONE combined entry — do not split it into separate cities when making this edit.`
+        : "";
+      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
       const updated = extractItineraryJson(text);
       if (updated && updated.cities) {
