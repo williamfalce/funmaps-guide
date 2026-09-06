@@ -13,6 +13,21 @@ async function getBanners(cityName) {
   }
 }
 
+async function getAccommodationsPartners() {
+  // Fetched unfiltered (no ?city=) since at prompt-build time we don't yet know
+  // exactly how the AI will format the destination ("Miami" vs "Miami, FL").
+  // The AI does its own city-matching using its own geographic judgment,
+  // which is more robust here than our exact-string matching.
+  try {
+    const res = await fetch(`/api/banners`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.banners || []).filter((b) => b.category === "Accommodations" && b.active !== false);
+  } catch {
+    return [];
+  }
+}
+
 function trackBannerClick(bannerId) {
   // fire-and-forget — never block or delay the user's click-through
   fetch("/api/banner-click", {
@@ -727,7 +742,12 @@ function CompassApp() {
         avoidVenues && avoidVenues.length > 0
           ? `\nThis is a continuation of an earlier trip to the same destination. Do NOT repeat any of these places already visited — suggest different options instead: ${avoidVenues.join(", ")}.`
           : "";
-      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}`;
+      const accommodationsPartners = await getAccommodationsPartners();
+      const partnerLine =
+        accommodationsPartners.length > 0
+          ? `\n\nPRIORITY ACCOMMODATIONS PARTNERS — we have a paid partnership with these specific properties. If the traveler's destination matches one of these cities (use your own judgment on the match, e.g. "Miami" matches "Miami, FL"), the Day 1 check-in/arrival activity for that city MUST recommend staying at that exact named property — do not invent or suggest a different hotel for that city's check-in. List: ${accommodationsPartners.map((p) => `"${p.businessName}" in ${p.city}`).join("; ")}.`
+          : "";
+      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
@@ -756,7 +776,12 @@ function CompassApp() {
     setChatInput("");
     setChatLoading(true);
     try {
-      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}`;
+      const accommodationsPartners = await getAccommodationsPartners();
+      const partnerLine =
+        accommodationsPartners.length > 0
+          ? `\n\nPRIORITY ACCOMMODATIONS PARTNERS — we have a paid partnership with these specific properties. If any city in this itinerary matches one of these (use your own judgment, e.g. "Miami" matches "Miami, FL"), that city's Day 1 check-in/arrival activity MUST recommend staying at that exact named property. List: ${accommodationsPartners.map((p) => `"${p.businessName}" in ${p.city}`).join("; ")}.`
+          : "";
+      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}`;
       const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
       const updated = extractItineraryJson(text);
       if (updated && updated.cities) {
