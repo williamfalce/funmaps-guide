@@ -1277,7 +1277,7 @@ function CompassApp() {
               {accommodationsPartners.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
                   <p style={{ fontSize: 11, color: "#D9662E", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
-                    ★ WHERE YOU'RE STAYING — DAY 1 CHECK-IN
+                    ★ RECOMMENDED ACCOMMODATIONS — DAY 1 CHECK-IN
                   </p>
                   {accommodationsPartners.map((p) => (
                     <BannerAd key={p.id} banner={p} cityName={city.name} />
