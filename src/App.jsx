@@ -13,7 +13,7 @@ async function getBanners(cityName) {
   }
 }
 
-async function getAccommodationsPartners() {
+async function getAllActivePartners() {
   // Fetched unfiltered (no ?city=) since at prompt-build time we don't yet know
   // exactly how the AI will format the destination ("Miami" vs "Miami, FL").
   // The AI does its own city-matching using its own geographic judgment,
@@ -22,10 +22,39 @@ async function getAccommodationsPartners() {
     const res = await fetch(`/api/banners`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.banners || []).filter((b) => b.category === "Accommodations" && b.active !== false);
+    return (data.banners || []).filter((b) => b.active !== false);
   } catch {
     return [];
   }
+}
+
+function sortPartners(partners) {
+  return [...partners].sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier === "premium" ? -1 : 1;
+    return (a.businessName || "").localeCompare(b.businessName || "");
+  });
+}
+
+function buildPartnerPromptSection(partners) {
+  if (!partners.length) return "";
+  const accommodations = partners.filter((p) => p.category === "Accommodations");
+  const others = partners.filter((p) => p.category !== "Accommodations");
+  let section = "";
+  if (accommodations.length > 0) {
+    section += `\n\nACCOMMODATIONS PARTNERS — we have a paid partnership with these specific properties: ${accommodations
+      .map((p) => `"${p.businessName}" in ${p.city}`)
+      .join(
+        "; "
+      )}. If the traveler's destination matches one of these cities (use your own judgment on the match, e.g. "Miami" matches "Miami, FL"), do NOT write a specific hotel check-in/accommodations activity for that city at all — we display the actual partner separately, at the top of that city's section. Just move straight into other Day 1 activities (arrival logistics, food, sightseeing) without naming or suggesting any hotel for that city.`;
+  }
+  if (others.length > 0) {
+    section += `\n\nOTHER CATEGORY PARTNERS — we have paid partnerships with these specific businesses: ${others
+      .map((p) => `"${p.businessName}" (${p.category}) in ${p.city}`)
+      .join(
+        "; "
+      )}. If the traveler's destination matches one of these cities, avoid recommending a DIRECTLY COMPETING business in that same category for that city (e.g. don't suggest a different nightlife venue if we have a Bars&Clubs partner there). You may mention our partner by name once in a relevant activity if it fits naturally, but it's not required — the main thing is just avoiding direct competition with it.`;
+  }
+  return section;
 }
 
 function trackBannerClick(bannerId) {
@@ -742,11 +771,8 @@ function CompassApp() {
         avoidVenues && avoidVenues.length > 0
           ? `\nThis is a continuation of an earlier trip to the same destination. Do NOT repeat any of these places already visited — suggest different options instead: ${avoidVenues.join(", ")}.`
           : "";
-      const accommodationsPartners = await getAccommodationsPartners();
-      const partnerLine =
-        accommodationsPartners.length > 0
-          ? `\n\nPRIORITY ACCOMMODATIONS PARTNERS — we have a paid partnership with these specific properties. If the traveler's destination matches one of these cities (use your own judgment on the match, e.g. "Miami" matches "Miami, FL"), the Day 1 check-in/arrival activity for that city MUST recommend staying at that exact named property — do not invent or suggest a different hotel for that city's check-in. List: ${accommodationsPartners.map((p) => `"${p.businessName}" in ${p.city}`).join("; ")}.`
-          : "";
+      const allPartners = await getAllActivePartners();
+      const partnerLine = buildPartnerPromptSection(allPartners);
       const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       const parsed = extractItineraryJson(text);
@@ -776,11 +802,8 @@ function CompassApp() {
     setChatInput("");
     setChatLoading(true);
     try {
-      const accommodationsPartners = await getAccommodationsPartners();
-      const partnerLine =
-        accommodationsPartners.length > 0
-          ? `\n\nPRIORITY ACCOMMODATIONS PARTNERS — we have a paid partnership with these specific properties. If any city in this itinerary matches one of these (use your own judgment, e.g. "Miami" matches "Miami, FL"), that city's Day 1 check-in/arrival activity MUST recommend staying at that exact named property. List: ${accommodationsPartners.map((p) => `"${p.businessName}" in ${p.city}`).join("; ")}.`
-          : "";
+      const allPartners = await getAllActivePartners();
+      const partnerLine = buildPartnerPromptSection(allPartners);
       const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}`;
       const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
       const updated = extractItineraryJson(text);
@@ -1146,8 +1169,8 @@ function CompassApp() {
 
           {itinerary.cities?.map((city, ci) => {
             const banners = cityBanners[city.name] || [];
-            const hotelBanner = banners.find((b) => b.category === "Accommodations");
-            const placedIds = new Set(hotelBanner ? [hotelBanner.id] : []);
+            const accommodationsPartners = sortPartners(banners.filter((b) => b.category === "Accommodations"));
+            const placedIds = new Set(accommodationsPartners.map((b) => b.id));
             // For each day, find the first not-yet-placed banner whose category
             // maps to something actually happening that day (e.g. a Bars&Clubs
             // banner slots in right after a day that has nightlife activities).
@@ -1251,6 +1274,17 @@ function CompassApp() {
                 </div>
               )}
 
+              {accommodationsPartners.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, color: "#D9662E", fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
+                    ★ WHERE YOU'RE STAYING — DAY 1 CHECK-IN
+                  </p>
+                  {accommodationsPartners.map((p) => (
+                    <BannerAd key={p.id} banner={p} cityName={city.name} />
+                  ))}
+                </div>
+              )}
+
               {city.itinerary?.map((d) => {
                 const dayBanner = dayBannerMap[d.day];
                 return (
@@ -1303,8 +1337,6 @@ function CompassApp() {
               {fallbackBanners.map((b) => (
                 <BannerAd key={b.id} banner={b} cityName={city.name} />
               ))}
-
-              {hotelBanner && <BannerAd banner={hotelBanner} cityName={city.name} />}
 
               {/* Booking.com affiliate button, via CJ deep link */}
               <a
