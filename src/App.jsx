@@ -475,6 +475,10 @@ const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for
 ${ITINERARY_JSON_SCHEMA}
 Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, address, or website, describe the type of place and use a neighborhood-level location instead of inventing details.
 
+CRITICAL — one "cities" array entry per distinct destination the traveler named, even if they're small and geographically adjacent: if the traveler asks for multiple specific destinations (e.g. "Wilton Manors then Oakland Park then Fort Lauderdale"), you MUST create a SEPARATE top-level entry in the "cities" array for EACH one they named — do not merge two or more of them into a single combined entry just because they're neighboring towns, part of the same metro area, or geographically close together. Wilton Manors, Oakland Park, and Fort Lauderdale, FL are three distinct municipalities that sit right next to each other — each one the traveler explicitly names must get its own "cities" entry with its own name, its own days count, and its own itinerary, never folded into a neighboring city's entry.
+
+CRITICAL — activity placement in multi-city trips, especially closely-clustered neighboring cities/suburbs (e.g. Wilton Manors, Oakland Park, and Fort Lauderdale, FL, which sit right next to each other): every activity's "address" MUST genuinely be located within the city object it's nested under in the JSON. Double-check each activity's actual city before placing it — do not place a Wilton Manors venue under Oakland Park's "cities" entry (or vice versa) just because they're close together or you're unsure. If a venue's exact city is ambiguous, either verify it belongs to the city you're currently building, or place it under the correct neighboring city's own entry instead — never guess and misfile it.
+
 CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.`;
 
 const ITINERARY_MODIFY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps, helping a traveler modify an itinerary they already have. You will be given the current itinerary as JSON, plus a request describing the change they want (e.g. "add another day," "swap day 2 for something more low-key," "add more nightlife to Miami").
@@ -627,6 +631,35 @@ function CompassApp() {
       }
     }
 
+    function buildGeocodeQuery(address, cityName) {
+      // Normalize en-dashes/em-dashes (common in address ranges like "1035–1037")
+      // to plain hyphens, since some geocoders handle these poorly.
+      const cleaned = address.replace(/[\u2013\u2014]/g, "-");
+      // If the address already contains the city name (admins sometimes enter a
+      // full address including city/state/zip), don't append it again — a
+      // duplicated city string can confuse the geocoder into a bad, low-confidence match.
+      const cityCore = (cityName || "").split(",")[0].trim().toLowerCase();
+      if (cityCore && cleaned.toLowerCase().includes(cityCore)) return cleaned;
+      return `${cleaned}, ${cityName}`;
+    }
+
+    // Self-correction for closely-clustered neighboring cities (e.g. Wilton Manors
+    // vs Oakland Park vs Fort Lauderdale): if an address explicitly names a
+    // DIFFERENT city from this trip than the one it's nested under, trust the
+    // address and route its pin to that city's map instead — safer than trusting
+    // which city section the AI happened to file it under.
+    const allCityNames = itinerary.cities.map((c) => c.name);
+    function resolveActualCity(address, fallbackCityName) {
+      const addressLower = address.toLowerCase();
+      for (const cn of allCityNames) {
+        const core = cn.split(",")[0].trim().toLowerCase();
+        if (core && core !== fallbackCityName.split(",")[0].trim().toLowerCase() && addressLower.includes(core)) {
+          return cn;
+        }
+      }
+      return fallbackCityName;
+    }
+
     async function run() {
       // Build the full list of things to pin: city center + every activity with an
       // address + every partner (Featured/Recommended/Banner) with an address, tagged by city.
@@ -638,16 +671,25 @@ function CompassApp() {
         targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
-            if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category, cityName: city.name });
+            if (a.address) {
+              const actualCity = resolveActualCity(a.address, city.name);
+              targets.push({ query: buildGeocodeQuery(a.address, actualCity), name: a.name, category: a.category, cityName: actualCity });
+            }
           });
         });
         const partners = await getBanners(city.name);
         partners.forEach((p) => {
-          if (p.address) targets.push({ query: `${p.address}, ${city.name}`, name: p.businessName, category: "partner", cityName: city.name });
+          if (p.address) {
+            const actualCity = resolveActualCity(p.address, city.name);
+            targets.push({ query: buildGeocodeQuery(p.address, actualCity), name: p.businessName, category: "partner", cityName: actualCity });
+          }
         });
         const sponsors = await getSponsorships(city.name);
         sponsors.forEach((s) => {
-          if (s.address) targets.push({ query: `${s.address}, ${city.name}`, name: s.businessName, category: "partner", cityName: city.name });
+          if (s.address) {
+            const actualCity = resolveActualCity(s.address, city.name);
+            targets.push({ query: buildGeocodeQuery(s.address, actualCity), name: s.businessName, category: "partner", cityName: actualCity });
+          }
         });
       }
 
