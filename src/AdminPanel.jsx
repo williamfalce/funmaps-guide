@@ -35,6 +35,17 @@ const emptyPartnerForm = {
 
 const emptySponsorshipForm = { id: null, city: "", businessName: "", tagline: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
 
+function generatePromoCode(businessName, existingCodes) {
+  const cleaned = (businessName || "").replace(/[^a-zA-Z]/g, "").toUpperCase();
+  const slug = cleaned.slice(0, 6) || "PARTNER";
+  const year = new Date().getFullYear().toString().slice(-2);
+  const base = `Compass_${slug}${year}`;
+  if (!existingCodes.has(base.toUpperCase())) return base;
+  let suffix = 2;
+  while (existingCodes.has(`${base}-${suffix}`.toUpperCase())) suffix++;
+  return `${base}-${suffix}`;
+}
+
 export default function AdminPanel() {
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem(ADMIN_KEY_STORAGE) || "");
   const [keyInput, setKeyInput] = useState("");
@@ -126,6 +137,23 @@ export default function AdminPanel() {
       setPartnerError(err.message || "Image upload failed — try a smaller image.");
     } finally {
       setUploadingPartnerImage(false);
+    }
+  }
+
+  async function handleGenerateCode() {
+    if (!partnerForm.businessName.trim()) {
+      setPartnerError("Enter a business name first, so the code can be based on it.");
+      return;
+    }
+    try {
+      // Fetch the full, unfiltered list to check uniqueness against ALL existing codes,
+      // not just whatever's currently showing under the active city filter.
+      const data = await apiCall("banners", "GET", null, adminKey, "");
+      const existingCodes = new Set((data.banners || []).map((b) => (b.promoCode || "").toUpperCase()).filter(Boolean));
+      const code = generatePromoCode(partnerForm.businessName, existingCodes);
+      setPartnerForm((f) => ({ ...f, promoCode: code }));
+    } catch (e) {
+      setPartnerError("Couldn't generate a code — try again.");
     }
   }
 
@@ -410,7 +438,16 @@ export default function AdminPanel() {
                 </div>
                 <div>
                   <label style={labelStyle}>PROMO CODE</label>
-                  <input value={partnerForm.promoCode} onChange={(e) => setPartnerForm({ ...partnerForm, promoCode: e.target.value })} placeholder="e.g. COMPASSMIA15" style={inputStyle} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input value={partnerForm.promoCode} onChange={(e) => setPartnerForm({ ...partnerForm, promoCode: e.target.value })} placeholder="e.g. Compass_CLUBNE26" style={{ ...inputStyle, flex: 1 }} />
+                    <button
+                      type="button"
+                      onClick={handleGenerateCode}
+                      style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 8, padding: "0 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+                    >
+                      Generate
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label style={labelStyle}>COMMISSION RATE (%) — set whatever you negotiated with this partner</label>
