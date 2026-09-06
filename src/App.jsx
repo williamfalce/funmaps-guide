@@ -380,7 +380,7 @@ const ITINERARY_JSON_SCHEMA = `{
   "summary": string (2-3 sentences covering the whole trip),
   "cities": [
     {
-      "name": string,
+      "name": string (ALWAYS include the state or country for disambiguation, formatted exactly as "City, ST" for US cities using the 2-letter state abbreviation, e.g. "Oakland Park, FL", or "City, Country" for international cities, e.g. "Paris, France" — never just a bare city name, since many city names are duplicated worldwide and this is the only reliable way to distinguish them),
       "days": number,
       "airport": string (nearest major airport, name + code, one short sentence on getting into the city from it),
       "currency": string (currency name/code, and one short sentence on cards vs cash, ATM availability),

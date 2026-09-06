@@ -388,8 +388,8 @@ export default function AdminPanel() {
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>CITY *</label>
-                  <input value={partnerForm.city} onChange={(e) => setPartnerForm({ ...partnerForm, city: e.target.value })} placeholder="e.g. Miami" style={inputStyle} />
+                  <label style={labelStyle}>CITY * (format: "City, ST" or "City, Country" — e.g. "Miami, FL" or "Paris, France")</label>
+                  <input value={partnerForm.city} onChange={(e) => setPartnerForm({ ...partnerForm, city: e.target.value })} placeholder="e.g. Miami, FL" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>BUSINESS NAME *</label>
@@ -551,8 +551,8 @@ export default function AdminPanel() {
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>CITY *</label>
-                  <input value={sponsorshipForm.city} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, city: e.target.value })} placeholder="e.g. Miami" style={inputStyle} />
+                  <label style={labelStyle}>CITY * (format: "City, ST" or "City, Country" — e.g. "Miami, FL" or "Paris, France")</label>
+                  <input value={sponsorshipForm.city} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, city: e.target.value })} placeholder="e.g. Miami, FL" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>BUSINESS NAME *</label>

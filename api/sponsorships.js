@@ -1,14 +1,14 @@
-// Vercel serverless function — manages Banner Ad partners (separate product from
-// Featured Partners). These are commission-based: a promo code + click tracking
-// support the 15%-of-sale verification model, rather than a flat listing fee.
+// Vercel serverless function — manages Sponsorship banners. A third, distinct
+// partner product: flat $3,000/year fee (not commission-based), one slot per
+// destination that rotates among however many sponsors exist for that city.
 //
-// GET    /api/banners?city=Miami   -> list active banners for a city, no auth needed
-// POST   /api/banners              -> add a banner (requires x-admin-key header)
-// PUT    /api/banners              -> update a banner by id (requires x-admin-key header)
-// DELETE /api/banners?id=...       -> remove a banner (requires x-admin-key header)
+// GET    /api/sponsorships?city=Miami   -> list active sponsors for a city, no auth needed
+// POST   /api/sponsorships              -> add a sponsor (requires x-admin-key header)
+// PUT    /api/sponsorships              -> update a sponsor by id (requires x-admin-key header)
+// DELETE /api/sponsorships?id=...       -> remove a sponsor (requires x-admin-key header)
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const STORE_KEY = "banner-partners-v1";
+const STORE_KEY = "sponsorships-v1";
 
 let redis = null;
 function getRedis() {
@@ -33,15 +33,11 @@ async function readAll(db) {
   return typeof raw === "string" ? JSON.parse(raw) : raw;
 }
 
-async function writeAll(db, banners) {
-  await db.set(STORE_KEY, JSON.stringify(banners));
+async function writeAll(db, sponsorships) {
+  await db.set(STORE_KEY, JSON.stringify(sponsorships));
 }
 
 function normalizeCityName(name) {
-  // Both the AI and admin entries now consistently include "City, ST" or
-  // "City, Country" — matching the full string (not just the city part)
-  // correctly distinguishes real duplicate city names worldwide
-  // (Paris, France vs Paris, TX; Springfield, IL vs Springfield, MA; etc.)
   return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
@@ -66,9 +62,9 @@ module.exports = async (req, res) => {
       const all = await readAll(db);
       const city = req.query.city;
       const isAdmin = checkAdmin(req);
-      const visible = isAdmin ? all : all.filter((b) => b.active !== false);
-      const filtered = city ? visible.filter((b) => normalizeCityName(b.city) === normalizeCityName(city)) : visible;
-      res.status(200).json({ banners: filtered });
+      const visible = isAdmin ? all : all.filter((s) => s.active !== false);
+      const filtered = city ? visible.filter((s) => normalizeCityName(s.city) === normalizeCityName(city)) : visible;
+      res.status(200).json({ sponsorships: filtered });
       return;
     }
 
@@ -78,40 +74,30 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, category, tier, tagline, address, phone, imageUrl, ctaText, ctaLink, bookingLink, promoCode, promoIncentive } = req.body || {};
-      if (!city || !businessName) {
-        res.status(400).json({ error: "City and business name are required" });
-        return;
-      }
-      const resolvedTier = tier === "premium" ? "premium" : "basic";
-      if (resolvedTier === "premium" && !imageUrl) {
-        res.status(400).json({ error: "Premium tier requires an uploaded image or logo" });
+      const { city, businessName, tagline, imageUrl, ctaText, ctaLink, annualPrice, startDate, endDate } = req.body || {};
+      if (!city || !businessName || !imageUrl) {
+        res.status(400).json({ error: "City, business name, and image are required" });
         return;
       }
       const all = await readAll(db);
-      const banner = {
+      const sponsorship = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         city: city.trim(),
         businessName: businessName.trim(),
-        category: category || "Attractions",
-        tier: resolvedTier,
         tagline: tagline || "",
-        address: address || "",
-        phone: phone || "",
-        imageUrl: imageUrl || "",
+        imageUrl,
         ctaText: ctaText || "Learn More",
         ctaLink: ctaLink || "",
-        bookingLink: bookingLink || "",
-        promoCode: promoCode || "",
-        promoIncentive: promoIncentive || "",
-        commissionRate: resolvedTier === "premium" ? 22 : 15,
+        annualPrice: annualPrice || 3000,
+        startDate: startDate || "",
+        endDate: endDate || "",
         active: true,
         clicks: 0,
         createdAt: Date.now(),
       };
-      all.push(banner);
+      all.push(sponsorship);
       await writeAll(db, all);
-      res.status(200).json({ banner });
+      res.status(200).json({ sponsorship });
       return;
     }
 
@@ -122,14 +108,14 @@ module.exports = async (req, res) => {
         return;
       }
       const all = await readAll(db);
-      const idx = all.findIndex((b) => b.id === id);
+      const idx = all.findIndex((s) => s.id === id);
       if (idx === -1) {
-        res.status(404).json({ error: "Banner not found" });
+        res.status(404).json({ error: "Sponsorship not found" });
         return;
       }
       all[idx] = { ...all[idx], ...updates };
       await writeAll(db, all);
-      res.status(200).json({ banner: all[idx] });
+      res.status(200).json({ sponsorship: all[idx] });
       return;
     }
 
@@ -140,7 +126,7 @@ module.exports = async (req, res) => {
         return;
       }
       const all = await readAll(db);
-      const filtered = all.filter((b) => b.id !== id);
+      const filtered = all.filter((s) => s.id !== id);
       await writeAll(db, filtered);
       res.status(200).json({ ok: true });
       return;
