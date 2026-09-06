@@ -74,7 +74,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, tagline, imageUrl, ctaText, ctaLink, annualPrice, startDate, endDate } = req.body || {};
+      const { city, businessName, tagline, address, phone, imageUrl, ctaText, ctaLink, annualPrice, startDate, endDate } = req.body || {};
       if (!city || !businessName || !imageUrl) {
         res.status(400).json({ error: "City, business name, and image are required" });
         return;
@@ -85,6 +85,8 @@ module.exports = async (req, res) => {
         city: city.trim(),
         businessName: businessName.trim(),
         tagline: tagline || "",
+        address: address || "",
+        phone: phone || "",
         imageUrl,
         ctaText: ctaText || "Learn More",
         ctaLink: ctaLink || "",

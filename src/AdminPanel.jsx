@@ -85,7 +85,7 @@ const emptyPartnerForm = {
   commissionRate: 15,
 };
 
-const emptySponsorshipForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", tagline: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
+const emptySponsorshipForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", tagline: "", address: "", phone: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
 
 function generatePromoCode(businessName, existingCodes) {
   const cleaned = (businessName || "").replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -393,6 +393,8 @@ export default function AdminPanel() {
       state,
       businessName: s.businessName,
       tagline: s.tagline || "",
+      address: s.address || "",
+      phone: s.phone || "",
       imageUrl: s.imageUrl || "",
       ctaText: s.ctaText || "Learn More",
       ctaLink: s.ctaLink || "",
@@ -681,6 +683,14 @@ export default function AdminPanel() {
                   <input value={sponsorshipForm.tagline} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, tagline: e.target.value })} placeholder="Short promotional line" style={inputStyle} />
                 </div>
                 <div>
+                  <label style={labelStyle}>ADDRESS</label>
+                  <input value={sponsorshipForm.address} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, address: e.target.value })} placeholder="Street address (for map pin)" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>PHONE NUMBER</label>
+                  <input value={sponsorshipForm.phone} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, phone: e.target.value })} placeholder="(555) 123-4567" style={inputStyle} />
+                </div>
+                <div>
                   <label style={labelStyle}>ANNUAL PRICE ($)</label>
                   <input type="number" value={sponsorshipForm.annualPrice} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, annualPrice: Number(e.target.value) })} style={inputStyle} />
                 </div>
@@ -760,7 +770,7 @@ export default function AdminPanel() {
                           {s.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                         </div>
                         <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
-                          {s.city} {s.startDate && s.endDate && `· ${s.startDate} to ${s.endDate}`}
+                          {s.city} {s.address && `· ${s.address}`} {s.phone && `· ${s.phone}`} {s.startDate && s.endDate && `· ${s.startDate} to ${s.endDate}`}
                         </p>
                         <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>{s.clicks || 0} clicks</p>
                       </div>

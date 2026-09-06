@@ -141,23 +141,17 @@ function WaveText({ text }) {
   );
 }
 
-function SponsorshipBanner({ sponsor }) {
+function SponsorshipBanner({ sponsor, cityName }) {
   if (!sponsor) return null;
   return (
-    <a
-      href={normalizeUrl(sponsor.ctaLink) || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => trackSponsorshipClick(sponsor.id)}
+    <div
       className="no-print"
       style={{
-        display: "block",
         position: "relative",
         borderRadius: 16,
         overflow: "hidden",
         marginBottom: 16,
-        textDecoration: "none",
-        height: 140,
+        height: 160,
       }}
     >
       <img src={sponsor.imageUrl} alt={sponsor.businessName} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
@@ -166,9 +160,31 @@ function SponsorshipBanner({ sponsor }) {
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5, color: "#F5EFE699" }}>CITY SPONSOR</span>
         <span style={{ fontWeight: 700, fontSize: 19, color: "#F5EFE6", marginTop: 2 }}>{sponsor.businessName}</span>
         {sponsor.tagline && <span style={{ fontSize: 13.5, color: "#F5EFE6cc", marginTop: 4 }}>{sponsor.tagline}</span>}
-        <span style={{ fontSize: 12.5, color: "#D9662E", fontWeight: 700, marginTop: 8 }}>{sponsor.ctaText || "Learn More"} →</span>
+        {(sponsor.address || sponsor.phone) && (
+          <div className="flex flex-wrap items-center gap-3" style={{ marginTop: 6 }}>
+            {sponsor.address && (
+              <a href={directionsUrl(sponsor.address, cityName || sponsor.city)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" style={{ color: "#F5EFE6cc", fontSize: 11.5, textDecoration: "none" }}>
+                <Navigation size={10} /> {sponsor.address}
+              </a>
+            )}
+            {sponsor.phone && (
+              <a href={`tel:${sponsor.phone.replace(/[^0-9+]/g, "")}`} className="flex items-center gap-1" style={{ color: "#F5EFE6cc", fontSize: 11.5, textDecoration: "none" }}>
+                <Phone size={10} /> {sponsor.phone}
+              </a>
+            )}
+          </div>
+        )}
+        <a
+          href={normalizeUrl(sponsor.ctaLink) || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackSponsorshipClick(sponsor.id)}
+          style={{ fontSize: 12.5, color: "#D9662E", fontWeight: 700, marginTop: 8, textDecoration: "none", display: "inline-block" }}
+        >
+          {sponsor.ctaText || "Learn More"} →
+        </a>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -612,16 +628,28 @@ function CompassApp() {
     }
 
     async function run() {
-      // Build the full list of things to pin: city center + every activity with an address, tagged by city.
+      // Build the full list of things to pin: city center + every activity with an
+      // address + every partner (Featured/Recommended/Banner) with an address, tagged by city.
+      // Partner addresses are fetched directly here (not read from the separate
+      // cityBanners state) to avoid a timing race — that state fetches independently
+      // and might not have resolved yet when this effect starts building targets.
       const targets = [];
-      itinerary.cities.forEach((city) => {
+      for (const city of itinerary.cities) {
         targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
             if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category, cityName: city.name });
           });
         });
-      });
+        const partners = await getBanners(city.name);
+        partners.forEach((p) => {
+          if (p.address) targets.push({ query: `${p.address}, ${city.name}`, name: p.businessName, category: "partner", cityName: city.name });
+        });
+        const sponsors = await getSponsorships(city.name);
+        sponsors.forEach((s) => {
+          if (s.address) targets.push({ query: `${s.address}, ${city.name}`, name: s.businessName, category: "partner", cityName: city.name });
+        });
+      }
 
       const totalsByCity = {};
       targets.forEach((t) => {
@@ -697,14 +725,14 @@ function CompassApp() {
 
         pins.forEach((pin) => {
           const isCity = pin.category === "city";
-          const isFeatured = pin.category === "featured";
-          const color = isCity ? "#9B2FA0" : isFeatured ? "#D9662E" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
-          const size = isCity ? 32 : isFeatured ? 30 : 24;
-          const html = isFeatured
+          const isPartner = pin.category === "partner";
+          const color = isCity ? "#9B2FA0" : isPartner ? "#D9662E" : (CATEGORY_META[pin.category] || CATEGORY_META.culture).color;
+          const size = isCity ? 32 : isPartner ? 30 : 24;
+          const html = isPartner
             ? `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 8px rgba(217,102,46,0.8);display:flex;align-items:center;justify-content:center;color:white;font-size:${size * 0.55}px;line-height:1;">★</div>`
             : `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>`;
           const icon = window.L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
-          const label = isFeatured ? `★ ${pin.name} (Featured Partner)` : pin.name;
+          const label = isPartner ? `★ ${pin.name} (Partner)` : pin.name;
           window.L.marker([pin.lat, pin.lon], { icon }).bindPopup(`<strong>${label}</strong>`).addTo(map._markersLayer);
         });
 
@@ -1117,7 +1145,7 @@ function CompassApp() {
 
       {itinerary && (
         <div ref={resultsTopRef} style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 64px" }}>
-          <SponsorshipBanner sponsor={citySponsors[itinerary.cities?.[0]?.name]} />
+          <SponsorshipBanner sponsor={citySponsors[itinerary.cities?.[0]?.name]} cityName={itinerary.cities?.[0]?.name} />
           <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 55, maxWidth: "100%" }} />
             <span style={{ fontSize: 9, color: "#1B1030aa", marginLeft: -3, marginBottom: 2 }}>™</span>
