@@ -233,6 +233,10 @@ export default function AdminPanel() {
     setPartnerError("");
     try {
       const payload = { ...partnerForm, city: buildCityString(partnerForm.cityName, partnerForm.country, partnerForm.state) };
+      // An admin editing and saving a pending entry IS the approval — no separate
+      // click needed. (Sales-role saves still get forced back to "pending" by
+      // the server regardless of what's sent here, so this only matters for admin.)
+      if (adminRole === "admin") payload.status = "approved";
       if (partnerForm.id) {
         await apiCall("banners", "PUT", payload, adminKey);
       } else {
@@ -293,6 +297,7 @@ export default function AdminPanel() {
     const { cityName, country, state } = parseCityString(p.city);
     setPartnerForm({
       id: p.id,
+      status: p.status || "approved",
       cityName,
       country,
       state,
@@ -373,6 +378,7 @@ export default function AdminPanel() {
     setSponsorshipError("");
     try {
       const payload = { ...sponsorshipForm, city: buildCityString(sponsorshipForm.cityName, sponsorshipForm.country, sponsorshipForm.state) };
+      if (adminRole === "admin") payload.status = "approved";
       if (sponsorshipForm.id) {
         await apiCall("sponsorships", "PUT", payload, adminKey);
       } else {
@@ -433,6 +439,7 @@ export default function AdminPanel() {
     const { cityName, country, state } = parseCityString(s.city);
     setSponsorshipForm({
       id: s.id,
+      status: s.status || "approved",
       cityName,
       country,
       state,
@@ -643,7 +650,13 @@ export default function AdminPanel() {
                   disabled={partnerSaving}
                   style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: partnerSaving ? "default" : "pointer" }}
                 >
-                  {partnerSaving ? "Saving..." : partnerForm.id ? "Update Partner" : "Add Partner"}
+                  {partnerSaving
+                    ? "Saving..."
+                    : partnerForm.id
+                    ? adminRole === "admin" && partnerForm.status === "pending"
+                      ? "Save & Approve"
+                      : "Update Partner"
+                    : "Add Partner"}
                 </button>
                 {partnerForm.id && (
                   <button
@@ -810,7 +823,13 @@ export default function AdminPanel() {
                   disabled={sponsorshipSaving}
                   style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: sponsorshipSaving ? "default" : "pointer" }}
                 >
-                  {sponsorshipSaving ? "Saving..." : sponsorshipForm.id ? "Update Sponsorship" : "Add Sponsorship"}
+                  {sponsorshipSaving
+                    ? "Saving..."
+                    : sponsorshipForm.id
+                    ? adminRole === "admin" && sponsorshipForm.status === "pending"
+                      ? "Save & Approve"
+                      : "Update Sponsorship"
+                    : "Add Sponsorship"}
                 </button>
                 {sponsorshipForm.id && (
                   <button
