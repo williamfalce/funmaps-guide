@@ -100,6 +100,7 @@ function generatePromoCode(businessName, existingCodes) {
 
 export default function AdminPanel() {
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem(ADMIN_KEY_STORAGE) || "");
+  const [adminRole, setAdminRole] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -129,8 +130,9 @@ export default function AdminPanel() {
   async function tryUnlock(key) {
     setAuthError("");
     try {
-      await apiCall("banners", "GET", null, key, "");
+      const data = await apiCall("banners", "GET", null, key, "");
       setAdminKey(key);
+      setAdminRole(data.role || "sales");
       sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
       setUnlocked(true);
     } catch (e) {
@@ -141,6 +143,7 @@ export default function AdminPanel() {
   function logOut() {
     sessionStorage.removeItem(ADMIN_KEY_STORAGE);
     setAdminKey("");
+    setAdminRole("");
     setUnlocked(false);
     setKeyInput("");
   }
@@ -260,6 +263,25 @@ export default function AdminPanel() {
       await loadPartners();
     } catch (e) {
       setPartnerError("Couldn't update that partner.");
+    }
+  }
+
+  async function approvePartner(p) {
+    try {
+      await apiCall("banners", "PUT", { id: p.id, status: "approved" }, adminKey);
+      await loadPartners();
+    } catch (e) {
+      setPartnerError("Couldn't approve that partner.");
+    }
+  }
+
+  async function rejectPartner(p) {
+    if (!window.confirm(`Reject and remove "${p.businessName}"? This can't be undone.`)) return;
+    try {
+      await apiCall("banners", "DELETE", null, adminKey, `id=${encodeURIComponent(p.id)}`);
+      await loadPartners();
+    } catch (e) {
+      setPartnerError("Couldn't reject that partner.");
     }
   }
 
@@ -384,6 +406,25 @@ export default function AdminPanel() {
     }
   }
 
+  async function approveSponsorship(s) {
+    try {
+      await apiCall("sponsorships", "PUT", { id: s.id, status: "approved" }, adminKey);
+      await loadSponsorships();
+    } catch (e) {
+      setSponsorshipError("Couldn't approve that sponsorship.");
+    }
+  }
+
+  async function rejectSponsorship(s) {
+    if (!window.confirm(`Reject and remove "${s.businessName}"? This can't be undone.`)) return;
+    try {
+      await apiCall("sponsorships", "DELETE", null, adminKey, `id=${encodeURIComponent(s.id)}`);
+      await loadSponsorships();
+    } catch (e) {
+      setSponsorshipError("Couldn't reject that sponsorship.");
+    }
+  }
+
   function startSponsorshipEdit(s) {
     const { cityName, country, state } = parseCityString(s.city);
     setSponsorshipForm({
@@ -428,11 +469,31 @@ export default function AdminPanel() {
     <div style={{ background: "#1B1030", minHeight: "100vh", fontFamily: "Inter, sans-serif", color: "#F5EFE6", padding: 24 }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Compass Partners Admin</h1>
+          <div className="flex items-center gap-2" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>Compass Partners Admin</h1>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: 999,
+                background: adminRole === "admin" ? "#D9662E22" : "#1C9C9C22",
+                color: adminRole === "admin" ? "#D9662E" : "#1C9C9C",
+              }}
+            >
+              {adminRole === "admin" ? "ADMIN" : "SALES"}
+            </span>
+          </div>
           <button onClick={logOut} style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
             Log Out
           </button>
         </div>
+
+        {adminRole === "sales" && (
+          <div style={{ background: "#1C9C9C15", border: "1px solid #1C9C9C40", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#F5EFE6cc" }}>
+            Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them.
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           <button
@@ -598,7 +659,7 @@ export default function AdminPanel() {
             {partners.length === 0 && <p style={{ color: "#F5EFE699" }}>No partners yet — add one above.</p>}
 
             {partners.map((p) => (
-              <div key={p.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: p.active === false ? 0.5 : 1 }}>
+              <div key={p.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: p.active === false ? 0.5 : 1, border: p.status === "pending" ? "1px solid #D9662E60" : "none" }}>
                 <div style={{ display: "flex", gap: 12 }}>
                   {p.imageUrl && <img src={p.imageUrl} alt={p.businessName} style={{ width: 70, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
                   <div>
@@ -608,6 +669,7 @@ export default function AdminPanel() {
                         {p.tier === "premium" ? "RECOMMENDED (PREMIUM)" : "FEATURED (BASIC)"}
                       </span>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>{p.category?.toUpperCase()}</span>
+                      {p.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
                       {p.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                     </div>
                     <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -616,19 +678,32 @@ export default function AdminPanel() {
                     <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
                       {p.commissionRate}% commission · {p.promoCode && `Code: ${p.promoCode} · `}
                       {p.clicks || 0} clicks
+                      {p.createdBy && ` · added by ${p.createdBy}`}
                     </p>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
+                  {adminRole === "admin" && p.status === "pending" && (
+                    <>
+                      <button onClick={() => approvePartner(p)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        Approve
+                      </button>
+                      <button onClick={() => rejectPartner(p)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                        Reject
+                      </button>
+                    </>
+                  )}
                   <button onClick={() => togglePartnerActive(p)} style={{ background: "#1B1030", color: p.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                     {p.active === false ? "Activate" : "Pause"}
                   </button>
                   <button onClick={() => startPartnerEdit(p)} style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                     Edit
                   </button>
-                  <button onClick={() => handlePartnerDelete(p.id)} style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                    Delete
-                  </button>
+                  {adminRole === "admin" && (
+                    <button onClick={() => handlePartnerDelete(p.id)} style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -759,7 +834,7 @@ export default function AdminPanel() {
               return sponsorships.map((s) => {
                 const rotating = cityCounts[s.city.toLowerCase().trim()] > 1;
                 return (
-                  <div key={s.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: s.active === false ? 0.5 : 1 }}>
+                  <div key={s.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: s.active === false ? 0.5 : 1, border: s.status === "pending" ? "1px solid #D9662E60" : "none" }}>
                     <div style={{ display: "flex", gap: 12 }}>
                       {s.imageUrl && <img src={s.imageUrl} alt={s.businessName} style={{ width: 90, height: 60, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
                       <div>
@@ -767,24 +842,39 @@ export default function AdminPanel() {
                           <span style={{ fontWeight: 700, fontSize: 15 }}>{s.businessName}</span>
                           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F5EFE622", color: "#F5EFE6" }}>${s.annualPrice || 3000}/YR</span>
                           {rotating && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>ROTATING</span>}
+                          {s.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
                           {s.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                         </div>
                         <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
                           {s.city} {s.address && `· ${s.address}`} {s.phone && `· ${s.phone}`} {s.startDate && s.endDate && `· ${s.startDate} to ${s.endDate}`}
                         </p>
-                        <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>{s.clicks || 0} clicks</p>
+                        <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
+                          {s.clicks || 0} clicks{s.createdBy && ` · added by ${s.createdBy}`}
+                        </p>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
+                      {adminRole === "admin" && s.status === "pending" && (
+                        <>
+                          <button onClick={() => approveSponsorship(s)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                            Approve
+                          </button>
+                          <button onClick={() => rejectSponsorship(s)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                            Reject
+                          </button>
+                        </>
+                      )}
                       <button onClick={() => toggleSponsorshipActive(s)} style={{ background: "#1B1030", color: s.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                         {s.active === false ? "Activate" : "Pause"}
                       </button>
                       <button onClick={() => startSponsorshipEdit(s)} style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                         Edit
                       </button>
-                      <button onClick={() => handleSponsorshipDelete(s.id)} style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                        Delete
-                      </button>
+                      {adminRole === "admin" && (
+                        <button onClick={() => handleSponsorshipDelete(s.id)} style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

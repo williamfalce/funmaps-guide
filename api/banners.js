@@ -2,10 +2,15 @@
 // Featured Partners). These are commission-based: a promo code + click tracking
 // support the 15%-of-sale verification model, rather than a flat listing fee.
 //
-// GET    /api/banners?city=Miami   -> list active banners for a city, no auth needed
+// Approval workflow: two passwords, two roles.
+//   ADMIN_PASSWORD -> role "admin"  -> entries go live immediately, can approve/reject/delete
+//   SALES_PASSWORD -> role "sales"  -> entries always saved as "pending", invisible to travelers until approved
+//
+// GET    /api/banners?city=Miami   -> list APPROVED+active banners for a city, no auth needed
+//                                      (with a valid admin/sales key, returns everything instead, for the admin panel)
 // POST   /api/banners              -> add a banner (requires x-admin-key header)
 // PUT    /api/banners              -> update a banner by id (requires x-admin-key header)
-// DELETE /api/banners?id=...       -> remove a banner (requires x-admin-key header)
+// DELETE /api/banners?id=...       -> remove a banner (admin role only)
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const STORE_KEY = "banner-partners-v1";
@@ -22,9 +27,12 @@ function getRedis() {
   return redis;
 }
 
-function checkAdmin(req) {
+function getRole(req) {
   const key = req.headers["x-admin-key"];
-  return !!process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD;
+  if (!key) return null;
+  if (process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD) return "admin";
+  if (process.env.SALES_PASSWORD && key === process.env.SALES_PASSWORD) return "sales";
+  return null;
 }
 
 async function readAll(db) {
@@ -38,10 +46,6 @@ async function writeAll(db, banners) {
 }
 
 function normalizeCityName(name) {
-  // Both the AI and admin entries now consistently include "City, ST" or
-  // "City, Country" — matching the full string (not just the city part)
-  // correctly distinguishes real duplicate city names worldwide
-  // (Paris, France vs Paris, TX; Springfield, IL vs Springfield, MA; etc.)
   return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
@@ -62,17 +66,21 @@ module.exports = async (req, res) => {
   }
 
   try {
+    const role = getRole(req);
+
     if (req.method === "GET") {
       const all = await readAll(db);
       const city = req.query.city;
-      const isAdmin = checkAdmin(req);
-      const visible = isAdmin ? all : all.filter((b) => b.active !== false);
+      // Public (traveler-facing) requests only ever see approved + active entries.
+      // Any authenticated admin-panel request (either role) sees everything, so
+      // the panel can show pending items for review.
+      const visible = role ? all : all.filter((b) => b.active !== false && b.status !== "pending");
       const filtered = city ? visible.filter((b) => normalizeCityName(b.city) === normalizeCityName(city)) : visible;
-      res.status(200).json({ banners: filtered });
+      res.status(200).json({ banners: filtered, role: role || undefined });
       return;
     }
 
-    if (!checkAdmin(req)) {
+    if (!role) {
       res.status(401).json({ error: "Invalid admin key" });
       return;
     }
@@ -106,6 +114,8 @@ module.exports = async (req, res) => {
         promoIncentive: promoIncentive || "",
         commissionRate: resolvedTier === "premium" ? 22 : 15,
         active: true,
+        status: role === "admin" ? "approved" : "pending",
+        createdBy: role,
         clicks: 0,
         createdAt: Date.now(),
       };
@@ -127,6 +137,16 @@ module.exports = async (req, res) => {
         res.status(404).json({ error: "Banner not found" });
         return;
       }
+
+      // A sales-role edit (even to something already approved) sends it back
+      // for re-review — never let sales silently self-approve via updates.
+      // Only an admin-role request may set status directly (used by the
+      // Approve/Reject buttons, which send { status: "approved" } etc.).
+      if (role !== "admin") {
+        delete updates.status;
+        updates.status = "pending";
+      }
+
       all[idx] = { ...all[idx], ...updates };
       await writeAll(db, all);
       res.status(200).json({ banner: all[idx] });
@@ -134,6 +154,10 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "DELETE") {
+      if (role !== "admin") {
+        res.status(403).json({ error: "Only an admin can delete entries" });
+        return;
+      }
       const id = req.query.id;
       if (!id) {
         res.status(400).json({ error: "id is required" });
