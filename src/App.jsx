@@ -422,6 +422,50 @@ function maxCheckoutISO(checkInDate) {
   return base.toISOString().slice(0, 10);
 }
 
+// Known clusters of small, closely-adjacent cities that should always be
+// combined into ONE itinerary entry (one map, one section) rather than split
+// apart or forced into separate structural entries — the AI reliably treats
+// these as one practical area anyway, so this leans into that instead of
+// fighting it. Add more clusters here if other adjacent-city groups show the
+// same behavior.
+const CITY_CLUSTERS = [
+  {
+    label: "Wilton Manors / Oakland Park / Fort Lauderdale, FL",
+    members: ["Wilton Manors", "Oakland Park", "Fort Lauderdale"],
+  },
+];
+
+function detectCityCluster(destText) {
+  const lower = (destText || "").toLowerCase();
+  return CITY_CLUSTERS.find((cluster) => cluster.members.some((m) => lower.includes(m.toLowerCase())));
+}
+
+function collapseClusteredDestinations(destArray) {
+  const result = [];
+  const usedClusterLabels = new Set();
+  destArray.forEach((d) => {
+    const cluster = detectCityCluster(d);
+    if (cluster) {
+      if (!usedClusterLabels.has(cluster.label)) {
+        usedClusterLabels.add(cluster.label);
+        result.push(cluster.label);
+      }
+    } else {
+      result.push(d);
+    }
+  });
+  return result;
+}
+
+function parseExpectedDestinations(destString) {
+  // Splits on "then" or commas — matches how the AI is instructed to interpret
+  // multi-destination input (e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca").
+  return (destString || "")
+    .split(/\bthen\b|,/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function extractItineraryJson(text) {
   let clean = text.replace(/```json|```/g, "").trim();
   const start = clean.indexOf("{");
@@ -474,6 +518,10 @@ const ITINERARY_JSON_SCHEMA = `{
 const ITINERARY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps. The traveler may give ONE destination or MULTIPLE (comma or "then" separated, e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca"). Split trip length sensibly across cities if multiple. Return ONLY valid JSON (no markdown fences, no preamble) matching exactly this schema:
 ${ITINERARY_JSON_SCHEMA}
 Keep activities realistic and specific to each real destination. Prioritize queer-owned or queer-friendly spots and genuinely relevant community spaces. When unsure of a specific business name, address, or website, describe the type of place and use a neighborhood-level location instead of inventing details.
+
+CRITICAL — one "cities" array entry per distinct destination the traveler named, even if they're small and geographically adjacent: if the traveler asks for multiple specific destinations (e.g. "Wilton Manors then Oakland Park then Fort Lauderdale"), you MUST create a SEPARATE top-level entry in the "cities" array for EACH one they named — do not merge two or more of them into a single combined entry just because they're neighboring towns, part of the same metro area, or geographically close together. Wilton Manors, Oakland Park, and Fort Lauderdale, FL are three distinct municipalities that sit right next to each other — each one the traveler explicitly names must get its own "cities" entry with its own name, its own days count, and its own itinerary, never folded into a neighboring city's entry.
+
+CRITICAL — activity placement in multi-city trips, especially closely-clustered neighboring cities/suburbs (e.g. Wilton Manors, Oakland Park, and Fort Lauderdale, FL, which sit right next to each other): every activity's "address" MUST genuinely be located within the city object it's nested under in the JSON. Double-check each activity's actual city before placing it — do not place a Wilton Manors venue under Oakland Park's "cities" entry (or vice versa) just because they're close together or you're unsure. If a venue's exact city is ambiguous, either verify it belongs to the city you're currently building, or place it under the correct neighboring city's own entry instead — never guess and misfile it.
 
 CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.`;
 
@@ -627,6 +675,35 @@ function CompassApp() {
       }
     }
 
+    function buildGeocodeQuery(address, cityName) {
+      // Normalize en-dashes/em-dashes (common in address ranges like "1035–1037")
+      // to plain hyphens, since some geocoders handle these poorly.
+      const cleaned = address.replace(/[\u2013\u2014]/g, "-");
+      // If the address already contains the city name (admins sometimes enter a
+      // full address including city/state/zip), don't append it again — a
+      // duplicated city string can confuse the geocoder into a bad, low-confidence match.
+      const cityCore = (cityName || "").split(",")[0].trim().toLowerCase();
+      if (cityCore && cleaned.toLowerCase().includes(cityCore)) return cleaned;
+      return `${cleaned}, ${cityName}`;
+    }
+
+    // Self-correction for closely-clustered neighboring cities (e.g. Wilton Manors
+    // vs Oakland Park vs Fort Lauderdale): if an address explicitly names a
+    // DIFFERENT city from this trip than the one it's nested under, trust the
+    // address and route its pin to that city's map instead — safer than trusting
+    // which city section the AI happened to file it under.
+    const allCityNames = itinerary.cities.map((c) => c.name);
+    function resolveActualCity(address, fallbackCityName) {
+      const addressLower = address.toLowerCase();
+      for (const cn of allCityNames) {
+        const core = cn.split(",")[0].trim().toLowerCase();
+        if (core && core !== fallbackCityName.split(",")[0].trim().toLowerCase() && addressLower.includes(core)) {
+          return cn;
+        }
+      }
+      return fallbackCityName;
+    }
+
     async function run() {
       // Build the full list of things to pin: city center + every activity with an
       // address + every partner (Featured/Recommended/Banner) with an address, tagged by city.
@@ -638,16 +715,25 @@ function CompassApp() {
         targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
-            if (a.address) targets.push({ query: `${a.address}, ${city.name}`, name: a.name, category: a.category, cityName: city.name });
+            if (a.address) {
+              const actualCity = resolveActualCity(a.address, city.name);
+              targets.push({ query: buildGeocodeQuery(a.address, actualCity), name: a.name, category: a.category, cityName: actualCity });
+            }
           });
         });
         const partners = await getBanners(city.name);
         partners.forEach((p) => {
-          if (p.address) targets.push({ query: `${p.address}, ${city.name}`, name: p.businessName, category: "partner", cityName: city.name });
+          if (p.address) {
+            const actualCity = resolveActualCity(p.address, city.name);
+            targets.push({ query: buildGeocodeQuery(p.address, actualCity), name: p.businessName, category: "partner", cityName: actualCity });
+          }
         });
         const sponsors = await getSponsorships(city.name);
         sponsors.forEach((s) => {
-          if (s.address) targets.push({ query: `${s.address}, ${city.name}`, name: s.businessName, category: "partner", cityName: city.name });
+          if (s.address) {
+            const actualCity = resolveActualCity(s.address, city.name);
+            targets.push({ query: buildGeocodeQuery(s.address, actualCity), name: s.businessName, category: "partner", cityName: actualCity });
+          }
         });
       }
 
@@ -801,10 +887,40 @@ function CompassApp() {
           : "";
       const allPartners = await getAllActivePartners();
       const partnerLine = buildPartnerPromptSection(allPartners);
-      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}`;
+      const matchedCluster = detectCityCluster(dest);
+      const clusterLine = matchedCluster
+        ? `\n\nCITY CLUSTER INSTRUCTION: The traveler's destination includes one or more of these closely-clustered adjacent cities: ${matchedCluster.members.join(
+            ", "
+          )}, FL. Treat ALL of these as ONE SINGLE combined "cities" array entry named exactly "${matchedCluster.label}" — do NOT create separate entries for each one. Within that one combined entry's day-by-day itinerary, include a genuinely BALANCED mix of venues from all of ${matchedCluster.members.join(
+            ", "
+          )} — not mostly from just one of them. If the traveler also named other unrelated destinations outside this cluster, still create separate normal entries for those.`
+        : "";
+      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
-      const parsed = extractItineraryJson(text);
+      let parsed = extractItineraryJson(text);
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
+
+      // Safety net: if the traveler named more destinations than the AI actually
+      // returned as separate cities (e.g. it merged two adjacent small towns into
+      // one), retry once with an explicit, forceful correction — prompting alone
+      // doesn't always reliably prevent this for closely-clustered cities.
+      // A recognized cluster collapses to ONE expected destination, since that's
+      // now the intentional behavior for those specific cities.
+      const expectedDestinations = collapseClusteredDestinations(parseExpectedDestinations(dest));
+      if (expectedDestinations.length > 1 && (parsed.cities?.length || 0) < expectedDestinations.length) {
+        console.error(`City count mismatch: expected ${expectedDestinations.length} (${expectedDestinations.join(", ")}), got ${parsed.cities?.length || 0}. Retrying once.`);
+        const retryPrompt = `${prompt}\n\nIMPORTANT CORRECTION: your previous attempt merged some of these destinations together into fewer cities than requested. The traveler named these ${expectedDestinations.length} SEPARATE destinations: ${expectedDestinations.join(", ")}. You MUST return exactly ${expectedDestinations.length} separate entries in the "cities" array, one for each — even if some are small towns right next to each other. Do not merge any of them.`;
+        try {
+          const retryText = await callClaude([{ role: "user", content: retryPrompt }], ITINERARY_SYSTEM, 8000);
+          const retryParsed = extractItineraryJson(retryText);
+          if (retryParsed && (retryParsed.cities?.length || 0) >= (parsed.cities?.length || 0)) {
+            parsed = retryParsed;
+          }
+        } catch {
+          // retry failed — fall back to the original (merged) result rather than losing the trip entirely
+        }
+      }
+
       setItinerary(parsed);
       setTripLoadId((id) => id + 1);
       setChat([]);
@@ -832,7 +948,12 @@ function CompassApp() {
     try {
       const allPartners = await getAllActivePartners();
       const partnerLine = buildPartnerPromptSection(allPartners);
-      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}`;
+      const existingCityNames = (itinerary.cities || []).map((c) => c.name).join(", ");
+      const matchedCluster = detectCityCluster(existingCityNames);
+      const clusterLine = matchedCluster
+        ? `\n\nCITY CLUSTER INSTRUCTION: this itinerary includes the combined "${matchedCluster.label}" entry, covering ${matchedCluster.members.join(", ")}, FL together. Keep it as ONE combined entry — do not split it into separate cities when making this edit.`
+        : "";
+      const contextPrompt = `Current itinerary JSON:\n${JSON.stringify(itinerary)}\n\nTraveler's requested change: ${userMsg}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: contextPrompt }], ITINERARY_MODIFY_SYSTEM, 8000);
       const updated = extractItineraryJson(text);
       if (updated && updated.cities) {
