@@ -131,8 +131,12 @@ export default function AdminPanel() {
     setAuthError("");
     try {
       const data = await apiCall("banners", "GET", null, key, "");
+      if (!data.role) {
+        setAuthError("Incorrect password.");
+        return;
+      }
       setAdminKey(key);
-      setAdminRole(data.role || "sales");
+      setAdminRole(data.role);
       sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
       setUnlocked(true);
     } catch (e) {
