@@ -457,6 +457,13 @@ function collapseClusteredDestinations(destArray) {
   return result;
 }
 
+function normalizeDestinationCasing(destString) {
+  // Defensive normalization — capitalizes each word so casing can never be a
+  // factor in how reliably the AI generates a response, regardless of how a
+  // traveler happens to type it (e.g. "new york" -> "New York").
+  return (destString || "").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function parseExpectedDestinations(destString) {
   // Splits on "then" or commas — matches how the AI is instructed to interpret
   // multi-destination input (e.g. "Bangkok then Chiang Mai" or "Mexico City, Oaxaca").
@@ -895,9 +902,25 @@ function CompassApp() {
             ", "
           )} — not mostly from just one of them. If the traveler also named other unrelated destinations outside this cluster, still create separate normal entries for those.`
         : "";
-      const prompt = `Destination(s): ${dest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}${clusterLine}`;
+      const normalizedDest = normalizeDestinationCasing(dest);
+      const prompt = `Destination(s): ${normalizedDest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       let parsed = extractItineraryJson(text);
+
+      // Safety net: an occasional AI response can come back malformed or cut off
+      // before valid JSON completes — this is a normal, known category of LLM
+      // variability, not something specific to any particular input. Rather than
+      // showing the traveler a scary error on the very first hiccup, retry once
+      // silently before giving up.
+      if (!parsed) {
+        console.error("First itinerary attempt didn't return valid JSON — retrying once.");
+        try {
+          const retryText = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
+          parsed = extractItineraryJson(retryText);
+        } catch {
+          // retry itself failed — parsed stays null, falls through to the error below
+        }
+      }
       if (!parsed) throw new Error("Response was not valid JSON, likely cut off before it could finish.");
 
       // Safety net: if the traveler named more destinations than the AI actually
