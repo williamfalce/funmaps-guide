@@ -51,12 +51,22 @@ function normalizeCityName(name) {
   return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function isExpired(deal) {
-  if (!deal.expirationDate) return false; // no expiration set = treated as open-ended
-  // Compare as end-of-day on the expiration date, so a deal is still shown
-  // for the entirety of its last valid day, not cut off at midnight.
-  const expiry = new Date(deal.expirationDate + "T23:59:59");
-  return expiry.getTime() < Date.now();
+function isVisible(deal) {
+  // Both dates are optional. No start date = valid immediately. No end date =
+  // open-ended, never expires. This lets a deal be scheduled in advance (e.g.
+  // a Pride-month special entered weeks early, set to start June 1) without
+  // showing up the moment it's approved, while still supporting the simple
+  // "just give it an end date" case for deals that should go live right away.
+  const now = Date.now();
+  if (deal.startDate) {
+    const start = new Date(deal.startDate + "T00:00:00");
+    if (start.getTime() > now) return false; // hasn't started yet
+  }
+  if (deal.endDate) {
+    const end = new Date(deal.endDate + "T23:59:59");
+    if (end.getTime() < now) return false; // already ended
+  }
+  return true;
 }
 
 module.exports = async (req, res) => {
@@ -84,14 +94,14 @@ module.exports = async (req, res) => {
       // Public (traveler-facing) requests only see approved + active + not-yet-expired
       // deals. Admin panel requests (either role) see everything, including expired
       // ones, so staff can review history rather than have deals just vanish.
-      const visible = role ? all : all.filter((d) => d.active !== false && d.status !== "pending" && !isExpired(d));
+      const visible = role ? all : all.filter((d) => d.active !== false && d.status !== "pending" && isVisible(d));
       const filtered = city ? visible.filter((d) => normalizeCityName(d.city) === normalizeCityName(city)) : visible;
-      // Sort soonest-expiring first for the public feed — creates natural urgency
+      // Sort soonest-ending first for the public feed — creates natural urgency
       // and surfaces the most time-sensitive offers at the top.
       filtered.sort((a, b) => {
-        if (!a.expirationDate) return 1;
-        if (!b.expirationDate) return -1;
-        return new Date(a.expirationDate) - new Date(b.expirationDate);
+        if (!a.endDate) return 1;
+        if (!b.endDate) return -1;
+        return new Date(a.endDate) - new Date(b.endDate);
       });
       res.status(200).json({ deals: filtered, role: role || undefined });
       return;
@@ -103,7 +113,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, dealDescription, discountCode, dealLink, imageUrl, expirationDate } = req.body || {};
+      const { city, businessName, dealDescription, discountCode, dealLink, imageUrl, startDate, endDate } = req.body || {};
       if (!city || !businessName || !dealDescription) {
         res.status(400).json({ error: "City, business name, and deal description are required" });
         return;
@@ -117,7 +127,8 @@ module.exports = async (req, res) => {
         discountCode: discountCode || "",
         dealLink: dealLink || "",
         imageUrl: imageUrl || "",
-        expirationDate: expirationDate || "",
+        startDate: startDate || "",
+        endDate: endDate || "",
         active: true,
         status: role === "admin" ? "approved" : "pending",
         createdBy: role,

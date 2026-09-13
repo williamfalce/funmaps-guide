@@ -86,7 +86,7 @@ const emptyPartnerForm = {
 };
 
 const emptySponsorshipForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", tagline: "", address: "", phone: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
-const emptyDealForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", dealDescription: "", discountCode: "", dealLink: "", imageUrl: "", expirationDate: "" };
+const emptyDealForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", dealDescription: "", discountCode: "", dealLink: "", imageUrl: "", startDate: "", endDate: "" };
 
 function generatePromoCode(businessName, existingCodes) {
   const cleaned = (businessName || "").replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -594,14 +594,20 @@ export default function AdminPanel() {
       discountCode: d.discountCode || "",
       dealLink: d.dealLink || "",
       imageUrl: d.imageUrl || "",
-      expirationDate: d.expirationDate || "",
+      startDate: d.startDate || "",
+      endDate: d.endDate || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function isDealUpcoming(d) {
+    if (!d.startDate) return false;
+    return new Date(d.startDate + "T00:00:00").getTime() > Date.now();
+  }
+
   function isDealExpired(d) {
-    if (!d.expirationDate) return false;
-    return new Date(d.expirationDate + "T23:59:59").getTime() < Date.now();
+    if (!d.endDate) return false;
+    return new Date(d.endDate + "T23:59:59").getTime() < Date.now();
   }
 
   const inputStyle = { width: "100%", background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 8, padding: "9px 12px", outline: "none", color: "#1B1030", fontSize: 14 };
@@ -1111,8 +1117,12 @@ export default function AdminPanel() {
                   <input value={dealForm.dealLink} onChange={(e) => setDealForm({ ...dealForm, dealLink: e.target.value })} placeholder="https://..." style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>EXPIRATION DATE *</label>
-                  <input type="date" value={dealForm.expirationDate} onChange={(e) => setDealForm({ ...dealForm, expirationDate: e.target.value })} style={inputStyle} />
+                  <label style={labelStyle}>VALID FROM (optional — leave blank to go live immediately)</label>
+                  <input type="date" value={dealForm.startDate} onChange={(e) => setDealForm({ ...dealForm, startDate: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>VALID UNTIL (optional — leave blank for no expiration)</label>
+                  <input type="date" value={dealForm.endDate} onChange={(e) => setDealForm({ ...dealForm, endDate: e.target.value })} style={inputStyle} />
                 </div>
               </div>
 
@@ -1171,6 +1181,7 @@ export default function AdminPanel() {
 
             {deals.map((d) => {
               const expired = isDealExpired(d);
+              const upcoming = isDealUpcoming(d);
               return (
                 <div key={d.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: d.active === false || expired ? 0.5 : 1, border: d.status === "pending" ? "1px solid #D9662E60" : "none" }}>
                   <div style={{ display: "flex", gap: 12 }}>
@@ -1179,6 +1190,7 @@ export default function AdminPanel() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 15 }}>{d.businessName}</span>
                         {d.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
+                        {upcoming && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#1C9C9C22", color: "#1C9C9C" }}>SCHEDULED</span>}
                         {expired && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#6B6478", color: "#F5EFE6" }}>EXPIRED</span>}
                         {d.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                       </div>
@@ -1187,7 +1199,8 @@ export default function AdminPanel() {
                       </p>
                       <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
                         {d.discountCode && `Code: ${d.discountCode} · `}
-                        Expires: {d.expirationDate || "no expiration set"} · {d.clicks || 0} clicks
+                        {d.startDate && `From ${d.startDate} `}
+                        {d.endDate ? `Until ${d.endDate}` : d.startDate ? "· No end date" : "No date range set"} · {d.clicks || 0} clicks
                         {d.createdBy && ` · added by ${d.createdBy}`}
                       </p>
                     </div>
