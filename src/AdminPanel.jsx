@@ -86,6 +86,7 @@ const emptyPartnerForm = {
 };
 
 const emptySponsorshipForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", tagline: "", address: "", phone: "", imageUrl: "", ctaText: "Learn More", ctaLink: "", annualPrice: 3000, startDate: "", endDate: "" };
+const emptyDealForm = { id: null, cityName: "", country: "United States", state: "", businessName: "", dealDescription: "", discountCode: "", dealLink: "", imageUrl: "", expirationDate: "" };
 
 function generatePromoCode(businessName, existingCodes) {
   const cleaned = (businessName || "").replace(/[^a-zA-Z]/g, "").toUpperCase();
@@ -121,6 +122,12 @@ export default function AdminPanel() {
   const [sponsorshipError, setSponsorshipError] = useState("");
   const [sponsorshipFilterCity, setSponsorshipFilterCity] = useState("");
   const [uploadingSponsorshipImage, setUploadingSponsorshipImage] = useState(false);
+  const [deals, setDeals] = useState([]);
+  const [dealForm, setDealForm] = useState(emptyDealForm);
+  const [dealSaving, setDealSaving] = useState(false);
+  const [dealError, setDealError] = useState("");
+  const [dealFilterCity, setDealFilterCity] = useState("");
+  const [uploadingDealImage, setUploadingDealImage] = useState(false);
 
   useEffect(() => {
     if (adminKey) tryUnlock(adminKey);
@@ -457,6 +464,146 @@ export default function AdminPanel() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // ---------- Deals ----------
+
+  async function loadDeals() {
+    try {
+      const data = await apiCall("deals", "GET", null, adminKey, dealFilterCity ? `city=${encodeURIComponent(dealFilterCity)}` : "");
+      setDeals(data.deals || []);
+    } catch (e) {
+      setDealError("Couldn't load deals.");
+    }
+  }
+
+  useEffect(() => {
+    if (unlocked && activeTab === "deals") loadDeals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlocked, activeTab, dealFilterCity]);
+
+  async function handleDealImageSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setDealError("Please choose an image file.");
+      return;
+    }
+    setUploadingDealImage(true);
+    setDealError("");
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/upload-venue-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify({ imageDataUrl: dataUrl, filename: file.name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setDealForm((f) => ({ ...f, imageUrl: data.url }));
+    } catch (err) {
+      setDealError(err.message || "Image upload failed — try a smaller image.");
+    } finally {
+      setUploadingDealImage(false);
+    }
+  }
+
+  async function handleDealSave() {
+    if (!dealForm.cityName.trim() || !dealForm.businessName.trim() || !dealForm.dealDescription.trim()) {
+      setDealError("City, business name, and deal description are all required.");
+      return;
+    }
+    if (dealForm.country === "United States" && !dealForm.state) {
+      setDealError("Please select a state.");
+      return;
+    }
+    setDealSaving(true);
+    setDealError("");
+    try {
+      const payload = { ...dealForm, city: buildCityString(dealForm.cityName, dealForm.country, dealForm.state) };
+      if (adminRole === "admin") payload.status = "approved";
+      if (dealForm.id) {
+        await apiCall("deals", "PUT", payload, adminKey);
+      } else {
+        await apiCall("deals", "POST", payload, adminKey);
+      }
+      setDealForm(emptyDealForm);
+      await loadDeals();
+    } catch (e) {
+      if (e.message.includes("Invalid admin key")) {
+        setDealError("Your admin key was rejected — click Log Out and re-enter it.");
+      } else {
+        setDealError("Couldn't save that deal — try again.");
+      }
+    } finally {
+      setDealSaving(false);
+    }
+  }
+
+  async function handleDealDelete(id) {
+    if (!window.confirm("Remove this deal?")) return;
+    try {
+      await apiCall("deals", "DELETE", null, adminKey, `id=${encodeURIComponent(id)}`);
+      await loadDeals();
+    } catch (e) {
+      setDealError("Couldn't delete that deal.");
+    }
+  }
+
+  async function toggleDealActive(d) {
+    try {
+      await apiCall("deals", "PUT", { id: d.id, active: !d.active }, adminKey);
+      await loadDeals();
+    } catch (e) {
+      setDealError("Couldn't update that deal.");
+    }
+  }
+
+  async function approveDeal(d) {
+    try {
+      await apiCall("deals", "PUT", { id: d.id, status: "approved" }, adminKey);
+      await loadDeals();
+    } catch (e) {
+      setDealError("Couldn't approve that deal.");
+    }
+  }
+
+  async function rejectDeal(d) {
+    if (!window.confirm(`Reject and remove "${d.businessName}"? This can't be undone.`)) return;
+    try {
+      await apiCall("deals", "DELETE", null, adminKey, `id=${encodeURIComponent(d.id)}`);
+      await loadDeals();
+    } catch (e) {
+      setDealError("Couldn't reject that deal.");
+    }
+  }
+
+  function startDealEdit(d) {
+    const { cityName, country, state } = parseCityString(d.city);
+    setDealForm({
+      id: d.id,
+      status: d.status || "approved",
+      cityName,
+      country,
+      state,
+      businessName: d.businessName,
+      dealDescription: d.dealDescription || "",
+      discountCode: d.discountCode || "",
+      dealLink: d.dealLink || "",
+      imageUrl: d.imageUrl || "",
+      expirationDate: d.expirationDate || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function isDealExpired(d) {
+    if (!d.expirationDate) return false;
+    return new Date(d.expirationDate + "T23:59:59").getTime() < Date.now();
+  }
+
   const inputStyle = { width: "100%", background: "#C9AEC7", border: "1px solid #1B103015", borderRadius: 8, padding: "9px 12px", outline: "none", color: "#1B1030", fontSize: 14 };
   const labelStyle = { fontSize: 11.5, color: "#D9662E", fontWeight: 600, display: "block", marginBottom: 4 };
 
@@ -518,6 +665,12 @@ export default function AdminPanel() {
             style={{ background: activeTab === "sponsorships" ? "#D9662E" : "#241640", color: activeTab === "sponsorships" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
           >
             Sponsorships (Flat Fee)
+          </button>
+          <button
+            onClick={() => setActiveTab("deals")}
+            style={{ background: activeTab === "deals" ? "#D9662E" : "#241640", color: activeTab === "deals" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          >
+            Deals (Self-Expiring)
           </button>
         </div>
 
@@ -903,6 +1056,168 @@ export default function AdminPanel() {
                 );
               });
             })()}
+          </>
+        )}
+
+        {activeTab === "deals" && (
+          <>
+            <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{dealForm.id ? "Edit Deal" : "Add New Deal"}</h2>
+              <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
+                Time-limited offers only. Set an expiration date and the deal automatically stops showing to travelers once it passes — no manual cleanup needed.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={labelStyle}>CITY *</label>
+                  <input value={dealForm.cityName} onChange={(e) => setDealForm({ ...dealForm, cityName: e.target.value })} placeholder="e.g. Miami" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>COUNTRY *</label>
+                  <select
+                    value={dealForm.country}
+                    onChange={(e) => setDealForm({ ...dealForm, country: e.target.value, state: e.target.value === "United States" ? dealForm.state : "" })}
+                    style={inputStyle}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {dealForm.country === "United States" && (
+                  <div>
+                    <label style={labelStyle}>STATE *</label>
+                    <select value={dealForm.state} onChange={(e) => setDealForm({ ...dealForm, state: e.target.value })} style={inputStyle}>
+                      <option value="">Select a state...</option>
+                      {US_STATES.map(([abbr, name]) => (
+                        <option key={abbr} value={abbr}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label style={labelStyle}>BUSINESS NAME *</label>
+                  <input value={dealForm.businessName} onChange={(e) => setDealForm({ ...dealForm, businessName: e.target.value })} placeholder="e.g. Fairmont Austin" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>DISCOUNT CODE (optional)</label>
+                  <input value={dealForm.discountCode} onChange={(e) => setDealForm({ ...dealForm, discountCode: e.target.value })} placeholder="e.g. PRIDE10" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>DEAL LINK</label>
+                  <input value={dealForm.dealLink} onChange={(e) => setDealForm({ ...dealForm, dealLink: e.target.value })} placeholder="https://..." style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>EXPIRATION DATE *</label>
+                  <input type="date" value={dealForm.expirationDate} onChange={(e) => setDealForm({ ...dealForm, expirationDate: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+
+              <label style={labelStyle}>DEAL DESCRIPTION *</label>
+              <textarea
+                value={dealForm.dealDescription}
+                onChange={(e) => setDealForm({ ...dealForm, dealDescription: e.target.value })}
+                placeholder='e.g. "10% off your stay — book direct and mention this offer"'
+                rows={2}
+                style={{ ...inputStyle, resize: "none", marginBottom: 14 }}
+              />
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>IMAGE (optional)</label>
+                {dealForm.imageUrl && (
+                  <div style={{ marginBottom: 8 }}>
+                    <img src={dealForm.imageUrl} alt="Deal" style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8 }} />
+                  </div>
+                )}
+                <input type="file" accept="image/*" onChange={handleDealImageSelect} disabled={uploadingDealImage} style={{ fontSize: 13, color: "#F5EFE6" }} />
+                {uploadingDealImage && <p style={{ fontSize: 12, color: "#1C9C9C", marginTop: 4 }}>Uploading...</p>}
+              </div>
+
+              {dealError && <p style={{ color: "#B23A72", fontSize: 13, marginBottom: 10 }}>{dealError}</p>}
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleDealSave}
+                  disabled={dealSaving}
+                  style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: dealSaving ? "default" : "pointer" }}
+                >
+                  {dealSaving
+                    ? "Saving..."
+                    : dealForm.id
+                    ? adminRole === "admin" && dealForm.status === "pending"
+                      ? "Save & Approve"
+                      : "Update Deal"
+                    : "Add Deal"}
+                </button>
+                {dealForm.id && (
+                  <button
+                    onClick={() => setDealForm(emptyDealForm)}
+                    style={{ background: "transparent", color: "#F5EFE699", border: "1px solid #F5EFE633", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <input value={dealFilterCity} onChange={(e) => setDealFilterCity(e.target.value)} placeholder="Filter by city (e.g. Miami, FL)..." style={{ ...inputStyle, maxWidth: 300 }} />
+            </div>
+
+            {deals.length === 0 && <p style={{ color: "#F5EFE699" }}>No deals yet — add one above.</p>}
+
+            {deals.map((d) => {
+              const expired = isDealExpired(d);
+              return (
+                <div key={d.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, opacity: d.active === false || expired ? 0.5 : 1, border: d.status === "pending" ? "1px solid #D9662E60" : "none" }}>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    {d.imageUrl && <img src={d.imageUrl} alt={d.businessName} style={{ width: 70, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 700, fontSize: 15 }}>{d.businessName}</span>
+                        {d.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
+                        {expired && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#6B6478", color: "#F5EFE6" }}>EXPIRED</span>}
+                        {d.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
+                      </div>
+                      <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
+                        {d.city} · {d.dealDescription}
+                      </p>
+                      <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
+                        {d.discountCode && `Code: ${d.discountCode} · `}
+                        Expires: {d.expirationDate || "no expiration set"} · {d.clicks || 0} clicks
+                        {d.createdBy && ` · added by ${d.createdBy}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
+                    {adminRole === "admin" && d.status === "pending" && (
+                      <>
+                        <button onClick={() => approveDeal(d)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                          Approve
+                        </button>
+                        <button onClick={() => rejectDeal(d)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    <button onClick={() => toggleDealActive(d)} style={{ background: "#1B1030", color: d.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                      {d.active === false ? "Activate" : "Pause"}
+                    </button>
+                    <button onClick={() => startDealEdit(d)} style={{ background: "#1B1030", color: "#1C9C9C", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                      Edit
+                    </button>
+                    {adminRole === "admin" && (
+                      <button onClick={() => handleDealDelete(d.id)} style={{ background: "#1B1030", color: "#B23A72", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </>
         )}
       </div>
