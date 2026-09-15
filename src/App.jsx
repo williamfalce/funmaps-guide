@@ -213,6 +213,7 @@ function BannerAd({ banner, cityName }) {
         ) : (
           <span style={{ background: "#1C9C9C22", color: "#1C9C9C", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>FEATURED PARTNER</span>
         )}
+        <PriceBadge level={banner.priceTier} />
       </div>
 
       {banner.tagline && <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginBottom: 8 }}>{banner.tagline}</p>}
@@ -317,6 +318,13 @@ function FriendlyBadge({ level }) {
     );
   }
   return null;
+}
+
+function PriceBadge({ level }) {
+  if (!level) return null;
+  return (
+    <span style={{ background: "#E8B84B22", color: "#E8B84B", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{level}</span>
+  );
 }
 
 // Calls our own serverless proxy (/api/claude) instead of Anthropic directly —
@@ -525,7 +533,8 @@ const ITINERARY_JSON_SCHEMA = `{
               "category": "nightlife"|"culture"|"food"|"outdoors"|"community",
               "address": string (a real, specific address or at minimum a neighborhood/area if unsure of the exact street number — never invent a precise address you're not confident in),
               "website": string (a real website URL if you're reasonably confident one exists, otherwise an empty string — never invent a URL),
-              "lgbtqFriendly": "verified" | "welcoming" | "unconfirmed" ("verified" = explicitly queer-owned/queer space, "welcoming" = generally inclusive though not queer-specific, "unconfirmed" = no specific info either way)
+              "lgbtqFriendly": "verified" | "welcoming" | "unconfirmed" ("verified" = explicitly queer-owned/queer space, "welcoming" = generally inclusive though not queer-specific, "unconfirmed" = no specific info either way),
+              "priceLevel": "$" | "$$" | "$$$" (a general budget category for this type of place — "$" budget/inexpensive, "$$" mid-range, "$$$" upscale/luxury — base this on typical costs for this kind of venue, never a specific dollar figure you can't verify)
             }
           ]
         }
@@ -542,7 +551,9 @@ CRITICAL — one "cities" array entry per distinct destination the traveler name
 
 CRITICAL — activity placement in multi-city trips, especially closely-clustered neighboring cities/suburbs (e.g. Wilton Manors, Oakland Park, and Fort Lauderdale, FL, which sit right next to each other): every activity's "address" MUST genuinely be located within the city object it's nested under in the JSON. Double-check each activity's actual city before placing it — do not place a Wilton Manors venue under Oakland Park's "cities" entry (or vice versa) just because they're close together or you're unsure. If a venue's exact city is ambiguous, either verify it belongs to the city you're currently building, or place it under the correct neighboring city's own entry instead — never guess and misfile it.
 
-CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.`;
+CRITICAL — do not confidently assert that a destination lacks LGBTQ+ nightlife, community spaces, or a queer scene just because you don't have detailed information about it. Absence of information is not evidence of absence, especially for smaller or less-documented cities. If you're not confident about specific venues in a destination, say so honestly (e.g. "specific venues are hard to confirm from here — local LGBTQ+ community groups, apps, or asking at your accommodation are the most reliable way to find current spots") rather than stating outright that nothing exists. Never write a safetyOverview or activity list that flatly claims "no gay nightlife" or equivalent — that claim requires real confidence, not just a gap in your knowledge.
+
+BUDGET PREFERENCE: if the traveler specified a budget preference (Budget $, Mid-Range $$, and/or Luxury $$$), weight your activity selections toward those price levels — if they picked only "$", favor genuinely affordable options; if they picked "$$$", favor upscale ones; if they picked more than one tier, mix across those tiers. If no budget preference is given, use a natural, varied mix. Regardless of preference, every single activity still needs an honest "priceLevel" tag reflecting what it actually typically costs — never mislabel a place's real price level just to match what the traveler asked for.`;
 
 const ITINERARY_MODIFY_SYSTEM = `You are Compass, an expert LGBTQ+ travel concierge for FunMaps, helping a traveler modify an itinerary they already have. You will be given the current itinerary as JSON, plus a request describing the change they want (e.g. "add another day," "swap day 2 for something more low-key," "add more nightlife to Miami").
 
@@ -561,6 +572,12 @@ const INTEREST_OPTIONS = [
   "Low-key & relaxed pace",
   "Party-heavy pace",
   "Traveling with children",
+];
+
+const BUDGET_OPTIONS = [
+  { value: "$", label: "Budget" },
+  { value: "$$", label: "Mid-Range" },
+  { value: "$$$", label: "Luxury" },
 ];
 
 const LOCAL_KEY = "compass-trips";
@@ -584,10 +601,14 @@ function CompassApp() {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [selectedInterests, setSelectedInterests] = useState([]);
+  const [selectedBudgetTiers, setSelectedBudgetTiers] = useState([]);
   const [extraNotes, setExtraNotes] = useState("");
 
   function toggleInterest(tag) {
     setSelectedInterests((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
+  function toggleBudgetTier(value) {
+    setSelectedBudgetTiers((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
   }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -897,6 +918,10 @@ function CompassApp() {
     try {
       const dayCount = nights || legacyDays;
       const interestsStr = [interestsList.join(", "), extraNotes.trim()].filter(Boolean).join("; ") || "open to anything, surprise me";
+      const budgetLine =
+        selectedBudgetTiers.length > 0
+          ? `\nBudget preference: ${selectedBudgetTiers.map((v) => BUDGET_OPTIONS.find((o) => o.value === v)?.label || v).join(", ")}.`
+          : "";
       const dateLine = nights
         ? `Travel dates: ${ci} to ${co} (${nights} day${nights === 1 ? "" : "s"}) — use these actual dates for seasonal/weather guidance.`
         : `Total trip length: ${dayCount} days (no specific dates given).`;
@@ -915,7 +940,7 @@ function CompassApp() {
           )} — not mostly from just one of them. If the traveler also named other unrelated destinations outside this cluster, still create separate normal entries for those.`
         : "";
       const normalizedDest = normalizeDestinationCasing(dest);
-      const prompt = `Destination(s): ${normalizedDest}\n${dateLine}\nInterests / notes: ${interestsStr}${avoidLine}${partnerLine}${clusterLine}`;
+      const prompt = `Destination(s): ${normalizedDest}\n${dateLine}\nInterests / notes: ${interestsStr}${budgetLine}${avoidLine}${partnerLine}${clusterLine}`;
       const text = await callClaude([{ role: "user", content: prompt }], ITINERARY_SYSTEM, 8000);
       let parsed = extractItineraryJson(text);
 
@@ -1281,6 +1306,33 @@ function CompassApp() {
             </div>
           </div>
           <div className="mt-3">
+            <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>BUDGET? (optional, pick any)</label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {BUDGET_OPTIONS.map((opt) => {
+                const active = selectedBudgetTiers.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggleBudgetTier(opt.value)}
+                    style={{
+                      background: active ? "#D9662E" : "#1B1030",
+                      color: active ? "#1B1030" : "#F5EFE6cc",
+                      border: active ? "1px solid #D9662E" : "1px solid #F5EFE620",
+                      borderRadius: 999,
+                      padding: "7px 14px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {opt.value} {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mt-3">
             <label style={{ fontSize: 12, color: "#D9662E", fontWeight: 600 }}>ANYTHING ELSE? (optional)</label>
             <textarea
               value={extraNotes}
@@ -1361,7 +1413,14 @@ function CompassApp() {
           </div>
 
           {itinerary.cities?.map((city, ci) => {
-            const banners = cityBanners[city.name] || [];
+            const allBannersForCity = cityBanners[city.name] || [];
+            // If the traveler picked specific budget tier(s), only show partners
+            // matching one of those tiers. No preference selected = show all,
+            // unchanged from before this feature existed.
+            const banners =
+              selectedBudgetTiers.length > 0
+                ? allBannersForCity.filter((b) => selectedBudgetTiers.includes(b.priceTier || "$$"))
+                : allBannersForCity;
             const accommodationsPartners = sortPartners(banners.filter((b) => b.category === "Accommodations"));
             const placedIds = new Set(accommodationsPartners.map((b) => b.id));
             // For each day, find the first not-yet-placed banner whose category
@@ -1495,6 +1554,7 @@ function CompassApp() {
                             <span style={{ fontSize: 12, color: "#1C9C9C", fontWeight: 600 }}>{a.time}</span>
                             <span style={{ fontWeight: 600, fontSize: 14.5 }}>{a.name}</span>
                             <FriendlyBadge level={a.lgbtqFriendly} />
+                            <PriceBadge level={a.priceLevel} />
                           </div>
                           <p style={{ fontSize: 13.5, color: "#F5EFE6aa", marginTop: 2 }}>{a.description}</p>
                           {(a.address || a.website) && (

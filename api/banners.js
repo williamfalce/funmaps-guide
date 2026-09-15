@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "POST") {
-      const { city, businessName, category, tier, tagline, address, phone, imageUrl, ctaText, ctaLink, bookingLink, promoCode, promoIncentive } = req.body || {};
+      const { city, businessName, category, tier, priceTier, tagline, address, phone, imageUrl, ctaText, ctaLink, bookingLink, promoCode, promoIncentive } = req.body || {};
       if (!city || !businessName) {
         res.status(400).json({ error: "City and business name are required" });
         return;
@@ -103,6 +103,7 @@ module.exports = async (req, res) => {
         businessName: businessName.trim(),
         category: category || "Attractions",
         tier: resolvedTier,
+        priceTier: ["$", "$$", "$$$"].includes(priceTier) ? priceTier : "$$",
         tagline: tagline || "",
         address: address || "",
         phone: phone || "",

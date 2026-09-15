@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 
 const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
+const BUDGET_OPTIONS = [
+  { value: "$", label: "Budget" },
+  { value: "$$", label: "Mid-Range" },
+  { value: "$$$", label: "Luxury" },
+];
 
 const US_STATES = [
   ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"],
@@ -73,6 +78,7 @@ const emptyPartnerForm = {
   businessName: "",
   category: "Attractions",
   tier: "basic",
+  priceTier: "$$",
   tagline: "",
   address: "",
   phone: "",
@@ -311,6 +317,7 @@ export default function AdminPanel() {
       businessName: p.businessName,
       category: p.category,
       tier: p.tier || "basic",
+      priceTier: p.priceTier || "$$",
       tagline: p.tagline || "",
       address: p.address || "",
       phone: p.phone || "",
@@ -741,6 +748,16 @@ export default function AdminPanel() {
                   </select>
                 </div>
                 <div>
+                  <label style={labelStyle}>PRICE TIER (shown to travelers, used for budget filtering)</label>
+                  <select value={partnerForm.priceTier} onChange={(e) => setPartnerForm({ ...partnerForm, priceTier: e.target.value })} style={inputStyle}>
+                    {BUDGET_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.value} — {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label style={labelStyle}>ADDRESS</label>
                   <input value={partnerForm.address} onChange={(e) => setPartnerForm({ ...partnerForm, address: e.target.value })} placeholder="Street address" style={inputStyle} />
                 </div>
@@ -845,6 +862,7 @@ export default function AdminPanel() {
                         {p.tier === "premium" ? "RECOMMENDED (PREMIUM)" : "FEATURED (BASIC)"}
                       </span>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>{p.category?.toUpperCase()}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B22", color: "#E8B84B" }}>{p.priceTier || "$$"}</span>
                       {p.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
                       {p.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                     </div>
