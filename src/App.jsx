@@ -457,6 +457,18 @@ function collapseClusteredDestinations(destArray) {
   return result;
 }
 
+function trackEvent(name, params) {
+  // Fails silently if GA hasn't loaded yet, is blocked by an ad blocker, or
+  // hasn't been configured — never let analytics break the actual app.
+  try {
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", name, params || {});
+    }
+  } catch {
+    // ignore
+  }
+}
+
 function normalizeDestinationCasing(destString) {
   // Defensive normalization — capitalizes each word so casing can never be a
   // factor in how reliably the AI generates a response, regardless of how a
@@ -948,6 +960,10 @@ function CompassApp() {
       setTripLoadId((id) => id + 1);
       setChat([]);
       setPlannedDates({ checkIn: ci, checkOut: co });
+      trackEvent(avoidVenues && avoidVenues.length > 0 ? "continue_trip" : "itinerary_generated", {
+        destination: normalizedDest,
+        num_cities: parsed.cities?.length || 0,
+      });
       setSegmentNumber(avoidVenues && avoidVenues.length > 0 ? segmentNumber + 1 : 1);
     } catch (e) {
       console.error("planTrip failed:", e); // check browser console (F12) for the real underlying error if this keeps happening
@@ -1009,9 +1025,11 @@ function CompassApp() {
     trips.push({ id: `${Date.now()}`, label, savedAt: Date.now(), itinerary, chat, destination, plannedDates, segmentNumber });
     writeLocalTrips(trips);
     setSaveStatus("saved");
+    trackEvent("save_trip", { destination: cityLabel });
   }
 
   function printTrip() {
+    trackEvent("print_trip", {});
     window.print();
   }
 
@@ -1042,6 +1060,7 @@ function CompassApp() {
 
   async function shareTrip() {
     const text = buildShareText();
+    trackEvent("share_trip", {});
     try {
       await navigator.share({
         title: `${itinerary.cities?.map((c) => c.name).join(" + ")} — Queer Compass Trip`,
@@ -1055,6 +1074,7 @@ function CompassApp() {
 
   function downloadTrip() {
     const text = buildShareText();
+    trackEvent("download_trip", {});
     const cityLabel = itinerary.cities?.map((c) => c.name).join("-").toLowerCase().replace(/\s+/g, "-") || "trip";
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -1329,6 +1349,7 @@ function CompassApp() {
               href={flightsUrl()}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent("booking_click", { vertical: "flights" })}
               className="qc-btn-booking flex items-center justify-center gap-2 mt-3 no-print"
               style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "10px 0", borderRadius: 10, textDecoration: "none", fontSize: 13.5, transition: "background 0.15s ease" }}
             >
@@ -1515,6 +1536,7 @@ function CompassApp() {
                 href={bookingUrl(city.name, checkIn, checkOut)}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackEvent("booking_click", { vertical: "hotels", city: city.name })}
                 className="qc-btn-booking flex items-center justify-center gap-2 mt-2 no-print"
                 style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14, transition: "background 0.15s ease" }}
               >
@@ -1528,6 +1550,7 @@ function CompassApp() {
                 href={attractionsUrl(city.name)}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackEvent("booking_click", { vertical: "attractions", city: city.name })}
                 className="qc-btn-booking flex items-center justify-center gap-2 mt-2 no-print"
                 style={{ background: "#003580", color: "#ffffff", fontWeight: 600, padding: "12px 0", borderRadius: 10, textDecoration: "none", fontSize: 14, transition: "background 0.15s ease" }}
               >
