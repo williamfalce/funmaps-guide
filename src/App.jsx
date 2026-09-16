@@ -607,15 +607,27 @@ function CompassApp() {
   // --- PWA install prompt ---
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [showIOSInstallHint, setShowIOSInstallHint] = useState(false);
+  const [showIOSNonSafariHint, setShowIOSNonSafariHint] = useState(false);
   const [installBannerDismissed, setInstallBannerDismissed] = useState(false);
 
   useEffect(() => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
     if (isStandalone) return; // already installed — never show the prompt
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     if (isIOS) {
-      setShowIOSInstallHint(true);
+      // Chrome, Firefox, and Edge on iOS all inject their own token into the
+      // user agent even though they run on Safari's underlying engine — and
+      // their "Add to Home Screen" support (if any) lives in a different spot
+      // than Safari's, and only works reliably on iOS 16.4+. Rather than
+      // chasing that inconsistency, just point non-Safari users to Safari.
+      const isNonSafariBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+      if (isNonSafariBrowser) {
+        setShowIOSNonSafariHint(true);
+      } else {
+        setShowIOSInstallHint(true);
+      }
       return;
     }
 
@@ -1210,7 +1222,7 @@ function CompassApp() {
         }
       `}</style>
 
-      {!installBannerDismissed && (deferredInstallPrompt || showIOSInstallHint) && (
+      {!installBannerDismissed && (deferredInstallPrompt || showIOSInstallHint || showIOSNonSafariHint) && (
         <div
           className="no-print"
           style={{
@@ -1236,6 +1248,10 @@ function CompassApp() {
                 Install App
               </button>
             </>
+          ) : showIOSNonSafariHint ? (
+            <span>
+              For the best install experience, open this page in <strong>Safari</strong> instead — tap the <strong>•••</strong> menu above and choose "Open in Safari."
+            </span>
           ) : (
             <span>
               Add Compass to your home screen: tap <strong>Share</strong> below, then <strong>"Add to Home Screen."</strong>
