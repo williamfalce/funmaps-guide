@@ -1240,7 +1240,7 @@ function CompassApp() {
         >
           {deferredInstallPrompt ? (
             <>
-              <span>Install Compass for quick access, right from your home screen.</span>
+              <span>Want quicker access next time? You can install Compass to your home screen (totally optional).</span>
               <button
                 onClick={handleInstallClick}
                 style={{ background: "#D9662E", color: "#1B1030", fontWeight: 700, padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12.5 }}
@@ -1250,11 +1250,11 @@ function CompassApp() {
             </>
           ) : showIOSNonSafariHint ? (
             <span>
-              For the best install experience, copy this page's link and open it in the <strong>Safari</strong> app instead — Chrome on iOS doesn't support installing apps as reliably.
+              If you'd like quicker access next time (totally optional), copy this page's link and open it in the <strong>Safari</strong> app — Chrome on iOS doesn't support installing apps as reliably.
             </span>
           ) : (
             <span>
-              Add Compass to your home screen: tap <strong>Share</strong> below, then <strong>"Add to Home Screen."</strong>
+              Want quicker access next time? You can optionally add Compass to your home screen: tap <strong>Share</strong> below, then <strong>"Add to Home Screen."</strong>
             </span>
           )}
           <button
