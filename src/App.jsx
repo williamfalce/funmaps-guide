@@ -1250,7 +1250,7 @@ function CompassApp() {
             </>
           ) : showIOSNonSafariHint ? (
             <span>
-              For the best install experience, open this page in <strong>Safari</strong> instead — tap the <strong>•••</strong> menu above and choose "Open in Safari."
+              For the best install experience, copy this page's link and open it in the <strong>Safari</strong> app instead — Chrome on iOS doesn't support installing apps as reliably.
             </span>
           ) : (
             <span>
