@@ -604,6 +604,36 @@ function CompassApp() {
   const [selectedBudgetTiers, setSelectedBudgetTiers] = useState([]);
   const [extraNotes, setExtraNotes] = useState("");
 
+  // --- PWA install prompt ---
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [showIOSInstallHint, setShowIOSInstallHint] = useState(false);
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    if (isStandalone) return; // already installed — never show the prompt
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      setShowIOSInstallHint(true);
+      return;
+    }
+
+    function handleBeforeInstallPrompt(e) {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    }
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  async function handleInstallClick() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    setDeferredInstallPrompt(null);
+  }
+
   function toggleInterest(tag) {
     setSelectedInterests((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
@@ -1179,6 +1209,47 @@ function CompassApp() {
           50% { color: #FFFFFF; }
         }
       `}</style>
+
+      {!installBannerDismissed && (deferredInstallPrompt || showIOSInstallHint) && (
+        <div
+          className="no-print"
+          style={{
+            background: "#241640",
+            borderBottom: "1px solid #D9662E40",
+            padding: "10px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            textAlign: "center",
+            fontSize: 13,
+          }}
+        >
+          {deferredInstallPrompt ? (
+            <>
+              <span>Install Compass for quick access, right from your home screen.</span>
+              <button
+                onClick={handleInstallClick}
+                style={{ background: "#D9662E", color: "#1B1030", fontWeight: 700, padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12.5 }}
+              >
+                Install App
+              </button>
+            </>
+          ) : (
+            <span>
+              Add Compass to your home screen: tap <strong>Share</strong> below, then <strong>"Add to Home Screen."</strong>
+            </span>
+          )}
+          <button
+            onClick={() => setInstallBannerDismissed(true)}
+            aria-label="Dismiss"
+            style={{ background: "none", border: "none", color: "#F5EFE688", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 24px 0" }} className="no-print">
         <div className="flex items-center justify-between">
