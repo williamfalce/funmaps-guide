@@ -1,12 +1,22 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import { Analytics } from "@vercel/analytics/react";
 import App from "./App.jsx";
 import AdminPanel from "./AdminPanel.jsx";
 
 const isAdmin = window.location.pathname.replace(/\/+$/, "") === "/admin";
 
-ReactDOM.createRoot(document.getElementById("root")).render(isAdmin ? <AdminPanel /> : <App />);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  isAdmin ? (
+    <AdminPanel />
+  ) : (
+    <>
+      <App />
+      <Analytics />
+    </>
+  )
+);
 
 // Register the PWA service worker for the traveler-facing app only — not on
 // /admin, since offline caching of admin data isn't something we want.
