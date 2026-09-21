@@ -653,6 +653,42 @@ function CompassApp() {
     setSelectedBudgetTiers((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
   }
   const [loading, setLoading] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  // Rotating, staged loading messages — the AI genuinely does all this work as
+  // part of one generation, but showing it as visible "stages" makes a long
+  // wait feel far more tolerable than one static, unchanging message. People
+  // are much more patient when they can see progress happening, even when the
+  // actual total wait time hasn't changed at all.
+  const loadingMessages = destination
+    ? [
+        `Finding LGBTQ+-friendly spots in ${destination}...`,
+        "Checking safety and community info...",
+        "Matching recommendations to your interests...",
+        "Building your day-by-day itinerary...",
+        "Adding maps and booking links...",
+        "Almost there — putting the final touches on your trip...",
+      ]
+    : [
+        "Finding LGBTQ+-friendly spots...",
+        "Checking safety and community info...",
+        "Matching recommendations to your interests...",
+        "Building your day-by-day itinerary...",
+        "Adding maps and booking links...",
+        "Almost there — putting the final touches on your trip...",
+      ];
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingMessageIndex((i) => Math.min(i + 1, loadingMessages.length - 1));
+    }, 3200);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   const [error, setError] = useState("");
   const [itinerary, setItinerary] = useState(null);
   const [chat, setChat] = useState([]);
@@ -1220,6 +1256,10 @@ function CompassApp() {
           0%, 100% { color: #1B1030; }
           50% { color: #FFFFFF; }
         }
+        @keyframes qc-progress-fill {
+          0% { width: 4%; }
+          100% { width: 92%; }
+        }
       `}</style>
 
       {!installBannerDismissed && (deferredInstallPrompt || showIOSInstallHint || showIOSNonSafariHint) && (
@@ -1441,8 +1481,20 @@ function CompassApp() {
             style={{ width: "100%", background: loading ? "#D9662E88" : "#D9662E", color: "#1B1030", fontWeight: 600, padding: "12px 0", borderRadius: 10, border: "none", cursor: loading ? "default" : "pointer", transition: "background 0.15s ease" }}
           >
             {!loading && <Sparkles size={18} />}
-            {loading ? <WaveText text="Please be patient. We are Mapping and creating a detailed itinerary of your trip..." /> : "Plan my trip"}
+            {loading ? <WaveText text={loadingMessages[loadingMessageIndex]} /> : "Plan my trip"}
           </button>
+          {loading && (
+            <div className="no-print" style={{ width: "100%", height: 5, background: "#1B103022", borderRadius: 999, marginTop: 10, overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  background: "linear-gradient(90deg, #D9662E, #B23A72, #9B2FA0)",
+                  borderRadius: 999,
+                  animation: "qc-progress-fill 28s ease-out forwards",
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
