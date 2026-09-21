@@ -440,12 +440,22 @@ const CITY_CLUSTERS = [
   {
     label: "Wilton Manors / Oakland Park / Fort Lauderdale, FL",
     members: ["Wilton Manors", "Oakland Park", "Fort Lauderdale"],
+    // The combined label above isn't a real, geocodable place — no mapping
+    // service can make sense of three city names slashed together. This is
+    // a genuine, individually-geocodable anchor point used only for centering
+    // the map, never shown to the traveler.
+    geocodeAs: "Fort Lauderdale, FL",
   },
 ];
 
 function detectCityCluster(destText) {
   const lower = (destText || "").toLowerCase();
   return CITY_CLUSTERS.find((cluster) => cluster.members.some((m) => lower.includes(m.toLowerCase())));
+}
+
+function geocodableCityQuery(cityName) {
+  const cluster = CITY_CLUSTERS.find((c) => c.label === cityName);
+  return cluster ? cluster.geocodeAs : cityName;
 }
 
 function collapseClusteredDestinations(destArray) {
@@ -801,12 +811,19 @@ function CompassApp() {
       // Normalize en-dashes/em-dashes (common in address ranges like "1035–1037")
       // to plain hyphens, since some geocoders handle these poorly.
       const cleaned = address.replace(/[\u2013\u2014]/g, "-");
+      // For a combined cluster label (e.g. "Wilton Manors / Oakland Park / Fort
+      // Lauderdale, FL"), use the real, geocodable anchor city instead — no
+      // mapping service can parse three slash-separated city names, and a real
+      // street address would never literally contain that full combined string,
+      // so without this every single activity in a cluster city would fail to
+      // geocode, not just the city-center pin.
+      const geocodableCity = geocodableCityQuery(cityName);
       // If the address already contains the city name (admins sometimes enter a
       // full address including city/state/zip), don't append it again — a
       // duplicated city string can confuse the geocoder into a bad, low-confidence match.
-      const cityCore = (cityName || "").split(",")[0].trim().toLowerCase();
+      const cityCore = (geocodableCity || "").split(",")[0].trim().toLowerCase();
       if (cityCore && cleaned.toLowerCase().includes(cityCore)) return cleaned;
-      return `${cleaned}, ${cityName}`;
+      return `${cleaned}, ${geocodableCity}`;
     }
 
     // Self-correction for closely-clustered neighboring cities (e.g. Wilton Manors
@@ -834,7 +851,7 @@ function CompassApp() {
       // and might not have resolved yet when this effect starts building targets.
       const targets = [];
       for (const city of itinerary.cities) {
-        targets.push({ query: city.name, name: city.name, category: "city", cityName: city.name });
+        targets.push({ query: geocodableCityQuery(city.name), name: city.name, category: "city", cityName: city.name });
         city.itinerary?.forEach((d) => {
           d.activities?.forEach((a) => {
             if (a.address) {
