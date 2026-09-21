@@ -598,6 +598,7 @@ function writeLocalTrips(trips) {
 
 function CompassApp() {
   const [destination, setDestination] = useState("");
+  const [arrivedPreFilled, setArrivedPreFilled] = useState(false);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [selectedInterests, setSelectedInterests] = useState([]);
@@ -715,21 +716,24 @@ function CompassApp() {
 
   // Deep-linking: /?destination=Fort%20Lauderdale&checkin=2026-11-10&checkout=2026-11-14&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
   // Also still supports the older ?days=4 format (without dates) for any existing links already out there.
-  // Pre-fills the form and auto-generates the itinerary, so buttons on other
-  // FunMaps pages can link straight into a ready-made trip for that city.
+  // Pre-fills the form so buttons on other FunMaps pages can link straight into
+  // a ready-to-go trip for that city — but deliberately does NOT auto-generate.
+  // A traveler arriving this way still hasn't had a chance to set Budget tier
+  // or add their own notes, so we let them review and click "Plan my trip"
+  // themselves once they're happy with everything, rather than skipping
+  // straight past those choices.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlDestination = params.get("destination");
     if (!urlDestination) return;
     const urlCheckIn = params.get("checkin") || "";
     const urlCheckOut = params.get("checkout") || "";
-    const legacyDays = params.get("days") ? parseInt(params.get("days"), 10) : null;
     const urlInterests = params.get("interests") ? params.get("interests").split(",").map((s) => s.trim()).filter(Boolean) : [];
     setDestination(urlDestination);
     if (urlCheckIn) setCheckIn(urlCheckIn);
     if (urlCheckOut) setCheckOut(urlCheckOut);
     if (urlInterests.length) setSelectedInterests(urlInterests);
-    planTrip(urlDestination, urlCheckIn, urlCheckOut, urlInterests, legacyDays);
+    setArrivedPreFilled(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1349,6 +1353,24 @@ function CompassApp() {
             </div>
           </div>
         </div>
+
+        {arrivedPreFilled && (
+          <div
+            className="no-print"
+            style={{ background: "#1C9C9C22", border: "1px solid #1C9C9C60", borderRadius: 10, padding: "10px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}
+          >
+            <span style={{ fontSize: 13, color: "#F5EFE6" }}>
+              We've filled in what you told us on the homepage — feel free to adjust anything below, including interests and budget, then hit <strong>Plan my trip</strong> when you're ready.
+            </span>
+            <button
+              onClick={() => setArrivedPreFilled(false)}
+              aria-label="Dismiss"
+              style={{ background: "none", border: "none", color: "#F5EFE688", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div style={{ background: "#241640", borderRadius: 16, padding: 24, border: "1px solid #B23A7220" }} className="no-print">
           <div className="qc-trip-grid grid gap-4" style={{ gridTemplateColumns: "1.6fr 1fr 1fr", display: "grid" }}>
