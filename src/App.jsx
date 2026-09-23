@@ -646,6 +646,12 @@ function writeLocalTrips(trips) {
 function CompassApp() {
   const [destination, setDestination] = useState("");
   const [arrivedPreFilled, setArrivedPreFilled] = useState(false);
+  const formStartedRef = useRef(false);
+  function trackFormStarted(source) {
+    if (formStartedRef.current) return; // only fire once per session, not on every refocus
+    formStartedRef.current = true;
+    trackEvent("form_started", source ? { source } : {});
+  }
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [selectedInterests, setSelectedInterests] = useState([]);
@@ -781,6 +787,7 @@ function CompassApp() {
     if (urlCheckOut) setCheckOut(urlCheckOut);
     if (urlInterests.length) setSelectedInterests(urlInterests);
     setArrivedPreFilled(true);
+    trackFormStarted("prefilled_widget");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1435,6 +1442,7 @@ function CompassApp() {
                 <input
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
+                  onFocus={() => trackFormStarted("typed_directly")}
                   placeholder="e.g. Wilton Manors then Miami"
                   style={{ background: "transparent", border: "none", outline: "none", color: "#1B1030", width: "100%" }}
                 />
