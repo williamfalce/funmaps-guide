@@ -774,8 +774,23 @@ function CompassApp() {
     if (!itinerary?.cities) return;
     setCityBanners({});
     itinerary.cities.forEach(async (city) => {
-      const banners = await getBanners(city.name);
-      if (banners.length) setCityBanners((prev) => ({ ...prev, [city.name]: banners }));
+      // For a clustered destination (e.g. "Wilton Manors / Oakland Park / Fort
+      // Lauderdale, FL"), a partner may be registered under just one member
+      // city ("Wilton Manors") rather than the full combined label — an exact
+      // city-string match alone would silently miss them. Fetch banners for
+      // the combined label AND each individual member city, then merge.
+      const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
+      const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
+      const results = await Promise.all(citiesToQuery.map((c) => getBanners(c)));
+      const merged = [];
+      const seenIds = new Set();
+      results.flat().forEach((b) => {
+        if (!seenIds.has(b.id)) {
+          seenIds.add(b.id);
+          merged.push(b);
+        }
+      });
+      if (merged.length) setCityBanners((prev) => ({ ...prev, [city.name]: merged }));
     });
   }, [itinerary]);
 
@@ -783,7 +798,19 @@ function CompassApp() {
     if (!itinerary?.cities) return;
     setCitySponsors({});
     itinerary.cities.forEach(async (city) => {
-      const sponsors = await getSponsorships(city.name);
+      // Same cluster gap as banners: a sponsorship might be registered under
+      // just one member city rather than the full combined cluster label.
+      const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
+      const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
+      const results = await Promise.all(citiesToQuery.map((c) => getSponsorships(c)));
+      const seenIds = new Set();
+      const sponsors = [];
+      results.flat().forEach((s) => {
+        if (!seenIds.has(s.id)) {
+          seenIds.add(s.id);
+          sponsors.push(s);
+        }
+      });
       if (sponsors.length) {
         // Multiple sponsors for the same city rotate — pick one at random each time.
         const chosen = sponsors[Math.floor(Math.random() * sponsors.length)];
@@ -860,14 +887,33 @@ function CompassApp() {
             }
           });
         });
-        const partners = await getBanners(city.name);
+        const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
+        const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
+
+        const partnerResults = await Promise.all(citiesToQuery.map((c) => getBanners(c)));
+        const seenPartnerIds = new Set();
+        const partners = [];
+        partnerResults.flat().forEach((p) => {
+          if (!seenPartnerIds.has(p.id)) {
+            seenPartnerIds.add(p.id);
+            partners.push(p);
+          }
+        });
         partners.forEach((p) => {
           if (p.address) {
             const actualCity = resolveActualCity(p.address, city.name);
             targets.push({ query: buildGeocodeQuery(p.address, actualCity), name: p.businessName, category: "partner", cityName: actualCity });
           }
         });
-        const sponsors = await getSponsorships(city.name);
+        const sponsorResults = await Promise.all(citiesToQuery.map((c) => getSponsorships(c)));
+        const seenSponsorIds = new Set();
+        const sponsors = [];
+        sponsorResults.flat().forEach((s) => {
+          if (!seenSponsorIds.has(s.id)) {
+            seenSponsorIds.add(s.id);
+            sponsors.push(s);
+          }
+        });
         sponsors.forEach((s) => {
           if (s.address) {
             const actualCity = resolveActualCity(s.address, city.name);
