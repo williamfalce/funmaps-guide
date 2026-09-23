@@ -28,6 +28,43 @@ async function getAllActivePartners() {
   }
 }
 
+// For a clustered destination, a partner might be stored under just one member
+// city ("Wilton Manors, FL") rather than the full combined label. An exact
+// city-string match against the bare member name ("Wilton Manors") would still
+// miss it, since the stored value includes the state too — so for clusters we
+// fetch everything unfiltered and match with a substring check instead, which
+// is resilient to exactly this kind of "Wilton Manors" vs "Wilton Manors, FL"
+// formatting mismatch.
+async function getBannersForCity(cityName) {
+  const cluster = CITY_CLUSTERS.find((c) => c.label === cityName);
+  if (!cluster) return getBanners(cityName);
+  try {
+    const res = await fetch(`/api/banners`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const all = (data.banners || []).filter((b) => b.active !== false);
+    const needles = [cluster.label.toLowerCase(), ...cluster.members.map((m) => m.toLowerCase())];
+    return all.filter((b) => needles.some((n) => (b.city || "").toLowerCase().includes(n)));
+  } catch {
+    return [];
+  }
+}
+
+async function getSponsorshipsForCity(cityName) {
+  const cluster = CITY_CLUSTERS.find((c) => c.label === cityName);
+  if (!cluster) return getSponsorships(cityName);
+  try {
+    const res = await fetch(`/api/sponsorships`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const all = (data.sponsorships || []).filter((s) => s.active !== false);
+    const needles = [cluster.label.toLowerCase(), ...cluster.members.map((m) => m.toLowerCase())];
+    return all.filter((s) => needles.some((n) => (s.city || "").toLowerCase().includes(n)));
+  } catch {
+    return [];
+  }
+}
+
 function sortPartners(partners) {
   return [...partners].sort((a, b) => {
     if (a.tier !== b.tier) return a.tier === "premium" ? -1 : 1;
@@ -774,23 +811,8 @@ function CompassApp() {
     if (!itinerary?.cities) return;
     setCityBanners({});
     itinerary.cities.forEach(async (city) => {
-      // For a clustered destination (e.g. "Wilton Manors / Oakland Park / Fort
-      // Lauderdale, FL"), a partner may be registered under just one member
-      // city ("Wilton Manors") rather than the full combined label — an exact
-      // city-string match alone would silently miss them. Fetch banners for
-      // the combined label AND each individual member city, then merge.
-      const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
-      const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
-      const results = await Promise.all(citiesToQuery.map((c) => getBanners(c)));
-      const merged = [];
-      const seenIds = new Set();
-      results.flat().forEach((b) => {
-        if (!seenIds.has(b.id)) {
-          seenIds.add(b.id);
-          merged.push(b);
-        }
-      });
-      if (merged.length) setCityBanners((prev) => ({ ...prev, [city.name]: merged }));
+      const banners = await getBannersForCity(city.name);
+      if (banners.length) setCityBanners((prev) => ({ ...prev, [city.name]: banners }));
     });
   }, [itinerary]);
 
@@ -798,19 +820,7 @@ function CompassApp() {
     if (!itinerary?.cities) return;
     setCitySponsors({});
     itinerary.cities.forEach(async (city) => {
-      // Same cluster gap as banners: a sponsorship might be registered under
-      // just one member city rather than the full combined cluster label.
-      const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
-      const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
-      const results = await Promise.all(citiesToQuery.map((c) => getSponsorships(c)));
-      const seenIds = new Set();
-      const sponsors = [];
-      results.flat().forEach((s) => {
-        if (!seenIds.has(s.id)) {
-          seenIds.add(s.id);
-          sponsors.push(s);
-        }
-      });
+      const sponsors = await getSponsorshipsForCity(city.name);
       if (sponsors.length) {
         // Multiple sponsors for the same city rotate — pick one at random each time.
         const chosen = sponsors[Math.floor(Math.random() * sponsors.length)];
@@ -887,33 +897,14 @@ function CompassApp() {
             }
           });
         });
-        const cluster = CITY_CLUSTERS.find((c) => c.label === city.name);
-        const citiesToQuery = cluster ? [city.name, ...cluster.members] : [city.name];
-
-        const partnerResults = await Promise.all(citiesToQuery.map((c) => getBanners(c)));
-        const seenPartnerIds = new Set();
-        const partners = [];
-        partnerResults.flat().forEach((p) => {
-          if (!seenPartnerIds.has(p.id)) {
-            seenPartnerIds.add(p.id);
-            partners.push(p);
-          }
-        });
+        const partners = await getBannersForCity(city.name);
         partners.forEach((p) => {
           if (p.address) {
             const actualCity = resolveActualCity(p.address, city.name);
             targets.push({ query: buildGeocodeQuery(p.address, actualCity), name: p.businessName, category: "partner", cityName: actualCity });
           }
         });
-        const sponsorResults = await Promise.all(citiesToQuery.map((c) => getSponsorships(c)));
-        const seenSponsorIds = new Set();
-        const sponsors = [];
-        sponsorResults.flat().forEach((s) => {
-          if (!seenSponsorIds.has(s.id)) {
-            seenSponsorIds.add(s.id);
-            sponsors.push(s);
-          }
-        });
+        const sponsors = await getSponsorshipsForCity(city.name);
         sponsors.forEach((s) => {
           if (s.address) {
             const actualCity = resolveActualCity(s.address, city.name);
