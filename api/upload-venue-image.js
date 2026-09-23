@@ -13,7 +13,16 @@ const MAX_BYTES = 2 * 1024 * 1024; // 2MB — plenty for a "small" venue photo, 
 
 function checkAdmin(req) {
   const key = req.headers["x-admin-key"];
-  return !!process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD;
+  if (!key) return false;
+  // Sales reps need to be able to upload images too — a pending Partner or
+  // Deal submission with a photo attached is a completely normal part of the
+  // sales workflow, even though the entry itself still needs Admin approval
+  // afterward. This matches the same either-password pattern used everywhere
+  // else (banners.js, deals.js, sponsorships.js) — uploading an image was the
+  // one place that got missed when that pattern was first built.
+  if (process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD) return true;
+  if (process.env.SALES_PASSWORD && key === process.env.SALES_PASSWORD) return true;
+  return false;
 }
 
 module.exports = async (req, res) => {
