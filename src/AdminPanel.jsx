@@ -206,7 +206,7 @@ export default function AdminPanel() {
       if (!res.ok) throw new Error(data.error || "Upload failed");
       setPartnerForm((f) => ({ ...f, imageUrl: data.url }));
     } catch (err) {
-      setPartnerError(err.message || "Image upload failed — try a smaller image.");
+      setPartnerError(err.message?.includes("Invalid admin key") ? "Your admin key was rejected — click Log Out and re-enter it." : err.message || "Image upload failed — try a smaller image.");
     } finally {
       setUploadingPartnerImage(false);
     }
@@ -373,7 +373,7 @@ export default function AdminPanel() {
       if (!res.ok) throw new Error(data.error || "Upload failed");
       setSponsorshipForm((f) => ({ ...f, imageUrl: data.url }));
     } catch (err) {
-      setSponsorshipError(err.message || "Image upload failed — try a smaller image.");
+      setSponsorshipError(err.message?.includes("Invalid admin key") ? "Your admin key was rejected — click Log Out and re-enter it." : err.message || "Image upload failed — try a smaller image.");
     } finally {
       setUploadingSponsorshipImage(false);
     }
@@ -512,7 +512,7 @@ export default function AdminPanel() {
       if (!res.ok) throw new Error(data.error || "Upload failed");
       setDealForm((f) => ({ ...f, imageUrl: data.url }));
     } catch (err) {
-      setDealError(err.message || "Image upload failed — try a smaller image.");
+      setDealError(err.message?.includes("Invalid admin key") ? "Your admin key was rejected — click Log Out and re-enter it." : err.message || "Image upload failed — try a smaller image.");
     } finally {
       setUploadingDealImage(false);
     }
@@ -1135,7 +1135,7 @@ export default function AdminPanel() {
                   <input value={dealForm.dealLink} onChange={(e) => setDealForm({ ...dealForm, dealLink: e.target.value })} placeholder="https://..." style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>VALID FROM (optional — leave blank to go live immediately)</label>
+                  <label style={labelStyle}>VALID FROM (optional — shown to travelers, doesn't hide the deal beforehand)</label>
                   <input type="date" value={dealForm.startDate} onChange={(e) => setDealForm({ ...dealForm, startDate: e.target.value })} style={inputStyle} />
                 </div>
                 <div>
@@ -1208,7 +1208,7 @@ export default function AdminPanel() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 15 }}>{d.businessName}</span>
                         {d.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
-                        {upcoming && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#1C9C9C22", color: "#1C9C9C" }}>SCHEDULED</span>}
+                        {upcoming && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#1C9C9C22", color: "#1C9C9C" }}>UPCOMING — visible now, valid from {d.startDate}</span>}
                         {expired && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#6B6478", color: "#F5EFE6" }}>EXPIRED</span>}
                         {d.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                       </div>

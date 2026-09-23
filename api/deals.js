@@ -52,16 +52,14 @@ function normalizeCityName(name) {
 }
 
 function isVisible(deal) {
-  // Both dates are optional. No start date = valid immediately. No end date =
-  // open-ended, never expires. This lets a deal be scheduled in advance (e.g.
-  // a Pride-month special entered weeks early, set to start June 1) without
-  // showing up the moment it's approved, while still supporting the simple
-  // "just give it an end date" case for deals that should go live right away.
+  // Deals show as soon as they're approved, even before their "Valid From"
+  // date — for a travel-planning business, letting travelers see an upcoming
+  // deal in advance is more useful than hiding it until the exact start date,
+  // since trips are often planned weeks ahead. "Valid From" is shown to
+  // travelers as informational text (when the offer actually becomes
+  // redeemable), not as a visibility gate. "Valid Until" still controls
+  // actual visibility, since an expired deal genuinely shouldn't keep showing.
   const now = Date.now();
-  if (deal.startDate) {
-    const start = new Date(deal.startDate + "T00:00:00");
-    if (start.getTime() > now) return false; // hasn't started yet
-  }
   if (deal.endDate) {
     const end = new Date(deal.endDate + "T23:59:59");
     if (end.getTime() < now) return false; // already ended
