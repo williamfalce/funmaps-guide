@@ -1222,7 +1222,7 @@ function CompassApp() {
       });
     });
     lines.push("");
-    lines.push("Plan your own trip: https://funmaps-guide-lemon.vercel.app/");
+    lines.push("Plan your own trip: https://compass.funmaps.com/");
     return lines.join("\n");
   }
 
@@ -1377,7 +1377,7 @@ function CompassApp() {
           <div>
             <span style={{ display: "inline-flex", alignItems: "flex-end" }}>
               <img src={funmapsLogo} alt="FunMaps" className="qc-header-logo" style={{ height: 70, width: "auto", maxWidth: "100%" }} />
-              <span style={{ fontSize: 16, color: "#F5EFE699", marginLeft: -6, marginBottom: 4 }}>™</span>
+              <span style={{ fontSize: 16, color: "#F5EFE699", marginLeft: -6, marginBottom: 4 }}>®</span>
             </span>
           </div>
           <button
@@ -1396,7 +1396,7 @@ function CompassApp() {
           <div style={{ flex: "1 1 320px" }}>
             <h1 className="display" style={{ fontSize: 32, fontWeight: 600, lineHeight: 1.2, marginBottom: 14 }}>
               <span style={{ color: "#E8B84B" }}>FunMaps Compass,</span>
-              <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>™</sup>
+              <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>®</sup>
               <br />
               <span style={{ color: "#F5EFE6", fontSize: 22 }}>Your Guide to </span>
               <span style={{ color: "#1C9C9C", fontSize: 22 }}>LGBTQ+ Friendly Adventures.</span>
@@ -1587,7 +1587,7 @@ function CompassApp() {
           <SponsorshipBanner sponsor={citySponsors[itinerary.cities?.[0]?.name]} cityName={itinerary.cities?.[0]?.name} />
           <span className="print-only-logo" style={{ display: "none", alignItems: "flex-end", marginBottom: 16 }}>
             <img src={funmapsLogo} alt="FunMaps" style={{ height: 55, maxWidth: "100%" }} />
-            <span style={{ fontSize: 9, color: "#1B1030aa", marginLeft: -3, marginBottom: 2 }}>™</span>
+            <span style={{ fontSize: 9, color: "#1B1030aa", marginLeft: -3, marginBottom: 2 }}>®</span>
           </span>
           <div style={{ background: "#241640", borderRadius: 16, padding: 24, marginBottom: 20 }}>
             <div className="qc-itin-header flex items-center justify-between gap-3 mb-2">
