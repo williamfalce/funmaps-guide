@@ -1396,7 +1396,7 @@ function CompassApp() {
           <div style={{ flex: "1 1 320px" }}>
             <h1 className="display" style={{ fontSize: 32, fontWeight: 600, lineHeight: 1.2, marginBottom: 14 }}>
               <span style={{ color: "#E8B84B" }}>FunMaps Compass,</span>
-              <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>®</sup>
+              <sup style={{ fontSize: "0.4em", color: "#E8B84B" }}>™</sup>
               <br />
               <span style={{ color: "#F5EFE6", fontSize: 22 }}>Your Guide to </span>
               <span style={{ color: "#1C9C9C", fontSize: 22 }}>LGBTQ+ Friendly Adventures.</span>
