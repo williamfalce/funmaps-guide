@@ -791,8 +791,8 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div>
-                  <label style={labelStyle}>COMMISSION RATE (%) — set whatever you negotiated with this partner</label>
-                  <input type="number" value={partnerForm.commissionRate} onChange={(e) => setPartnerForm({ ...partnerForm, commissionRate: Number(e.target.value) })} style={inputStyle} />
+                  <label style={labelStyle}>{adminRole === "admin" ? "COMMISSION RATE (%) — set whatever you negotiated with this partner" : "COMMISSION RATE (%) — set by an admin when approving"}</label>
+                  <input type="number" min={0} max={100} value={partnerForm.commissionRate} disabled={adminRole !== "admin"} onChange={(e) => setPartnerForm({ ...partnerForm, commissionRate: Number(e.target.value) })} style={adminRole === "admin" ? inputStyle : { ...inputStyle, opacity: 0.6, cursor: "not-allowed" }} />
                 </div>
               </div>
 
