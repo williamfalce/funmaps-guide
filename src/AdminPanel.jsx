@@ -58,6 +58,54 @@ function buildCityString(cityName, country, state) {
 }
 const ADMIN_KEY_STORAGE = "compass-admin-key";
 
+// ---------- Proposed changes to live entries ----------
+// When a sales rep edits an entry that is already live, the server keeps the
+// approved version visible and stores the edit in `pendingChanges` for review.
+function withPending(rec) {
+  return rec && rec.pendingChanges ? { ...rec, ...rec.pendingChanges } : rec;
+}
+
+const FIELD_LABELS = {
+  city: "City", businessName: "Business name", category: "Category", tier: "Tier", priceTier: "Price tier",
+  tagline: "Description", address: "Address", phone: "Phone", imageUrl: "Image", ctaText: "Button text",
+  ctaLink: "Button link", bookingLink: "Booking link", promoCode: "Promo code", promoIncentive: "Promo incentive",
+  commissionRate: "Commission (%)", annualPrice: "Annual price ($)", startDate: "Start date", endDate: "End date",
+  dealDescription: "Deal", discountCode: "Discount code", dealLink: "Deal link", active: "Active",
+};
+
+function changedFields(rec) {
+  if (!rec || !rec.pendingChanges) return [];
+  return Object.keys(rec.pendingChanges).filter(
+    (k) => k in FIELD_LABELS && JSON.stringify(rec.pendingChanges[k] ?? "") !== JSON.stringify(rec[k] ?? "")
+  );
+}
+
+function shortValue(v) {
+  if (v === undefined || v === null || v === "") return "(empty)";
+  const t = String(v);
+  return t.length > 60 ? t.slice(0, 57) + "..." : t;
+}
+
+function PendingChangesNote({ rec }) {
+  const fields = changedFields(rec);
+  return (
+    <div style={{ flexBasis: "100%", order: 99, marginTop: 6, background: "#D9662E14", border: "1px solid #D9662E60", borderRadius: 8, padding: "8px 10px", fontSize: 12, color: "#F5EFE6" }}>
+      <div style={{ fontWeight: 700, color: "#D9662E", marginBottom: 4 }}>
+        Proposed changes waiting for admin review. The live listing stays as it is until approved.
+      </div>
+      {fields.length === 0 ? (
+        <div style={{ color: "#F5EFE6cc" }}>No field values differ from the live version.</div>
+      ) : (
+        fields.map((k) => (
+          <div key={k} style={{ color: "#F5EFE6cc" }}>
+            <strong style={{ color: "#F5EFE6" }}>{FIELD_LABELS[k]}:</strong> {shortValue(rec[k])} → {shortValue(rec.pendingChanges[k])}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 async function apiCall(endpoint, method, body, adminKey, query) {
   const url = `/api/${endpoint}` + (query ? `?${query}` : "");
   const res = await fetch(url, {
@@ -167,6 +215,16 @@ export default function AdminPanel() {
 
   // ---------- Partners ----------
 
+  async function reviewChanges(endpoint, rec, approve, reload, setErr) {
+    if (!approve && !window.confirm(`Discard the proposed changes to "${rec.businessName}"? The live listing stays as it is.`)) return;
+    try {
+      await apiCall(endpoint, "PUT", { id: rec.id, [approve ? "approveChanges" : "rejectChanges"]: true }, adminKey);
+      await reload();
+    } catch (e) {
+      setErr("Couldn't update that entry.");
+    }
+  }
+
   async function loadPartners() {
     try {
       const data = await apiCall("banners", "GET", null, adminKey, partnerFilterCity ? `city=${encodeURIComponent(partnerFilterCity)}` : "");
@@ -249,7 +307,7 @@ export default function AdminPanel() {
       // An admin editing and saving a pending entry IS the approval — no separate
       // click needed. (Sales-role saves still get forced back to "pending" by
       // the server regardless of what's sent here, so this only matters for admin.)
-      if (adminRole === "admin") payload.status = "approved";
+      if (adminRole === "admin") { payload.status = "approved"; payload.approveChanges = true; }
       if (partnerForm.id) {
         await apiCall("banners", "PUT", payload, adminKey);
       } else {
@@ -306,7 +364,8 @@ export default function AdminPanel() {
     }
   }
 
-  function startPartnerEdit(p) {
+  function startPartnerEdit(orig) {
+    const p = withPending(orig);
     const { cityName, country, state } = parseCityString(p.city);
     setPartnerForm({
       id: p.id,
@@ -392,7 +451,7 @@ export default function AdminPanel() {
     setSponsorshipError("");
     try {
       const payload = { ...sponsorshipForm, city: buildCityString(sponsorshipForm.cityName, sponsorshipForm.country, sponsorshipForm.state) };
-      if (adminRole === "admin") payload.status = "approved";
+      if (adminRole === "admin") { payload.status = "approved"; payload.approveChanges = true; }
       if (sponsorshipForm.id) {
         await apiCall("sponsorships", "PUT", payload, adminKey);
       } else {
@@ -449,7 +508,8 @@ export default function AdminPanel() {
     }
   }
 
-  function startSponsorshipEdit(s) {
+  function startSponsorshipEdit(orig) {
+    const s = withPending(orig);
     const { cityName, country, state } = parseCityString(s.city);
     setSponsorshipForm({
       id: s.id,
@@ -531,7 +591,7 @@ export default function AdminPanel() {
     setDealError("");
     try {
       const payload = { ...dealForm, city: buildCityString(dealForm.cityName, dealForm.country, dealForm.state) };
-      if (adminRole === "admin") payload.status = "approved";
+      if (adminRole === "admin") { payload.status = "approved"; payload.approveChanges = true; }
       if (dealForm.id) {
         await apiCall("deals", "PUT", payload, adminKey);
       } else {
@@ -588,7 +648,8 @@ export default function AdminPanel() {
     }
   }
 
-  function startDealEdit(d) {
+  function startDealEdit(orig) {
+    const d = withPending(orig);
     const { cityName, country, state } = parseCityString(d.city);
     setDealForm({
       id: d.id,
@@ -864,6 +925,8 @@ export default function AdminPanel() {
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>{p.category?.toUpperCase()}</span>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B22", color: "#E8B84B" }}>{p.priceTier || "$$"}</span>
                       {p.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
+                      {p.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {p.pendingChanges && <PendingChangesNote rec={p} />}
                       {p.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                     </div>
                     <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -877,6 +940,16 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
+                  {adminRole === "admin" && p.pendingChanges && (
+                    <>
+                      <button onClick={() => reviewChanges("banners", p, true, loadPartners, setPartnerError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        Approve changes
+                      </button>
+                      <button onClick={() => reviewChanges("banners", p, false, loadPartners, setPartnerError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                        Reject changes
+                      </button>
+                    </>
+                  )}
                   {adminRole === "admin" && p.status === "pending" && (
                     <>
                       <button onClick={() => approvePartner(p)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
@@ -1043,6 +1116,8 @@ export default function AdminPanel() {
                           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F5EFE622", color: "#F5EFE6" }}>${s.annualPrice || 3000}/YR</span>
                           {rotating && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>ROTATING</span>}
                           {s.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
+                      {s.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {s.pendingChanges && <PendingChangesNote rec={s} />}
                           {s.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                         </div>
                         <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -1054,7 +1129,17 @@ export default function AdminPanel() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
-                      {adminRole === "admin" && s.status === "pending" && (
+                      {adminRole === "admin" && s.pendingChanges && (
+                    <>
+                      <button onClick={() => reviewChanges("sponsorships", s, true, loadSponsorships, setSponsorshipError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        Approve changes
+                      </button>
+                      <button onClick={() => reviewChanges("sponsorships", s, false, loadSponsorships, setSponsorshipError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                        Reject changes
+                      </button>
+                    </>
+                  )}
+                  {adminRole === "admin" && s.status === "pending" && (
                         <>
                           <button onClick={() => approveSponsorship(s)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                             Approve
@@ -1208,6 +1293,8 @@ export default function AdminPanel() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 15 }}>{d.businessName}</span>
                         {d.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
+                      {d.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {d.pendingChanges && <PendingChangesNote rec={d} />}
                         {upcoming && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#1C9C9C22", color: "#1C9C9C" }}>UPCOMING — visible now, valid from {d.startDate}</span>}
                         {expired && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#6B6478", color: "#F5EFE6" }}>EXPIRED</span>}
                         {d.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
@@ -1224,7 +1311,17 @@ export default function AdminPanel() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
-                    {adminRole === "admin" && d.status === "pending" && (
+                    {adminRole === "admin" && d.pendingChanges && (
+                    <>
+                      <button onClick={() => reviewChanges("deals", d, true, loadDeals, setDealError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        Approve changes
+                      </button>
+                      <button onClick={() => reviewChanges("deals", d, false, loadDeals, setDealError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                        Reject changes
+                      </button>
+                    </>
+                  )}
+                  {adminRole === "admin" && d.status === "pending" && (
                       <>
                         <button onClick={() => approveDeal(d)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                           Approve

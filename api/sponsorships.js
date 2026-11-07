@@ -18,9 +18,9 @@ const STORE_KEY = "sponsorships-v1";
 // Fields that are private business terms or internal metadata. Travelers never
 // need them, so they are stripped from public (unauthenticated) GET responses.
 // Signed-in admin and sales requests still receive the full records.
-const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy"];
+const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy", "pendingChanges", "pendingChangesAt", "pendingChangesBy"];
 // Fields no PUT may overwrite: identity and system-tracked values.
-const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt"];
+const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt", "pendingChanges", "pendingChangesAt", "pendingChangesBy"];
 // Sales reps may negotiate and set the commission rate; a sales edit always
 // returns the entry to "pending", so an admin approves the final rate.
 function validRate(v) {
@@ -155,12 +155,36 @@ module.exports = async (req, res) => {
         return;
       }
 
+      const existing = all[idx];
+      const PENDING_META = ["pendingChanges", "pendingChangesAt", "pendingChangesBy"];
       if (role !== "admin") {
+        // Sales never sets status or review decisions directly.
         delete updates.status;
-        updates.status = "pending";
+        delete updates.approveChanges;
+        delete updates.rejectChanges;
+        if (existing.status !== "pending") {
+          // Live (already approved) entry: keep the approved version visible to
+          // travelers and stage the edit as proposed changes for an admin to review.
+          all[idx] = {
+            ...existing,
+            pendingChanges: { ...(existing.pendingChanges || {}), ...updates },
+            pendingChangesAt: Date.now(),
+            pendingChangesBy: role,
+          };
+        } else {
+          // Not yet approved: edit the pending entry in place; it stays pending.
+          all[idx] = { ...existing, ...updates, status: "pending" };
+        }
+      } else {
+        // Admin: { approveChanges: true } applies staged changes first,
+        // { rejectChanges: true } discards them; any other fields are saved directly.
+        const { approveChanges, rejectChanges, ...rest } = updates;
+        let merged = { ...existing };
+        if (approveChanges && existing.pendingChanges) merged = { ...merged, ...existing.pendingChanges };
+        merged = { ...merged, ...rest };
+        if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
+        all[idx] = merged;
       }
-
-      all[idx] = { ...all[idx], ...updates };
       await writeAll(db, all);
       res.status(200).json({ sponsorship: all[idx] });
       return;
