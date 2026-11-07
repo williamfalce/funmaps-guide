@@ -157,6 +157,9 @@ export default function AdminPanel() {
   const [adminKey, setAdminKey] = useState(() => sessionStorage.getItem(ADMIN_KEY_STORAGE) || "");
   const [adminRole, setAdminRole] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [adminName, setAdminName] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [authError, setAuthError] = useState("");
   const [activeTab, setActiveTab] = useState("partners"); // "partners" | "sponsorships"
@@ -199,13 +202,51 @@ export default function AdminPanel() {
       setAdminKey(key);
       setAdminRole(data.role);
       sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
+      try {
+        const me = await apiCall("auth", "GET", null, key, "action=me");
+        setAdminName(me.name || "");
+      } catch (e) {
+        setAdminName("");
+      }
       setUnlocked(true);
     } catch (e) {
       setAuthError("Couldn't connect — check your connection and try again.");
     }
   }
 
+  // Team members sign in with email + password and get a session token.
+  // Leaving email blank signs in with the owner's admin password instead.
+  async function signIn() {
+    setAuthError("");
+    if (!emailInput.trim()) {
+      await tryUnlock(keyInput);
+      return;
+    }
+    setSigningIn(true);
+    try {
+      const res = await fetch("/api/auth?action=login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput, password: keyInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || "Couldn't sign in.");
+        return;
+      }
+      await tryUnlock(data.token);
+    } catch (e) {
+      setAuthError("Couldn't connect — check your connection and try again.");
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
   function logOut() {
+    if (adminKey && adminKey.startsWith("sess_")) {
+      fetch("/api/auth?action=logout", { method: "POST", headers: { "x-admin-key": adminKey } }).catch(() => {});
+    }
+    setAdminName("");
     sessionStorage.removeItem(ADMIN_KEY_STORAGE);
     setAdminKey("");
     setAdminRole("");
@@ -686,11 +727,14 @@ export default function AdminPanel() {
       <div style={{ background: "#1B1030", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif", padding: 24 }}>
         <div style={{ background: "#241640", borderRadius: 16, padding: 32, maxWidth: 360, width: "100%" }}>
           <h1 style={{ color: "#F5EFE6", fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Compass Admin</h1>
-          <label style={labelStyle}>ADMIN PASSWORD</label>
-          <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && tryUnlock(keyInput)} style={inputStyle} />
+          <label htmlFor="login-email" style={labelStyle}>EMAIL</label>
+          <input id="login-email" type="email" autoComplete="username" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={{ ...inputStyle, marginBottom: 12 }} />
+          <label htmlFor="login-password" style={labelStyle}>PASSWORD</label>
+          <input id="login-password" type="password" autoComplete="current-password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={inputStyle} />
+          <p style={{ color: "#F5EFE699", fontSize: 11.5, marginTop: 8 }}>Owner: leave email blank and enter the admin password.</p>
           {authError && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 8 }}>{authError}</p>}
-          <button onClick={() => tryUnlock(keyInput)} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: "pointer" }}>
-            Unlock
+          <button onClick={signIn} disabled={signingIn} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: signingIn ? "default" : "pointer" }}>
+            {signingIn ? "Signing in..." : "Sign In"}
           </button>
         </div>
       </div>
@@ -716,14 +760,20 @@ export default function AdminPanel() {
               {adminRole === "admin" ? "ADMIN" : "SALES"}
             </span>
           </div>
-          <button onClick={logOut} style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
-            Log Out
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {adminName && <span style={{ fontSize: 13, color: "#F5EFE6cc" }}>Signed in as {adminName}</span>}
+            <button onClick={logOut} style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
+              Log Out
+            </button>
+          </div>
         </div>
 
         {adminRole === "sales" && (
           <div style={{ background: "#1C9C9C15", border: "1px solid #1C9C9C40", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#F5EFE6cc" }}>
             Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them.
+            {adminName === "Sales (shared login)" && (
+              <> You're using the old shared sales password, so your entries can't be credited to you. Ask an admin for your own login.</>
+            )}
           </div>
         )}
 
@@ -746,7 +796,17 @@ export default function AdminPanel() {
           >
             Deals (Self-Expiring)
           </button>
+          {adminRole === "admin" && (
+            <button
+              onClick={() => setActiveTab("team")}
+              style={{ background: activeTab === "team" ? "#D9662E" : "#241640", color: activeTab === "team" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              Team
+            </button>
+          )}
         </div>
+
+        {activeTab === "team" && adminRole === "admin" && <TeamPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
 
         {activeTab === "partners" && (
           <>
@@ -935,7 +995,7 @@ export default function AdminPanel() {
                     <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
                       {p.commissionRate}% commission · {p.promoCode && `Code: ${p.promoCode} · `}
                       {p.clicks || 0} clicks
-                      {p.createdBy && ` · added by ${p.createdBy}`}
+                      {(p.createdByName || p.createdBy) && ` · added by ${p.createdByName || p.createdBy}`}
                     </p>
                   </div>
                 </div>
@@ -1124,7 +1184,7 @@ export default function AdminPanel() {
                           {s.city} {s.address && `· ${s.address}`} {s.phone && `· ${s.phone}`} {s.startDate && s.endDate && `· ${s.startDate} to ${s.endDate}`}
                         </p>
                         <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
-                          {s.clicks || 0} clicks{s.createdBy && ` · added by ${s.createdBy}`}
+                          {s.clicks || 0} clicks{(s.createdByName || s.createdBy) && ` · added by ${s.createdByName || s.createdBy}`}
                         </p>
                       </div>
                     </div>
@@ -1306,7 +1366,7 @@ export default function AdminPanel() {
                         {d.discountCode && `Code: ${d.discountCode} · `}
                         {d.startDate && `From ${d.startDate} `}
                         {d.endDate ? `Until ${d.endDate}` : d.startDate ? "· No end date" : "No date range set"} · {d.clicks || 0} clicks
-                        {d.createdBy && ` · added by ${d.createdBy}`}
+                        {(d.createdByName || d.createdBy) && ` · added by ${d.createdByName || d.createdBy}`}
                       </p>
                     </div>
                   </div>
@@ -1350,5 +1410,168 @@ export default function AdminPanel() {
         )}
       </div>
     </div>
+  );
+}
+
+// ---------- Team (admin only) ----------
+// Each admin and sales rep gets their own sign-in, so every entry records who
+// made it (needed for commissions) and access can be removed per person.
+function TeamPanel({ adminKey, inputStyle, labelStyle }) {
+  const emptyForm = { name: "", email: "", role: "sales", password: "" };
+  const [users, setUsers] = useState([]);
+  const [form, setForm] = useState(emptyForm);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [resetFor, setResetFor] = useState(null);
+  const [resetPassword, setResetPassword] = useState("");
+
+  async function load() {
+    try {
+      const data = await apiCall("auth", "GET", null, adminKey, "action=users");
+      setUsers(data.users || []);
+    } catch (e) {
+      setError("Couldn't load the team.");
+    }
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function addMember() {
+    setError("");
+    setNotice("");
+    setSaving(true);
+    try {
+      await apiCall("auth", "POST", form, adminKey, "action=users");
+      setNotice(`${form.name} can now sign in with ${form.email.trim().toLowerCase()} and the password you set. Share it with them privately.`);
+      setForm(emptyForm);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function update(id, changes, message) {
+    setError("");
+    setNotice("");
+    try {
+      await apiCall("auth", "PUT", { id, ...changes }, adminKey, "action=users");
+      if (message) setNotice(message);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  const btn = { background: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" };
+
+  return (
+    <>
+      <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>Add Team Member</h2>
+        <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
+          Give each sales rep and admin their own sign-in. Every partner, sponsorship and deal records who added it, so commissions can be credited to the right rep.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 12 }}>
+          <div>
+            <label htmlFor="tm-name" style={labelStyle}>NAME *</label>
+            <input id="tm-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+          </div>
+          <div>
+            <label htmlFor="tm-email" style={labelStyle}>EMAIL *</label>
+            <input id="tm-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={inputStyle} />
+          </div>
+          <div>
+            <label htmlFor="tm-role" style={labelStyle}>ROLE</label>
+            <select id="tm-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={inputStyle}>
+              <option value="sales">Sales rep — entries need approval</option>
+              <option value="admin">Admin — approves entries, manages team</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="tm-pass" style={labelStyle}>STARTING PASSWORD * (10+ characters)</label>
+            <input id="tm-pass" type="text" autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} style={inputStyle} />
+          </div>
+        </div>
+        {error && <p style={{ color: "#B23A72", fontSize: 13, marginBottom: 10 }}>{error}</p>}
+        {notice && <p style={{ color: "#1C9C9C", fontSize: 13, marginBottom: 10 }}>{notice}</p>}
+        <button
+          onClick={addMember}
+          disabled={saving}
+          style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: saving ? "default" : "pointer" }}
+        >
+          {saving ? "Adding..." : "Add Team Member"}
+        </button>
+      </div>
+
+      {users.length === 0 && <p style={{ color: "#F5EFE699" }}>No team members yet — add your first sales rep above.</p>}
+
+      {users.map((u) => (
+        <div key={u.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, opacity: u.active === false ? 0.55 : 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{u.name}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: u.role === "admin" ? "#D9662E22" : "#1C9C9C22", color: u.role === "admin" ? "#D9662E" : "#1C9C9C" }}>
+                  {u.role === "admin" ? "ADMIN" : "SALES REP"}
+                </span>
+                {u.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>DEACTIVATED</span>}
+              </div>
+              <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
+                {u.email} · {u.lastLoginAt ? `last signed in ${new Date(u.lastLoginAt).toLocaleDateString()}` : "hasn't signed in yet"}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={() => { setResetFor(resetFor === u.id ? null : u.id); setResetPassword(""); }} style={{ ...btn, color: "#1C9C9C" }}>
+                Reset password
+              </button>
+              <button
+                onClick={() => update(u.id, { role: u.role === "admin" ? "sales" : "admin" }, `${u.name} is now ${u.role === "admin" ? "a sales rep" : "an admin"}.`)}
+                style={{ ...btn, color: "#F5EFE699" }}
+              >
+                Make {u.role === "admin" ? "sales rep" : "admin"}
+              </button>
+              <button
+                onClick={() => {
+                  if (u.active !== false && !window.confirm(`Deactivate ${u.name}? They'll be signed out and can't sign in until reactivated. Their entries stay.`)) return;
+                  update(u.id, { active: u.active === false }, u.active === false ? `${u.name} can sign in again.` : `${u.name} has been deactivated.`);
+                }}
+                style={{ ...btn, color: u.active === false ? "#1C9C9C" : "#B23A72" }}
+              >
+                {u.active === false ? "Reactivate" : "Deactivate"}
+              </button>
+            </div>
+          </div>
+          {resetFor === u.id && (
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <input
+                type="text"
+                autoComplete="new-password"
+                aria-label={`New password for ${u.name}`}
+                placeholder="New password (10+ characters)"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                style={{ ...inputStyle, maxWidth: 280 }}
+              />
+              <button
+                onClick={async () => {
+                  await update(u.id, { password: resetPassword }, `Password updated for ${u.name}. Share it with them privately.`);
+                  setResetFor(null);
+                  setResetPassword("");
+                }}
+                style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
+              >
+                Save password
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </>
   );
 }

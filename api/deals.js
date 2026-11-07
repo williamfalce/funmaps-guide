@@ -5,8 +5,10 @@
 // automatically stops showing it once that date passes — no manual cleanup.
 //
 // Approval workflow: two passwords, two roles — same as Partners/Sponsorships.
-//   ADMIN_PASSWORD -> role "admin"  -> entries go live immediately, can approve/reject/delete
-//   SALES_PASSWORD -> role "sales"  -> entries always saved as "pending", invisible until approved
+// Sign-in is handled by ./_auth (individual team accounts, plus the owner's
+// ADMIN_PASSWORD and the legacy shared SALES_PASSWORD).
+//   admin -> role "admin"  -> entries go live immediately, can approve/reject/delete
+//   sales -> role "sales"  -> entries always saved as "pending", invisible until approved
 //
 // GET    /api/deals?city=Miami   -> list APPROVED+active+NOT-YET-EXPIRED deals, no auth needed
 //                                    (with a valid admin/sales key, returns everything, for the admin panel)
@@ -20,9 +22,9 @@ const STORE_KEY = "deals-v1";
 // Fields that are private business terms or internal metadata. Travelers never
 // need them, so they are stripped from public (unauthenticated) GET responses.
 // Signed-in admin and sales requests still receive the full records.
-const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy", "pendingChanges", "pendingChangesAt", "pendingChangesBy"];
+const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName"];
 // Fields no PUT may overwrite: identity and system-tracked values.
-const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt", "pendingChanges", "pendingChangesAt", "pendingChangesBy"];
+const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName"];
 // Sales reps may negotiate and set the commission rate; a sales edit always
 // returns the entry to "pending", so an admin approves the final rate.
 function validRate(v) {
@@ -44,25 +46,7 @@ function toPublic(record) {
   return copy;
 }
 
-let redis = null;
-function getRedis() {
-  if (redis) return redis;
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return null;
-  const { Redis } = require("@upstash/redis");
-  redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  return redis;
-}
-
-function getRole(req) {
-  const key = req.headers["x-admin-key"];
-  if (!key) return null;
-  if (process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD) return "admin";
-  if (process.env.SALES_PASSWORD && key === process.env.SALES_PASSWORD) return "sales";
-  return null;
-}
+const { getRedis, getAuth } = require("./_auth");
 
 async function readAll(db) {
   const raw = await db.get(STORE_KEY);
@@ -111,7 +95,8 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const role = getRole(req);
+    const auth = await getAuth(req, db);
+    const role = auth ? auth.role : null;
 
     if (req.method === "GET") {
       const all = await readAll(db);
@@ -157,6 +142,8 @@ module.exports = async (req, res) => {
         active: true,
         status: role === "admin" ? "approved" : "pending",
         createdBy: role,
+        createdByName: auth.name,
+        createdByUserId: auth.userId,
         clicks: 0,
         createdAt: Date.now(),
       };
@@ -193,11 +180,11 @@ module.exports = async (req, res) => {
             ...existing,
             pendingChanges: { ...(existing.pendingChanges || {}), ...updates },
             pendingChangesAt: Date.now(),
-            pendingChangesBy: role,
+            pendingChangesBy: auth.name,
           };
         } else {
           // Not yet approved: edit the pending entry in place; it stays pending.
-          all[idx] = { ...existing, ...updates, status: "pending" };
+          all[idx] = { ...existing, ...updates, status: "pending", updatedByName: auth.name };
         }
       } else {
         // Admin: { approveChanges: true } applies staged changes first,
@@ -207,6 +194,7 @@ module.exports = async (req, res) => {
         if (approveChanges && existing.pendingChanges) merged = { ...merged, ...existing.pendingChanges };
         merged = { ...merged, ...rest };
         if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
+        merged.updatedByName = auth.name;
         all[idx] = merged;
       }
       await writeAll(db, all);

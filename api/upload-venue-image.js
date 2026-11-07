@@ -11,18 +11,13 @@ const { put } = require("@vercel/blob");
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BYTES = 2 * 1024 * 1024; // 2MB — plenty for a "small" venue photo, keeps things fast
 
-function checkAdmin(req) {
-  const key = req.headers["x-admin-key"];
-  if (!key) return false;
-  // Sales reps need to be able to upload images too — a pending Partner or
-  // Deal submission with a photo attached is a completely normal part of the
-  // sales workflow, even though the entry itself still needs Admin approval
-  // afterward. This matches the same either-password pattern used everywhere
-  // else (banners.js, deals.js, sponsorships.js) — uploading an image was the
-  // one place that got missed when that pattern was first built.
-  if (process.env.ADMIN_PASSWORD && key === process.env.ADMIN_PASSWORD) return true;
-  if (process.env.SALES_PASSWORD && key === process.env.SALES_PASSWORD) return true;
-  return false;
+const { getRedis, getAuth } = require("./_auth");
+
+// Admins and sales reps can both upload images: a pending Partner or Deal
+// submission with a photo attached is a normal part of the sales workflow.
+async function checkAdmin(req) {
+  const auth = await getAuth(req, getRedis());
+  return !!auth;
 }
 
 module.exports = async (req, res) => {
@@ -40,7 +35,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  if (!checkAdmin(req)) {
+  if (!await checkAdmin(req)) {
     res.status(401).json({ error: "Invalid admin key" });
     return;
   }
