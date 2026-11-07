@@ -67,7 +67,9 @@ function publicUser(u) {
 
 async function createSession(db, user) {
   const token = "sess_" + crypto.randomBytes(32).toString("hex");
-  await db.set(SESSION_PREFIX + token, JSON.stringify({ userId: user.id, createdAt: Date.now() }), { ex: SESSION_TTL_SECONDS });
+  // v = the user's sessionVersion; changing a password bumps it, which signs
+  // the user out everywhere else.
+  await db.set(SESSION_PREFIX + token, JSON.stringify({ userId: user.id, v: user.sessionVersion || 0, createdAt: Date.now() }), { ex: SESSION_TTL_SECONDS });
   return token;
 }
 
@@ -93,6 +95,7 @@ async function getAuth(req, db) {
   const user = users.find((u) => u.id === session.userId);
   // Deactivated users lose access immediately, even with an unexpired session.
   if (!user || user.active === false) return null;
+  if ((session.v || 0) !== (user.sessionVersion || 0)) return null;
   return { role: user.role === "admin" ? "admin" : "sales", userId: user.id, name: user.name };
 }
 

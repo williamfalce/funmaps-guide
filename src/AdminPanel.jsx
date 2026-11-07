@@ -160,6 +160,15 @@ export default function AdminPanel() {
   const [emailInput, setEmailInput] = useState("");
   const [adminName, setAdminName] = useState("");
   const [signingIn, setSigningIn] = useState(false);
+  // "signin" | "forgot" | "reset" (opened from an emailed reset link)
+  const [authMode, setAuthMode] = useState(() => (new URLSearchParams(window.location.search).get("reset") ? "reset" : "signin"));
+  const [resetToken] = useState(() => new URLSearchParams(window.location.search).get("reset") || "");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwMessage, setPwMessage] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [authError, setAuthError] = useState("");
   const [activeTab, setActiveTab] = useState("partners"); // "partners" | "sponsorships"
@@ -187,7 +196,7 @@ export default function AdminPanel() {
   const [uploadingDealImage, setUploadingDealImage] = useState(false);
 
   useEffect(() => {
-    if (adminKey) tryUnlock(adminKey);
+    if (adminKey && authMode !== "reset") tryUnlock(adminKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -239,6 +248,71 @@ export default function AdminPanel() {
       setAuthError("Couldn't connect — check your connection and try again.");
     } finally {
       setSigningIn(false);
+    }
+  }
+
+  async function requestReset() {
+    setAuthError("");
+    setAuthNotice("");
+    if (!emailInput.trim()) {
+      setAuthError("Enter the email you sign in with.");
+      return;
+    }
+    setSigningIn(true);
+    try {
+      const res = await fetch("/api/auth?action=forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) setAuthError(data.error || "Couldn't send a reset link.");
+      else setAuthNotice(data.message);
+    } catch (e) {
+      setAuthError("Couldn't connect — check your connection and try again.");
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
+  async function completeReset() {
+    setAuthError("");
+    setSigningIn(true);
+    try {
+      const res = await fetch("/api/auth?action=reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: resetToken, password: newPasswordInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || "Couldn't reset your password.");
+        return;
+      }
+      window.history.replaceState(null, "", window.location.pathname);
+      setEmailInput(data.email || "");
+      setKeyInput("");
+      setNewPasswordInput("");
+      setAuthMode("signin");
+      setAuthNotice("Password changed. Sign in with your new password.");
+    } catch (e) {
+      setAuthError("Couldn't connect — check your connection and try again.");
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
+  async function changeOwnPassword() {
+    setPwMessage("");
+    try {
+      const data = await apiCall("auth", "POST", { currentPassword: pwCurrent, newPassword: pwNew }, adminKey, "action=change-password");
+      setAdminKey(data.token);
+      sessionStorage.setItem(ADMIN_KEY_STORAGE, data.token);
+      setPwCurrent("");
+      setPwNew("");
+      setPwMessage("Password changed. You've been signed out on your other devices.");
+    } catch (e) {
+      setPwMessage(e.message);
     }
   }
 
@@ -727,15 +801,52 @@ export default function AdminPanel() {
       <div style={{ background: "#1B1030", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif", padding: 24 }}>
         <div style={{ background: "#241640", borderRadius: 16, padding: 32, maxWidth: 360, width: "100%" }}>
           <h1 style={{ color: "#F5EFE6", fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Compass Admin</h1>
-          <label htmlFor="login-email" style={labelStyle}>EMAIL</label>
-          <input id="login-email" type="email" autoComplete="username" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={{ ...inputStyle, marginBottom: 12 }} />
-          <label htmlFor="login-password" style={labelStyle}>PASSWORD</label>
-          <input id="login-password" type="password" autoComplete="current-password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={inputStyle} />
-          <p style={{ color: "#F5EFE699", fontSize: 11.5, marginTop: 8 }}>Owner: leave email blank and enter the admin password.</p>
-          {authError && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 8 }}>{authError}</p>}
-          <button onClick={signIn} disabled={signingIn} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: signingIn ? "default" : "pointer" }}>
-            {signingIn ? "Signing in..." : "Sign In"}
-          </button>
+          {authMode === "signin" && (
+            <>
+              <label htmlFor="login-email" style={labelStyle}>EMAIL</label>
+              <input id="login-email" type="email" autoComplete="username" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={{ ...inputStyle, marginBottom: 12 }} />
+              <label htmlFor="login-password" style={labelStyle}>PASSWORD</label>
+              <input id="login-password" type="password" autoComplete="current-password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && signIn()} style={inputStyle} />
+              <p style={{ color: "#F5EFE699", fontSize: 11.5, marginTop: 8 }}>Owner: leave email blank and enter the admin password.</p>
+              {authNotice && <p style={{ color: "#1C9C9C", fontSize: 13, marginTop: 8 }}>{authNotice}</p>}
+              {authError && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 8 }}>{authError}</p>}
+              <button onClick={signIn} disabled={signingIn} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: signingIn ? "default" : "pointer" }}>
+                {signingIn ? "Signing in..." : "Sign In"}
+              </button>
+              <button onClick={() => { setAuthMode("forgot"); setAuthError(""); setAuthNotice(""); }} style={{ width: "100%", marginTop: 10, background: "transparent", color: "#1C9C9C", border: "none", fontSize: 13, cursor: "pointer" }}>
+                Forgot password?
+              </button>
+            </>
+          )}
+          {authMode === "forgot" && (
+            <>
+              <p style={{ color: "#F5EFE6cc", fontSize: 13, marginBottom: 12 }}>Enter the email you sign in with and we'll email you a link to choose a new password.</p>
+              <label htmlFor="forgot-email" style={labelStyle}>EMAIL</label>
+              <input id="forgot-email" type="email" autoComplete="username" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && requestReset()} style={inputStyle} />
+              {authNotice && <p style={{ color: "#1C9C9C", fontSize: 13, marginTop: 8 }}>{authNotice}</p>}
+              {authError && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 8 }}>{authError}</p>}
+              <button onClick={requestReset} disabled={signingIn} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: signingIn ? "default" : "pointer" }}>
+                {signingIn ? "Sending..." : "Email me a reset link"}
+              </button>
+              <button onClick={() => { setAuthMode("signin"); setAuthError(""); setAuthNotice(""); }} style={{ width: "100%", marginTop: 10, background: "transparent", color: "#1C9C9C", border: "none", fontSize: 13, cursor: "pointer" }}>
+                Back to sign in
+              </button>
+            </>
+          )}
+          {authMode === "reset" && (
+            <>
+              <p style={{ color: "#F5EFE6cc", fontSize: 13, marginBottom: 12 }}>Choose a new password (at least 10 characters).</p>
+              <label htmlFor="reset-password" style={labelStyle}>NEW PASSWORD</label>
+              <input id="reset-password" type="password" autoComplete="new-password" value={newPasswordInput} onChange={(e) => setNewPasswordInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && completeReset()} style={inputStyle} />
+              {authError && <p style={{ color: "#B23A72", fontSize: 13, marginTop: 8 }}>{authError}</p>}
+              <button onClick={completeReset} disabled={signingIn} style={{ width: "100%", marginTop: 16, background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 0", borderRadius: 8, border: "none", cursor: signingIn ? "default" : "pointer" }}>
+                {signingIn ? "Saving..." : "Set new password"}
+              </button>
+              <button onClick={() => { window.history.replaceState(null, "", window.location.pathname); setAuthMode("forgot"); setAuthError(""); }} style={{ width: "100%", marginTop: 10, background: "transparent", color: "#1C9C9C", border: "none", fontSize: 13, cursor: "pointer" }}>
+                Link expired? Request a new one
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -762,11 +873,33 @@ export default function AdminPanel() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {adminName && <span style={{ fontSize: 13, color: "#F5EFE6cc" }}>Signed in as {adminName}</span>}
+            {adminKey.startsWith("sess_") && (
+              <button onClick={() => { setShowChangePassword(!showChangePassword); setPwMessage(""); }} style={{ background: "transparent", color: "#1C9C9C", border: "none", fontSize: 13, cursor: "pointer" }}>
+                Change password
+              </button>
+            )}
             <button onClick={logOut} style={{ background: "#241640", color: "#F5EFE6", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
               Log Out
             </button>
           </div>
         </div>
+
+        {showChangePassword && (
+          <div style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ flex: "1 1 200px" }}>
+              <label htmlFor="pw-current" style={labelStyle}>CURRENT PASSWORD</label>
+              <input id="pw-current" type="password" autoComplete="current-password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} style={inputStyle} />
+            </div>
+            <div style={{ flex: "1 1 200px" }}>
+              <label htmlFor="pw-new" style={labelStyle}>NEW PASSWORD (10+ CHARACTERS)</label>
+              <input id="pw-new" type="password" autoComplete="new-password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} style={inputStyle} />
+            </div>
+            <button onClick={changeOwnPassword} style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+              Save new password
+            </button>
+            {pwMessage && <p style={{ flexBasis: "100%", fontSize: 13, color: pwMessage.startsWith("Password changed") ? "#1C9C9C" : "#B23A72" }}>{pwMessage}</p>}
+          </div>
+        )}
 
         {adminRole === "sales" && (
           <div style={{ background: "#1C9C9C15", border: "1px solid #1C9C9C40", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#F5EFE6cc" }}>
