@@ -21,17 +21,15 @@ const STORE_KEY = "banner-partners-v1";
 const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy"];
 // Fields no PUT may overwrite: identity and system-tracked values.
 const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt"];
-// Fields only the admin role may change.
-const ADMIN_ONLY_FIELDS = ["commissionRate"];
+// Sales reps may negotiate and set the commission rate; a sales edit always
+// returns the entry to "pending", so an admin approves the final rate.
 function validRate(v) {
   const n = Number(v);
   return v !== "" && v !== null && v !== undefined && Number.isFinite(n) && n >= 0 && n <= 100;
 }
 function sanitizeUpdates(updates, role) {
   for (const f of SYSTEM_FIELDS) delete updates[f];
-  if (role !== "admin") {
-    for (const f of ADMIN_ONLY_FIELDS) delete updates[f];
-  } else if ("commissionRate" in updates) {
+  if ("commissionRate" in updates) {
     if (validRate(updates.commissionRate)) updates.commissionRate = Number(updates.commissionRate);
     else delete updates.commissionRate;
   }
@@ -142,9 +140,9 @@ module.exports = async (req, res) => {
         bookingLink: bookingLink || "",
         promoCode: promoCode || "",
         promoIncentive: promoIncentive || "",
-        // Only an admin may set the commission rate. Sales entries get the tier default,
-        // which the admin reviews and adjusts when approving.
-        commissionRate: role === "admin" && validRate(commissionRate) ? Number(commissionRate) : resolvedTier === "premium" ? 22 : 15,
+        // The rate negotiated by the rep or admin; falls back to the tier default if
+        // left blank. Sales entries are saved as "pending" for an admin to approve.
+        commissionRate: validRate(commissionRate) ? Number(commissionRate) : resolvedTier === "premium" ? 22 : 15,
         active: true,
         status: role === "admin" ? "approved" : "pending",
         createdBy: role,

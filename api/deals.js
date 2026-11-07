@@ -23,17 +23,15 @@ const STORE_KEY = "deals-v1";
 const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy"];
 // Fields no PUT may overwrite: identity and system-tracked values.
 const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt"];
-// Fields only the admin role may change.
-const ADMIN_ONLY_FIELDS = ["commissionRate"];
+// Sales reps may negotiate and set the commission rate; a sales edit always
+// returns the entry to "pending", so an admin approves the final rate.
 function validRate(v) {
   const n = Number(v);
   return v !== "" && v !== null && v !== undefined && Number.isFinite(n) && n >= 0 && n <= 100;
 }
 function sanitizeUpdates(updates, role) {
   for (const f of SYSTEM_FIELDS) delete updates[f];
-  if (role !== "admin") {
-    for (const f of ADMIN_ONLY_FIELDS) delete updates[f];
-  } else if ("commissionRate" in updates) {
+  if ("commissionRate" in updates) {
     if (validRate(updates.commissionRate)) updates.commissionRate = Number(updates.commissionRate);
     else delete updates.commissionRate;
   }
