@@ -17,6 +17,16 @@
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const STORE_KEY = "deals-v1";
 
+// Fields that are private business terms or internal metadata. Travelers never
+// need them, so they are stripped from public (unauthenticated) GET responses.
+// Signed-in admin and sales requests still receive the full records.
+const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy"];
+function toPublic(record) {
+  const copy = { ...record };
+  for (const f of PRIVATE_FIELDS) delete copy[f];
+  return copy;
+}
+
 let redis = null;
 function getRedis() {
   if (redis) return redis;
@@ -101,7 +111,7 @@ module.exports = async (req, res) => {
         if (!b.endDate) return -1;
         return new Date(a.endDate) - new Date(b.endDate);
       });
-      res.status(200).json({ deals: filtered, role: role || undefined });
+      res.status(200).json({ deals: role ? filtered : filtered.map(toPublic), role: role || undefined });
       return;
     }
 

@@ -15,6 +15,16 @@
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const STORE_KEY = "banner-partners-v1";
 
+// Fields that are private business terms or internal metadata. Travelers never
+// need them, so they are stripped from public (unauthenticated) GET responses.
+// Signed-in admin and sales requests still receive the full records.
+const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy"];
+function toPublic(record) {
+  const copy = { ...record };
+  for (const f of PRIVATE_FIELDS) delete copy[f];
+  return copy;
+}
+
 let redis = null;
 function getRedis() {
   if (redis) return redis;
@@ -76,7 +86,7 @@ module.exports = async (req, res) => {
       // the panel can show pending items for review.
       const visible = role ? all : all.filter((b) => b.active !== false && b.status !== "pending");
       const filtered = city ? visible.filter((b) => normalizeCityName(b.city) === normalizeCityName(city)) : visible;
-      res.status(200).json({ banners: filtered, role: role || undefined });
+      res.status(200).json({ banners: role ? filtered : filtered.map(toPublic), role: role || undefined });
       return;
     }
 
