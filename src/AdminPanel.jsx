@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, apiCall } from "./adminShared.jsx";
+import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, saveLabel, EditingBanner, apiCall } from "./adminShared.jsx";
 import { WebsiteListingsPanel, RateCardPanel } from "./WebsiteListingsPanel.jsx";
 
 const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
@@ -770,7 +770,7 @@ export default function AdminPanel() {
 
         {adminRole === "sales" && (
           <div style={{ background: "#1C9C9C15", border: "1px solid #1C9C9C40", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#F5EFE6cc" }}>
-            Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them. If an admin sends one back, it's marked <strong>Needs changes</strong> with their note: edit it and save to resubmit.
+            Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them. If an admin sends one back, it's marked <strong>Needs changes</strong> with their note: click <strong>Edit</strong>, make the changes, then click <strong>Resubmit for review</strong> at the bottom of the form.
             {adminName === "Sales (shared login)" && (
               <> You're using the old shared sales password, so your entries can't be credited to you. Ask an admin for your own login.</>
             )}
@@ -810,6 +810,7 @@ export default function AdminPanel() {
           <>
             <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{partnerForm.id ? "Edit Partner" : "Add New Partner"}</h2>
+              <EditingBanner record={(partnerForm.id ? partners.find((x) => x.id === partnerForm.id) : null)} isAdmin={adminRole === "admin"} label={saveLabel(adminRole === "admin", (partnerForm.id ? partners.find((x) => x.id === partnerForm.id) : null), "Partner")} />
               <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
                 Commission-based. Tier controls the <strong>visual style</strong> only — <strong>Recommended Partner (Premium)</strong> gets a white border and image/logo shown first. The commission rate below is fully independent — set it to whatever you actually negotiate with each partner (15% and 22% are just common starting points, not fixed values).
               </p>
@@ -945,13 +946,7 @@ export default function AdminPanel() {
                   disabled={partnerSaving}
                   style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: partnerSaving ? "default" : "pointer" }}
                 >
-                  {partnerSaving
-                    ? "Saving..."
-                    : partnerForm.id
-                    ? adminRole === "admin" && partnerForm.status === "pending"
-                      ? "Save & Approve"
-                      : "Update Partner"
-                    : "Add Partner"}
+                  {partnerSaving ? "Saving..." : saveLabel(adminRole === "admin", (partnerForm.id ? partners.find((x) => x.id === partnerForm.id) : null), "Partner")}
                 </button>
                 {partnerForm.id && (
                   <button
@@ -1038,6 +1033,7 @@ export default function AdminPanel() {
           <>
             <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{sponsorshipForm.id ? "Edit Sponsorship" : "Add New Sponsorship"}</h2>
+              <EditingBanner record={(sponsorshipForm.id ? sponsorships.find((x) => x.id === sponsorshipForm.id) : null)} isAdmin={adminRole === "admin"} label={saveLabel(adminRole === "admin", (sponsorshipForm.id ? sponsorships.find((x) => x.id === sponsorshipForm.id) : null), "Sponsorship")} />
               <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
                 Flat annual fee, destination-specific. If a city has more than one sponsor, the banner rotates between them each time someone plans a trip there.
               </p>
@@ -1130,13 +1126,7 @@ export default function AdminPanel() {
                   disabled={sponsorshipSaving}
                   style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: sponsorshipSaving ? "default" : "pointer" }}
                 >
-                  {sponsorshipSaving
-                    ? "Saving..."
-                    : sponsorshipForm.id
-                    ? adminRole === "admin" && sponsorshipForm.status === "pending"
-                      ? "Save & Approve"
-                      : "Update Sponsorship"
-                    : "Add Sponsorship"}
+                  {sponsorshipSaving ? "Saving..." : saveLabel(adminRole === "admin", (sponsorshipForm.id ? sponsorships.find((x) => x.id === sponsorshipForm.id) : null), "Sponsorship")}
                 </button>
                 {sponsorshipForm.id && (
                   <button
@@ -1228,6 +1218,7 @@ export default function AdminPanel() {
           <>
             <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
               <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{dealForm.id ? "Edit Deal" : "Add New Deal"}</h2>
+              <EditingBanner record={(dealForm.id ? deals.find((x) => x.id === dealForm.id) : null)} isAdmin={adminRole === "admin"} label={saveLabel(adminRole === "admin", (dealForm.id ? deals.find((x) => x.id === dealForm.id) : null), "Deal")} />
               <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
                 Time-limited offers only. Set an expiration date and the deal automatically stops showing to travelers once it passes — no manual cleanup needed.
               </p>
@@ -1313,13 +1304,7 @@ export default function AdminPanel() {
                   disabled={dealSaving}
                   style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: dealSaving ? "default" : "pointer" }}
                 >
-                  {dealSaving
-                    ? "Saving..."
-                    : dealForm.id
-                    ? adminRole === "admin" && dealForm.status === "pending"
-                      ? "Save & Approve"
-                      : "Update Deal"
-                    : "Add Deal"}
+                  {dealSaving ? "Saving..." : saveLabel(adminRole === "admin", (dealForm.id ? deals.find((x) => x.id === dealForm.id) : null), "Deal")}
                 </button>
                 {dealForm.id && (
                   <button

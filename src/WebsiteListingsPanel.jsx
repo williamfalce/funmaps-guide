@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, apiCall } from "./adminShared.jsx";
+import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, saveLabel, EditingBanner, apiCall } from "./adminShared.jsx";
 
 // ---------- Website Listings ----------
 // FunMaps.com profiles sold from the rate card (Gold Star, Premium, Basic).
@@ -89,6 +89,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
   const [filter, setFilter] = useState("all");
 
   const product = rateCard?.products.find((p) => p.id === form.product);
+  const editingRecord = form.id ? listings.find((l) => l.id === form.id) || null : null;
   const commissionRate = form.repCommissionRate !== "" ? Number(form.repCommissionRate) : rateCard?.digitalCommissionRate ?? 20;
 
   async function load() {
@@ -317,6 +318,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     <>
       <div style={card}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{form.id ? "Edit Website Listing" : "Add Website Listing"}</h2>
+        <EditingBanner record={editingRecord} isAdmin={isAdmin} label={saveLabel(isAdmin, editingRecord, "Listing")} />
         <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
           A FunMaps.com profile from the rate card. It shows on the website once an admin approves it, the contract is signed, payment is received and the start date arrives.
         </p>
@@ -527,7 +529,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         {notice && <p style={{ color: "#1C9C9C", fontSize: 13, marginBottom: 10 }}>{notice}</p>}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button onClick={save} disabled={saving || uploading} style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: "none", cursor: saving ? "default" : "pointer" }}>
-            {saving ? "Saving..." : isAdmin ? (form.id ? (form.status === "pending" ? "Save & Approve" : "Update Listing") : "Add Listing") : form.id ? "Send changes for review" : "Submit for review"}
+            {saving ? "Saving..." : saveLabel(isAdmin, editingRecord, "Listing")}
           </button>
           {form.id && (
             <button onClick={cancelEdit} style={{ background: "transparent", color: "#F5EFE699", border: "1px solid #F5EFE633", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}>

@@ -199,24 +199,50 @@ export function SendBackButton({ endpoint, rec, adminKey, onDone, style }) {
 }
 
 // The admin's note on an entry that was sent back (shown to reps and admins).
-export function ReviewNoteBox({ rec }) {
+export function ReviewNoteBox({ rec, inForm = false }) {
   if (!rec || !rec.reviewNote) return null;
   const when = rec.reviewNoteAt ? new Date(rec.reviewNoteAt).toLocaleDateString() : "";
   const waitingOnRep = rec.status === "needs_changes" || rec.changesSentBack;
-  const heading =
-    rec.status === "needs_changes"
-      ? "Sent back for changes. Edit it and save to resubmit."
+  const heading = inForm
+    ? waitingOnRep
+      ? "The admin sent this back. What to change:"
+      : "Sent back earlier. The admin's note:"
+    : rec.status === "needs_changes"
+      ? "Sent back for changes. Click Edit, make the changes, then click Resubmit for review at the bottom of the form."
       : rec.changesSentBack
-      ? "Proposed changes sent back. Edit them and save to resubmit."
+      ? "Proposed changes sent back. Click Edit, make the changes, then click Resubmit for review at the bottom of the form."
       : "Resubmitted after being sent back. The earlier note:";
   return (
-    <div style={{ flexBasis: "100%", order: 98, marginTop: 6, background: waitingOnRep ? "#B23A721f" : "#F5EFE60d", border: `1px solid ${waitingOnRep ? "#B23A7280" : "#F5EFE626"}`, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#F5EFE6" }}>
+    <div style={{ flexBasis: "100%", order: inForm ? 0 : 98, marginTop: inForm ? 0 : 6, background: waitingOnRep ? "#B23A721f" : "#F5EFE60d", border: `1px solid ${waitingOnRep ? "#B23A7280" : "#F5EFE626"}`, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#F5EFE6" }}>
       <div style={{ fontWeight: 700, color: waitingOnRep ? "#E58AB5" : "#F5EFE6b3", marginBottom: 3 }}>{heading}</div>
       <div style={{ whiteSpace: "pre-wrap" }}>“{rec.reviewNote}”</div>
       <div style={{ color: "#F5EFE699", marginTop: 3 }}>
         — {rec.reviewNoteBy || "Admin"}
         {when && `, ${when}`}
       </div>
+    </div>
+  );
+}
+
+// The form's main button label, so reps and admins see exactly what saving does.
+export function saveLabel(isAdmin, record, noun) {
+  if (!record) return isAdmin ? `Add ${noun}` : "Submit for review";
+  const unapproved = record.status === "pending" || record.status === "needs_changes";
+  if (isAdmin) return unapproved ? "Save & Approve" : record.pendingChanges ? "Save & approve changes" : `Update ${noun}`;
+  return record.status === "needs_changes" || record.changesSentBack ? "Resubmit for review" : "Send changes for review";
+}
+
+// Shown at the top of a form while an entry is being edited: the admin's note
+// (if it was sent back) and where the button is, since the form is long.
+export function EditingBanner({ record, isAdmin, label }) {
+  if (!record) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: "4px 0 14px" }}>
+      <ReviewNoteBox rec={record} inForm />
+      <p style={{ fontSize: 12.5, color: "#F5EFE6", background: "#1C9C9C1f", border: "1px solid #1C9C9C55", borderRadius: 8, padding: "8px 10px", margin: 0 }}>
+        Editing <strong>{record.businessName}</strong>. When you're done, click <strong>{label}</strong> at the bottom of this form.
+        {!isAdmin && record.status === "approved" && " The live version stays up until an admin approves your changes."}
+      </p>
     </div>
   );
 }
