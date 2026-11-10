@@ -89,6 +89,10 @@ export default function AdminPanel() {
   const [uploadingDealImage, setUploadingDealImage] = useState(false);
 
   useEffect(() => {
+    document.title = "FunMaps Advertising Admin";
+  }, []);
+
+  useEffect(() => {
     if (adminKey && authMode !== "reset") tryUnlock(adminKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -693,7 +697,7 @@ export default function AdminPanel() {
     return (
       <div style={{ background: "#1B1030", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif", padding: 24 }}>
         <div style={{ background: "#241640", borderRadius: 16, padding: 32, maxWidth: 360, width: "100%" }}>
-          <h1 style={{ color: "#F5EFE6", fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Compass Admin</h1>
+          <h1 style={{ color: "#F5EFE6", fontSize: 20, fontWeight: 700, marginBottom: 16 }}>FunMaps Advertising Admin</h1>
           {authMode === "signin" && (
             <>
               <label htmlFor="login-email" style={labelStyle}>EMAIL</label>
@@ -750,7 +754,7 @@ export default function AdminPanel() {
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div className="flex items-center gap-2" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700 }}>Compass Partners Admin</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>FunMaps Advertising Admin</h1>
             <span
               style={{
                 fontSize: 11,
@@ -803,48 +807,30 @@ export default function AdminPanel() {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          <button
-            onClick={() => setActiveTab("partners")}
-            style={{ background: activeTab === "partners" ? "#D9662E" : "#241640", color: activeTab === "partners" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-          >
-            Partners (Commission)
-          </button>
-          <button
-            onClick={() => setActiveTab("sponsorships")}
-            style={{ background: activeTab === "sponsorships" ? "#D9662E" : "#241640", color: activeTab === "sponsorships" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-          >
-            Sponsorships (Flat Fee)
-          </button>
-          <button
-            onClick={() => setActiveTab("deals")}
-            style={{ background: activeTab === "deals" ? "#D9662E" : "#241640", color: activeTab === "deals" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-          >
-            Deals (Self-Expiring)
-          </button>
-          <button
-            onClick={() => setActiveTab("listings")}
-            style={{ background: activeTab === "listings" ? "#D9662E" : "#241640", color: activeTab === "listings" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-          >
-            Website Listings
-          </button>
-          {adminRole === "admin" && (
-            <button
-              onClick={() => setActiveTab("ratecard")}
-              style={{ background: activeTab === "ratecard" ? "#D9662E" : "#241640", color: activeTab === "ratecard" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-            >
-              Rate Card
-            </button>
-          )}
-          {adminRole === "admin" && (
-            <button
-              onClick={() => setActiveTab("team")}
-              style={{ background: activeTab === "team" ? "#D9662E" : "#241640", color: activeTab === "team" ? "#1B1030" : "#F5EFE699", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-            >
-              Team
-            </button>
-          )}
-        </div>
+        {/* Tabs grouped by product: Compass, FunMaps.com, and settings (admins only). */}
+        <nav aria-label="Admin sections" style={{ display: "flex", gap: 18, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
+          {[
+            { group: "Compass", tabs: [["partners", "Partners (Commission)"], ["sponsorships", "Sponsorships (Flat Fee)"], ["deals", "Deals (Self-Expiring)"]] },
+            { group: "FunMaps.com", tabs: [["listings", "Website Listings"]] },
+            ...(adminRole === "admin" ? [{ group: "Settings", tabs: [["ratecard", "Rate Card"], ["team", "Team"]] }] : []),
+          ].map(({ group, tabs }) => (
+            <div key={group} role="group" aria-label={group}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F5EFE699", marginBottom: 6 }}>{group}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {tabs.map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTab(id)}
+                    aria-current={activeTab === id ? "page" : undefined}
+                    style={{ background: activeTab === id ? "#D9662E" : "#241640", color: activeTab === id ? "#1B1030" : "#F5EFE6b3", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
 
         {activeTab === "team" && adminRole === "admin" && <TeamPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
         {activeTab === "listings" && <WebsiteListingsPanel adminKey={adminKey} adminRole={adminRole} inputStyle={inputStyle} labelStyle={labelStyle} />}
