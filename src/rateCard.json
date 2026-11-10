@@ -1,0 +1,59 @@
+{
+  "_note": "Defaults from the 2026 FunMaps digital rate card. Admins can change prices and turn products on or off in the admin panel's Rate Card tab; those changes are saved in Redis and override these defaults. Description limits and image sizes are FunMaps' own layout settings.",
+  "digitalCommissionRate": 20,
+  "products": [
+    {
+      "id": "gold-star",
+      "name": "Gold Star — Full Screen Profile",
+      "price": 2500,
+      "period": "year",
+      "label": "Recommended",
+      "rank": 1,
+      "image": { "width": 800, "height": 400 },
+      "descriptionLimit": 600,
+      "includes": "Top of category as Recommended, Google review, map pin, front-page banner for 90 days, 2 social media posts"
+    },
+    {
+      "id": "premium-destination",
+      "name": "Premium — Destination Half Screen Profile",
+      "price": 2000,
+      "period": "year",
+      "label": "Recommended",
+      "rank": 2,
+      "image": { "width": 600, "height": 300 },
+      "descriptionLimit": 350,
+      "includes": "Recommended on destination and category pages, Google stars, map pin, front-page banner for 30 days, 1 social media post"
+    },
+    {
+      "id": "premium-category",
+      "name": "Premium — Category Half Screen Profile",
+      "price": 1500,
+      "period": "year",
+      "label": "Recommended",
+      "rank": 2,
+      "image": { "width": 600, "height": 300 },
+      "descriptionLimit": 350,
+      "includes": "Recommended on its category page, Google stars, map pin, front-page banner for 30 days, 1 social media post"
+    },
+    {
+      "id": "basic",
+      "name": "Basic — Quarter Screen Profile",
+      "price": 795,
+      "period": "year",
+      "label": "Featured",
+      "rank": 3,
+      "image": { "width": 200, "height": 200 },
+      "descriptionLimit": 160,
+      "includes": "Listed as Featured: image, business name, Google stars, address, phone, description, website link"
+    }
+  ],
+  "addOns": [
+    { "id": "home-banner", "name": "Rotating home page banner (410 × 94)", "price": 3000, "period": "month" },
+    { "id": "destination-banner", "name": "Rotating destination page banner (410 × 94)", "price": 3000, "period": "month" },
+    { "id": "category-banner", "name": "Rotating category page banner (410 × 94)", "price": 1500, "period": "month" },
+    { "id": "featured-article", "name": "Featured blog / article", "price": 395, "period": "month" },
+    { "id": "event-listing", "name": "Event listing", "price": 375, "period": "month" },
+    { "id": "social-posts", "name": "Social media posts (Facebook, Instagram, TikTok)", "price": 375, "period": "month" }
+  ],
+  "categories": ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"]
+}

@@ -15,6 +15,7 @@ const STORES = {
   banners: { key: "banners", legacyKey: "banner-partners-v1" },
   sponsorships: { key: "sponsorships", legacyKey: "sponsorships-v1" },
   deals: { key: "deals", legacyKey: "deals-v1" },
+  listings: { key: "listings", legacyKey: null }, // website listings: new, nothing to copy
 };
 
 function parse(v) {
@@ -30,6 +31,7 @@ function makeStore(db, name) {
   const migratedKey = `${cfg.key}:migrated`;
 
   async function migrate() {
+    if (!cfg.legacyKey) return;
     if (await db.get(migratedKey)) return;
     const legacy = parse(await db.get(cfg.legacyKey)) || [];
     for (const rec of legacy) {
