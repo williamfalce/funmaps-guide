@@ -8,6 +8,7 @@
 // POST   /api/listings                  -> add a listing (signed in)
 // PUT    /api/listings                  -> update by id (signed in)
 // DELETE /api/listings?id=...           -> remove (admin only)
+// /api/rate-card is also served from here; see api/_rateCardHandler.js.
 //
 // Approval works like Compass partners: admin saves go live; sales saves are
 // "pending"; a sales edit to an approved listing is kept as proposed changes
@@ -19,6 +20,7 @@
 const { getRedis, getAuth } = require("./_auth");
 const { makeStore } = require("./_store");
 const { getRateCard, validMoney } = require("./_rateCard");
+const { handleRateCard } = require("./_rateCardHandler");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
@@ -166,6 +168,8 @@ function normCity(name) {
 }
 
 module.exports = async (req, res) => {
+  // /api/rate-card is rewritten here (see vercel.json) to save a serverless function.
+  if (req.query.resource === "rate-card") return handleRateCard(req, res);
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");

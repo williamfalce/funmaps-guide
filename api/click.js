@@ -1,6 +1,13 @@
-// Vercel serverless function — logs a deal click. Called by the app itself
-// whenever a real visitor taps it, before they're redirected to the partner's
-// link. No admin auth needed since this is triggered by end users.
+// Vercel serverless function — logs a click on a partner banner, sponsorship
+// banner or deal. Called by the traveler app whenever a real visitor taps one,
+// before they're redirected. No admin auth needed since end users trigger it.
+//
+// Old addresses keep working through rewrites in vercel.json:
+//   /api/banner-click       -> /api/click?type=banners
+//   /api/deal-click         -> /api/click?type=deals
+//   /api/sponsorship-click  -> /api/click?type=sponsorships
+// (One function instead of three keeps the project under the Vercel Hobby
+// plan's limit of 12 serverless functions per deployment.)
 //
 // Clicks are counted with an atomic increment in their own Redis hash (see
 // api/_store.js), so a click can never overwrite an admin's or rep's edit.
@@ -9,6 +16,7 @@ const { getRedis } = require("./_auth");
 const { makeStore } = require("./_store");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+const TYPES = ["banners", "deals", "sponsorships"];
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
@@ -24,6 +32,12 @@ module.exports = async (req, res) => {
     return;
   }
 
+  const type = req.query.type;
+  if (!TYPES.includes(type)) {
+    res.status(400).json({ error: "Unknown click type" });
+    return;
+  }
+
   const db = getRedis();
   if (!db) {
     res.status(200).json({ ok: false }); // fail quietly — never block the user's click-through
@@ -36,7 +50,7 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: "id is required" });
       return;
     }
-    await makeStore(db, "deals").incrementClicks(String(id));
+    await makeStore(db, type).incrementClicks(String(id));
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);

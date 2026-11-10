@@ -5,6 +5,25 @@
     }
   },
   "rewrites": [
-    { "source": "/admin", "destination": "/index.html" }
+    {
+      "source": "/api/rate-card",
+      "destination": "/api/listings?resource=rate-card"
+    },
+    {
+      "source": "/api/banner-click",
+      "destination": "/api/click?type=banners"
+    },
+    {
+      "source": "/api/deal-click",
+      "destination": "/api/click?type=deals"
+    },
+    {
+      "source": "/api/sponsorship-click",
+      "destination": "/api/click?type=sponsorships"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    }
   ]
 }

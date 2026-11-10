@@ -1,4 +1,7 @@
-// Vercel serverless function — the FunMaps digital rate card.
+// The FunMaps digital rate card endpoint. Not its own Vercel function: it is
+// served by api/listings.js (vercel.json rewrites /api/rate-card to
+// /api/listings?resource=rate-card) to stay under the Hobby plan's limit of
+// 12 serverless functions per deployment.
 //
 // GET /api/rate-card   -> products, add-ons, categories and the digital commission rate.
 //                         Public: these are published prices, used by the admin panel
@@ -14,7 +17,7 @@ const { getRateCard, saveRateCard } = require("./_rateCard");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
-module.exports = async (req, res) => {
+async function handleRateCard(req, res) {
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");
@@ -59,4 +62,6 @@ module.exports = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
-};
+}
+
+module.exports = { handleRateCard };
