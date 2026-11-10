@@ -17,7 +17,7 @@
 // DELETE /api/deals?id=...       -> remove a deal (admin role only)
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const STORE_KEY = "deals-v1";
+const STORE_NAME = "deals"; // see api/_store.js
 
 // Fields that are private business terms or internal metadata. Travelers never
 // need them, so they are stripped from public (unauthenticated) GET responses.
@@ -47,16 +47,8 @@ function toPublic(record) {
 }
 
 const { getRedis, getAuth } = require("./_auth");
+const { makeStore } = require("./_store");
 
-async function readAll(db) {
-  const raw = await db.get(STORE_KEY);
-  if (!raw) return [];
-  return typeof raw === "string" ? JSON.parse(raw) : raw;
-}
-
-async function writeAll(db, deals) {
-  await db.set(STORE_KEY, JSON.stringify(deals));
-}
 
 function normalizeCityName(name) {
   return (name || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -97,9 +89,10 @@ module.exports = async (req, res) => {
   try {
     const auth = await getAuth(req, db);
     const role = auth ? auth.role : null;
+    const store = makeStore(db, STORE_NAME);
 
     if (req.method === "GET") {
-      const all = await readAll(db);
+      const all = await store.all();
       const city = req.query.city;
       // Public (traveler-facing) requests only see approved + active + not-yet-expired
       // deals. Admin panel requests (either role) see everything, including expired
@@ -128,7 +121,6 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: "City, business name, and deal description are required" });
         return;
       }
-      const all = await readAll(db);
       const deal = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         city: city.trim(),
@@ -147,8 +139,7 @@ module.exports = async (req, res) => {
         clicks: 0,
         createdAt: Date.now(),
       };
-      all.push(deal);
-      await writeAll(db, all);
+      await store.put(deal);
       res.status(200).json({ deal });
       return;
     }
@@ -160,13 +151,12 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: "id is required" });
         return;
       }
-      const all = await readAll(db);
-      const idx = all.findIndex((d) => d.id === id);
-      if (idx === -1) {
+      const existing = await store.get(id);
+      if (!existing) {
         res.status(404).json({ error: "Deal not found" });
         return;
       }
-      const existing = all[idx];
+      let updated;
       const PENDING_META = ["pendingChanges", "pendingChangesAt", "pendingChangesBy"];
       if (role !== "admin") {
         // Sales never sets status or review decisions directly.
@@ -176,7 +166,7 @@ module.exports = async (req, res) => {
         if (existing.status !== "pending") {
           // Live (already approved) entry: keep the approved version visible to
           // travelers and stage the edit as proposed changes for an admin to review.
-          all[idx] = {
+          updated = {
             ...existing,
             pendingChanges: { ...(existing.pendingChanges || {}), ...updates },
             pendingChangesAt: Date.now(),
@@ -184,7 +174,7 @@ module.exports = async (req, res) => {
           };
         } else {
           // Not yet approved: edit the pending entry in place; it stays pending.
-          all[idx] = { ...existing, ...updates, status: "pending", updatedByName: auth.name };
+          updated = { ...existing, ...updates, status: "pending", updatedByName: auth.name };
         }
       } else {
         // Admin: { approveChanges: true } applies staged changes first,
@@ -195,10 +185,10 @@ module.exports = async (req, res) => {
         merged = { ...merged, ...rest };
         if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
         merged.updatedByName = auth.name;
-        all[idx] = merged;
+        updated = merged;
       }
-      await writeAll(db, all);
-      res.status(200).json({ deal: all[idx] });
+      await store.put(updated);
+      res.status(200).json({ deal: updated });
       return;
     }
 
@@ -212,9 +202,7 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: "id is required" });
         return;
       }
-      const all = await readAll(db);
-      const filtered = all.filter((d) => d.id !== id);
-      await writeAll(db, filtered);
+      await store.remove(id);
       res.status(200).json({ ok: true });
       return;
     }

@@ -1,21 +1,14 @@
 // Vercel serverless function — logs a banner ad click. Called by the app itself
-// whenever a real visitor taps a banner, before they're redirected to the
-// partner's link. No admin auth needed since this is triggered by end users.
+// whenever a real visitor taps it, before they're redirected to the partner's
+// link. No admin auth needed since this is triggered by end users.
+//
+// Clicks are counted with an atomic increment in their own Redis hash (see
+// api/_store.js), so a click can never overwrite an admin's or rep's edit.
+
+const { getRedis } = require("./_auth");
+const { makeStore } = require("./_store");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const STORE_KEY = "banner-partners-v1";
-
-let redis = null;
-function getRedis() {
-  if (redis) return redis;
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return null;
-  const { Redis } = require("@upstash/redis");
-  redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  return redis;
-}
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
@@ -43,13 +36,7 @@ module.exports = async (req, res) => {
       res.status(400).json({ error: "id is required" });
       return;
     }
-    const raw = await db.get(STORE_KEY);
-    const all = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : [];
-    const idx = all.findIndex((b) => b.id === id);
-    if (idx !== -1) {
-      all[idx].clicks = (all[idx].clicks || 0) + 1;
-      await db.set(STORE_KEY, JSON.stringify(all));
-    }
+    await makeStore(db, "banners").incrementClicks(String(id));
     res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);
