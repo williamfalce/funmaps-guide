@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, apiCall } from "./adminShared.jsx";
+import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, apiCall } from "./adminShared.jsx";
 import { WebsiteListingsPanel, RateCardPanel } from "./WebsiteListingsPanel.jsx";
 
 const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
@@ -366,16 +366,6 @@ export default function AdminPanel() {
     }
   }
 
-  async function rejectPartner(p) {
-    if (!window.confirm(`Reject and remove "${p.businessName}"? This can't be undone.`)) return;
-    try {
-      await apiCall("banners", "DELETE", null, adminKey, `id=${encodeURIComponent(p.id)}`);
-      await loadPartners();
-    } catch (e) {
-      setPartnerError("Couldn't reject that partner.");
-    }
-  }
-
   function startPartnerEdit(orig) {
     const p = withPending(orig);
     const { cityName, country, state } = parseCityString(p.city);
@@ -510,16 +500,6 @@ export default function AdminPanel() {
     }
   }
 
-  async function rejectSponsorship(s) {
-    if (!window.confirm(`Reject and remove "${s.businessName}"? This can't be undone.`)) return;
-    try {
-      await apiCall("sponsorships", "DELETE", null, adminKey, `id=${encodeURIComponent(s.id)}`);
-      await loadSponsorships();
-    } catch (e) {
-      setSponsorshipError("Couldn't reject that sponsorship.");
-    }
-  }
-
   function startSponsorshipEdit(orig) {
     const s = withPending(orig);
     const { cityName, country, state } = parseCityString(s.city);
@@ -647,16 +627,6 @@ export default function AdminPanel() {
       await loadDeals();
     } catch (e) {
       setDealError("Couldn't approve that deal.");
-    }
-  }
-
-  async function rejectDeal(d) {
-    if (!window.confirm(`Reject and remove "${d.businessName}"? This can't be undone.`)) return;
-    try {
-      await apiCall("deals", "DELETE", null, adminKey, `id=${encodeURIComponent(d.id)}`);
-      await loadDeals();
-    } catch (e) {
-      setDealError("Couldn't reject that deal.");
     }
   }
 
@@ -800,7 +770,7 @@ export default function AdminPanel() {
 
         {adminRole === "sales" && (
           <div style={{ background: "#1C9C9C15", border: "1px solid #1C9C9C40", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#F5EFE6cc" }}>
-            Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them.
+            Entries you add or edit go into <strong>Pending Review</strong> and won't be visible to travelers until an admin approves them. If an admin sends one back, it's marked <strong>Needs changes</strong> with their note: edit it and save to resubmit.
             {adminName === "Sales (shared login)" && (
               <> You're using the old shared sales password, so your entries can't be credited to you. Ask an admin for your own login.</>
             )}
@@ -1013,8 +983,11 @@ export default function AdminPanel() {
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>{p.category?.toUpperCase()}</span>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B22", color: "#E8B84B" }}>{p.priceTier || "$$"}</span>
                       {p.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
-                      {p.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {p.status === "needs_changes" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ NEEDS CHANGES</span>}
+                      {p.pendingChanges && !p.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {p.pendingChanges && p.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ CHANGES SENT BACK</span>}
                       {p.pendingChanges && <PendingChangesNote rec={p} />}
+                      <ReviewNoteBox rec={p} />
                       {p.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                     </div>
                     <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -1028,14 +1001,12 @@ export default function AdminPanel() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
-                  {adminRole === "admin" && p.pendingChanges && (
+                  {adminRole === "admin" && p.pendingChanges && !p.changesSentBack && (
                     <>
                       <button onClick={() => reviewChanges("banners", p, true, loadPartners, setPartnerError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Approve changes
                       </button>
-                      <button onClick={() => reviewChanges("banners", p, false, loadPartners, setPartnerError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                        Reject changes
-                      </button>
+                      <SendBackButton endpoint="banners" rec={p} adminKey={adminKey} onDone={loadPartners} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                     </>
                   )}
                   {adminRole === "admin" && p.status === "pending" && (
@@ -1043,9 +1014,7 @@ export default function AdminPanel() {
                       <button onClick={() => approvePartner(p)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Approve
                       </button>
-                      <button onClick={() => rejectPartner(p)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                        Reject
-                      </button>
+                      <SendBackButton endpoint="banners" rec={p} adminKey={adminKey} onDone={loadPartners} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                     </>
                   )}
                   <button onClick={() => togglePartnerActive(p)} style={{ background: "#1B1030", color: p.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
@@ -1204,8 +1173,11 @@ export default function AdminPanel() {
                           <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F5EFE622", color: "#F5EFE6" }}>${s.annualPrice || 3000}/YR</span>
                           {rotating && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E22", color: "#D9662E" }}>ROTATING</span>}
                           {s.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
-                      {s.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {s.status === "needs_changes" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ NEEDS CHANGES</span>}
+                      {s.pendingChanges && !s.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {s.pendingChanges && s.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ CHANGES SENT BACK</span>}
                       {s.pendingChanges && <PendingChangesNote rec={s} />}
+                      <ReviewNoteBox rec={s} />
                           {s.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
                         </div>
                         <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -1217,14 +1189,12 @@ export default function AdminPanel() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
-                      {adminRole === "admin" && s.pendingChanges && (
+                      {adminRole === "admin" && s.pendingChanges && !s.changesSentBack && (
                     <>
                       <button onClick={() => reviewChanges("sponsorships", s, true, loadSponsorships, setSponsorshipError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Approve changes
                       </button>
-                      <button onClick={() => reviewChanges("sponsorships", s, false, loadSponsorships, setSponsorshipError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                        Reject changes
-                      </button>
+                      <SendBackButton endpoint="sponsorships" rec={s} adminKey={adminKey} onDone={loadSponsorships} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                     </>
                   )}
                   {adminRole === "admin" && s.status === "pending" && (
@@ -1232,9 +1202,7 @@ export default function AdminPanel() {
                           <button onClick={() => approveSponsorship(s)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                             Approve
                           </button>
-                          <button onClick={() => rejectSponsorship(s)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                            Reject
-                          </button>
+                          <SendBackButton endpoint="sponsorships" rec={s} adminKey={adminKey} onDone={loadSponsorships} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                         </>
                       )}
                       <button onClick={() => toggleSponsorshipActive(s)} style={{ background: "#1B1030", color: s.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
@@ -1381,8 +1349,11 @@ export default function AdminPanel() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontWeight: 700, fontSize: 15 }}>{d.businessName}</span>
                         {d.status === "pending" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#D9662E", color: "#1B1030" }}>⏳ PENDING REVIEW</span>}
-                      {d.pendingChanges && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {d.status === "needs_changes" && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ NEEDS CHANGES</span>}
+                      {d.pendingChanges && !d.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#E8B84B", color: "#1B1030" }}>CHANGES PENDING REVIEW</span>}
+                      {d.pendingChanges && d.changesSentBack && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A72", color: "#FFFFFF" }}>↩ CHANGES SENT BACK</span>}
                       {d.pendingChanges && <PendingChangesNote rec={d} />}
+                      <ReviewNoteBox rec={d} />
                         {upcoming && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#1C9C9C22", color: "#1C9C9C" }}>UPCOMING — visible now, valid from {d.startDate}</span>}
                         {expired && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#6B6478", color: "#F5EFE6" }}>EXPIRED</span>}
                         {d.active === false && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#B23A7222", color: "#B23A72" }}>PAUSED</span>}
@@ -1399,14 +1370,12 @@ export default function AdminPanel() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 220 }}>
-                    {adminRole === "admin" && d.pendingChanges && (
+                    {adminRole === "admin" && d.pendingChanges && !d.changesSentBack && (
                     <>
                       <button onClick={() => reviewChanges("deals", d, true, loadDeals, setDealError)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Approve changes
                       </button>
-                      <button onClick={() => reviewChanges("deals", d, false, loadDeals, setDealError)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                        Reject changes
-                      </button>
+                      <SendBackButton endpoint="deals" rec={d} adminKey={adminKey} onDone={loadDeals} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                     </>
                   )}
                   {adminRole === "admin" && d.status === "pending" && (
@@ -1414,9 +1383,7 @@ export default function AdminPanel() {
                         <button onClick={() => approveDeal(d)} style={{ background: "#1C9C9C", color: "#1B1030", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                           Approve
                         </button>
-                        <button onClick={() => rejectDeal(d)} style={{ background: "#1B1030", color: "#B23A72", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
-                          Reject
-                        </button>
+                        <SendBackButton endpoint="deals" rec={d} adminKey={adminKey} onDone={loadDeals} style={{ background: "#1B1030", color: "#E58AB5", border: "1px solid #B23A7260", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }} />
                       </>
                     )}
                     <button onClick={() => toggleDealActive(d)} style={{ background: "#1B1030", color: d.active === false ? "#1C9C9C" : "#F5EFE699", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>

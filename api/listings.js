@@ -19,13 +19,14 @@
 
 const { getRedis, getAuth } = require("./_auth");
 const { makeStore } = require("./_store");
+const { isUnapproved, sendBack, clearReview } = require("./_review");
 const { getRateCard, validMoney } = require("./_rateCard");
 const { handleRateCard } = require("./_rateCardHandler");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
 // Never set through POST/PUT bodies.
-const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy"];
+const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack"];
 // Only admins may change these; sales values are dropped.
 const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate"];
 // Fields travelers (and the public website) may see.
@@ -254,7 +255,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "PUT") {
-      const { id, approveChanges, rejectChanges, ...body } = req.body || {};
+      const { id, approveChanges, rejectChanges, sendBack: doSendBack, note, ...body } = req.body || {};
       if (!id) {
         res.status(400).json({ error: "id is required" });
         return;
@@ -262,6 +263,21 @@ module.exports = async (req, res) => {
       const existing = await store.get(String(id));
       if (!existing) {
         res.status(404).json({ error: "Listing not found" });
+        return;
+      }
+      // Admin "Send back to rep" with a required note (see api/_review.js).
+      if (doSendBack) {
+        if (role !== "admin") {
+          res.status(403).json({ error: "Only an admin can send entries back" });
+          return;
+        }
+        const result = sendBack(existing, note, auth);
+        if (result.error) {
+          res.status(400).json({ error: result.error });
+          return;
+        }
+        await store.put(result.record);
+        res.status(200).json({ listing: { ...result.record, live: isLive(result.record) } });
         return;
       }
       for (const f of SYSTEM_FIELDS) delete body[f];
@@ -275,13 +291,14 @@ module.exports = async (req, res) => {
 
       let updated;
       if (role !== "admin") {
-        if (existing.status !== "pending") {
+        if (!isUnapproved(existing.status)) {
           // Live listing: keep the approved version up; stage the edit for review.
           updated = {
             ...existing,
             pendingChanges: { ...(existing.pendingChanges || {}), ...fields },
             pendingChangesAt: Date.now(),
             pendingChangesBy: auth.name,
+            changesSentBack: false, // resubmitted after being sent back, if it was
           };
         } else {
           updated = finalize({ ...existing, ...fields, status: "pending", updatedByName: auth.name }, card);
@@ -293,6 +310,7 @@ module.exports = async (req, res) => {
         if (req.body.status === "approved" || approveChanges) merged.status = "approved";
         if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
         merged.updatedByName = auth.name;
+        if (approveChanges || rejectChanges || (merged.status === "approved" && isUnapproved(existing.status))) clearReview(merged);
         updated = finalize(merged, card);
       }
       await store.put(updated);

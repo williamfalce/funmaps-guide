@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, apiCall } from "./adminShared.jsx";
+import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, apiCall } from "./adminShared.jsx";
 
 // ---------- Website Listings ----------
 // FunMaps.com profiles sold from the rate card (Gold Star, Premium, Basic).
@@ -48,6 +48,7 @@ function notLiveReasons(l) {
   const r = [];
   const t = todayStr();
   if (l.status === "pending") r.push("waiting for admin approval");
+  if (l.status === "needs_changes") r.push("sent back to the rep for changes");
   if (l.active === false) r.push("paused");
   if (!l.contractSigned) r.push("contract not signed");
   if (!l.paymentReceived) r.push("payment not received");
@@ -300,7 +301,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
   const priceDiffers = product && form.price !== "" && Number(form.price) !== product.price;
 
   const shown = listings.filter((l) => {
-    if (filter === "review") return l.status === "pending" || l.pendingChanges;
+    if (filter === "review") return l.status === "pending" || (l.pendingChanges && !l.changesSentBack);
+    if (filter === "sentback") return l.status === "needs_changes" || l.changesSentBack;
     if (filter === "live") return l.live;
     if (filter === "notlive") return !l.live;
     return true;
@@ -541,7 +543,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         </label>
         <select id="wl-filter" value={filter} onChange={(e) => setFilter(e.target.value)} style={{ ...inputStyle, maxWidth: 240 }}>
           <option value="all">All listings ({listings.length})</option>
-          <option value="review">Waiting for review ({listings.filter((l) => l.status === "pending" || l.pendingChanges).length})</option>
+          <option value="review">Waiting for review ({listings.filter((l) => l.status === "pending" || (l.pendingChanges && !l.changesSentBack)).length})</option>
+          <option value="sentback">Sent back to rep ({listings.filter((l) => l.status === "needs_changes" || l.changesSentBack).length})</option>
           <option value="live">Live on the website ({listings.filter((l) => l.live).length})</option>
           <option value="notlive">Not live ({listings.filter((l) => !l.live).length})</option>
         </select>
@@ -553,7 +556,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         const p = rateCard.products.find((x) => x.id === l.product);
         const reasons = notLiveReasons(l);
         return (
-          <div key={l.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", opacity: l.active === false ? 0.6 : 1, border: l.status === "pending" ? "1px solid #D9662E60" : "none" }}>
+          <div key={l.id} style={{ background: "#241640", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", opacity: l.active === false ? 0.6 : 1, border: l.status === "pending" ? "1px solid #D9662E60" : l.status === "needs_changes" ? "1px solid #B23A7280" : "none" }}>
             <div style={{ display: "flex", gap: 12, minWidth: 0, flex: "1 1 420px" }}>
               {l.imageUrl && <img src={l.imageUrl} alt={l.businessName} style={{ width: 80, height: 56, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
               <div style={{ minWidth: 0 }}>
@@ -562,7 +565,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   <span style={pill("#F5EFE622", "#F5EFE6")}>{p ? p.name.split(" —")[0].toUpperCase() : l.product}</span>
                   <span style={pill("#D9662E22", "#D9662E")}>{l.category?.toUpperCase()}</span>
                   {l.status === "pending" && <span style={pill("#D9662E", "#1B1030")}>⏳ PENDING REVIEW</span>}
-                  {l.pendingChanges && <span style={pill("#E8B84B", "#1B1030")}>CHANGES PENDING REVIEW</span>}
+                  {l.status === "needs_changes" && <span style={pill("#B23A72", "#FFFFFF")}>↩ NEEDS CHANGES</span>}
+                  {l.pendingChanges && !l.changesSentBack && <span style={pill("#E8B84B", "#1B1030")}>CHANGES PENDING REVIEW</span>}
+                  {l.pendingChanges && l.changesSentBack && <span style={pill("#B23A72", "#FFFFFF")}>↩ CHANGES SENT BACK</span>}
                   {l.live ? <span style={pill("#1C9C9C", "#1B1030")}>LIVE ON WEBSITE</span> : <span style={pill("#B23A7222", "#E58AB5")}>NOT LIVE</span>}
                 </div>
                 <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -582,19 +587,15 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   <button onClick={() => quickUpdate(l, { status: "approved" })} style={{ ...smallBtn, background: "#1C9C9C", color: "#1B1030", fontWeight: 700 }}>
                     Approve
                   </button>
-                  <button onClick={() => remove(l, `Reject and remove "${l.businessName}"? This can't be undone.`)} style={{ ...smallBtn, color: "#B23A72", border: "1px solid #B23A7260" }}>
-                    Reject
-                  </button>
+                  <SendBackButton endpoint="listings" rec={l} adminKey={adminKey} onDone={load} style={{ ...smallBtn, color: "#E58AB5", border: "1px solid #B23A7260" }} />
                 </>
               )}
-              {isAdmin && l.pendingChanges && (
+              {isAdmin && l.pendingChanges && !l.changesSentBack && (
                 <>
                   <button onClick={() => quickUpdate(l, { approveChanges: true })} style={{ ...smallBtn, background: "#1C9C9C", color: "#1B1030", fontWeight: 700 }}>
                     Approve changes
                   </button>
-                  <button onClick={() => quickUpdate(l, { rejectChanges: true }, `Discard the proposed changes to "${l.businessName}"? The live listing stays as it is.`)} style={{ ...smallBtn, color: "#B23A72", border: "1px solid #B23A7260" }}>
-                    Reject changes
-                  </button>
+                  <SendBackButton endpoint="listings" rec={l} adminKey={adminKey} onDone={load} style={{ ...smallBtn, color: "#E58AB5", border: "1px solid #B23A7260" }} />
                 </>
               )}
               {isAdmin && (
@@ -622,6 +623,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
               )}
             </div>
             {l.pendingChanges && <PendingChangesNote rec={l} />}
+            <ReviewNoteBox rec={l} />
           </div>
         );
       })}

@@ -20,9 +20,9 @@ const STORE_NAME = "sponsorships"; // see api/_store.js
 // Fields that are private business terms or internal metadata. Travelers never
 // need them, so they are stripped from public (unauthenticated) GET responses.
 // Signed-in admin and sales requests still receive the full records.
-const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName"];
+const PRIVATE_FIELDS = ["commissionRate", "annualPrice", "clicks", "createdBy", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack"];
 // Fields no PUT may overwrite: identity and system-tracked values.
-const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName"];
+const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdAt", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "createdByName", "createdByUserId", "updatedByName", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack"];
 // Sales reps may negotiate and set the commission rate; a sales edit always
 // returns the entry to "pending", so an admin approves the final rate.
 function validRate(v) {
@@ -46,6 +46,7 @@ function toPublic(record) {
 
 const { getRedis, getAuth } = require("./_auth");
 const { makeStore } = require("./_store");
+const { isUnapproved, sendBack, clearReview } = require("./_review");
 
 
 function normalizeCityName(name) {
@@ -76,7 +77,7 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const all = await store.all();
       const city = req.query.city;
-      const visible = role ? all : all.filter((s) => s.active !== false && s.status !== "pending");
+      const visible = role ? all : all.filter((s) => s.active !== false && !isUnapproved(s.status));
       const filtered = city ? visible.filter((s) => normalizeCityName(s.city) === normalizeCityName(city)) : visible;
       res.status(200).json({ sponsorships: role ? filtered : filtered.map(toPublic), role: role || undefined });
       return;
@@ -132,6 +133,24 @@ module.exports = async (req, res) => {
         return;
       }
 
+      // Admin "Send back to rep" with a required note (see api/_review.js).
+      if (updates.sendBack) {
+        if (role !== "admin") {
+          res.status(403).json({ error: "Only an admin can send entries back" });
+          return;
+        }
+        const result = sendBack(existing, updates.note, auth);
+        if (result.error) {
+          res.status(400).json({ error: result.error });
+          return;
+        }
+        await store.put(result.record);
+        res.status(200).json({ sponsorship: result.record });
+        return;
+      }
+      delete updates.sendBack;
+      delete updates.note;
+
       let updated;
       const PENDING_META = ["pendingChanges", "pendingChangesAt", "pendingChangesBy"];
       if (role !== "admin") {
@@ -139,7 +158,7 @@ module.exports = async (req, res) => {
         delete updates.status;
         delete updates.approveChanges;
         delete updates.rejectChanges;
-        if (existing.status !== "pending") {
+        if (!isUnapproved(existing.status)) {
           // Live (already approved) entry: keep the approved version visible to
           // travelers and stage the edit as proposed changes for an admin to review.
           updated = {
@@ -147,6 +166,7 @@ module.exports = async (req, res) => {
             pendingChanges: { ...(existing.pendingChanges || {}), ...updates },
             pendingChangesAt: Date.now(),
             pendingChangesBy: auth.name,
+            changesSentBack: false, // resubmitted after being sent back, if it was
           };
         } else {
           // Not yet approved: edit the pending entry in place; it stays pending.
@@ -161,6 +181,7 @@ module.exports = async (req, res) => {
         merged = { ...merged, ...rest };
         if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
         merged.updatedByName = auth.name;
+        if (approveChanges || rejectChanges || (merged.status === "approved" && isUnapproved(existing.status))) clearReview(merged);
         updated = merged;
       }
       await store.put(updated);

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 // Pieces shared by the admin panel's tabs: city/state helpers, the
 // proposed-changes note shown on entries awaiting review, and the API helper.
 
@@ -114,3 +116,107 @@ export async function apiCall(endpoint, method, body, adminKey, query) {
   return data;
 }
 
+
+// ---------- Send back to rep ----------
+// Admin returns an entry (or its proposed changes) to the sales rep with a
+// required note. Opens a small dialog for the note.
+export function SendBackButton({ endpoint, rec, adminKey, onDone, style }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const changesOnly = !!rec.pendingChanges && rec.status !== "pending" && rec.status !== "needs_changes";
+
+  async function submit() {
+    if (!note.trim()) {
+      setError("Write a note telling the rep what to change.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await apiCall(endpoint, "PUT", { id: rec.id, sendBack: true, note }, adminKey);
+      setOpen(false);
+      setNote("");
+      await onDone();
+    } catch (e) {
+      setError(e.message || "Couldn't send it back — try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} style={style}>
+        Send back to rep
+      </button>
+      {open && (
+        <div
+          onClick={(e) => e.target === e.currentTarget && !saving && setOpen(false)}
+          onKeyDown={(e) => e.key === "Escape" && !saving && setOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "#0B061499", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}
+        >
+          <div role="dialog" aria-modal="true" aria-labelledby={`sendback-title-${rec.id}`} style={{ background: "#241640", color: "#F5EFE6", borderRadius: 14, padding: 20, width: "100%", maxWidth: 460, textAlign: "left", fontFamily: "Inter, sans-serif" }}>
+            <h2 id={`sendback-title-${rec.id}`} style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>
+              Send {changesOnly ? "these changes" : `"${rec.businessName}"`} back to the rep
+            </h2>
+            <p style={{ fontSize: 13, color: "#F5EFE6b3", marginBottom: 12 }}>
+              {changesOnly
+                ? "The live version stays as it is. The rep sees your note, edits the proposed changes and resubmits them."
+                : "Nothing is deleted. The rep sees your note on the entry, makes the changes and resubmits it for review."}
+            </p>
+            <label htmlFor={`sendback-note-${rec.id}`} style={{ fontSize: 11.5, color: "#D9662E", fontWeight: 600, display: "block", marginBottom: 4 }}>
+              WHAT NEEDS TO CHANGE? *
+            </label>
+            <textarea
+              id={`sendback-note-${rec.id}`}
+              autoFocus
+              rows={4}
+              maxLength={1000}
+              value={note}
+              onChange={(e) => {
+                setNote(e.target.value);
+                if (error) setError("");
+              }}
+              placeholder="e.g. The photo is blurry. Please get a sharper 800 × 400 image from the owner."
+              style={{ width: "100%", boxSizing: "border-box", background: "#C9AEC7", border: "none", borderRadius: 8, padding: "9px 12px", color: "#1B1030", fontSize: 14, resize: "vertical", fontFamily: "inherit" }}
+            />
+            {error && <p role="alert" style={{ color: "#E58AB5", fontSize: 13, marginTop: 8 }}>{error}</p>}
+            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              <button onClick={submit} disabled={saving} style={{ background: "#D9662E", color: "#1B1030", fontWeight: 600, padding: "10px 18px", borderRadius: 8, border: "none", cursor: saving ? "default" : "pointer" }}>
+                {saving ? "Sending..." : "Send back"}
+              </button>
+              <button onClick={() => setOpen(false)} disabled={saving} style={{ background: "transparent", color: "#F5EFE6b3", border: "1px solid #F5EFE633", padding: "10px 18px", borderRadius: 8, cursor: "pointer" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// The admin's note on an entry that was sent back (shown to reps and admins).
+export function ReviewNoteBox({ rec }) {
+  if (!rec || !rec.reviewNote) return null;
+  const when = rec.reviewNoteAt ? new Date(rec.reviewNoteAt).toLocaleDateString() : "";
+  const waitingOnRep = rec.status === "needs_changes" || rec.changesSentBack;
+  const heading =
+    rec.status === "needs_changes"
+      ? "Sent back for changes. Edit it and save to resubmit."
+      : rec.changesSentBack
+      ? "Proposed changes sent back. Edit them and save to resubmit."
+      : "Resubmitted after being sent back. The earlier note:";
+  return (
+    <div style={{ flexBasis: "100%", order: 98, marginTop: 6, background: waitingOnRep ? "#B23A721f" : "#F5EFE60d", border: `1px solid ${waitingOnRep ? "#B23A7280" : "#F5EFE626"}`, borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#F5EFE6" }}>
+      <div style={{ fontWeight: 700, color: waitingOnRep ? "#E58AB5" : "#F5EFE6b3", marginBottom: 3 }}>{heading}</div>
+      <div style={{ whiteSpace: "pre-wrap" }}>“{rec.reviewNote}”</div>
+      <div style={{ color: "#F5EFE699", marginTop: 3 }}>
+        — {rec.reviewNoteBy || "Admin"}
+        {when && `, ${when}`}
+      </div>
+    </div>
+  );
+}
