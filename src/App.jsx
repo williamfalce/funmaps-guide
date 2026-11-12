@@ -767,7 +767,7 @@ function CompassApp() {
   const mapResizeObserversRef = useRef({});
   const resultsTopRef = useRef(null);
 
-  // Deep-linking: /?destination=Fort%20Lauderdale&checkin=2026-11-10&checkout=2026-11-14&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture
+  // Deep-linking: /?destination=Fort%20Lauderdale&checkin=2026-11-10&checkout=2026-11-14&interests=LGBTQ%2B%20nightlife,Museums%20%26%20culture&notes=Include%20Inn%20On%20The%20Drive
   // Also still supports the older ?days=4 format (without dates) for any existing links already out there.
   // Pre-fills the form so buttons on other FunMaps pages can link straight into
   // a ready-to-go trip for that city — but deliberately does NOT auto-generate.
@@ -786,6 +786,9 @@ function CompassApp() {
     if (urlCheckIn) setCheckIn(urlCheckIn);
     if (urlCheckOut) setCheckOut(urlCheckOut);
     if (urlInterests.length) setSelectedInterests(urlInterests);
+    // Optional notes, e.g. places a traveler saved with "Add to my trip" on funmaps.com.
+    const urlNotes = (params.get("notes") || "").slice(0, 1000);
+    if (urlNotes) setExtraNotes(urlNotes);
     setArrivedPreFilled(true);
     trackFormStarted("prefilled_widget");
     // eslint-disable-next-line react-hooks/exhaustive-deps

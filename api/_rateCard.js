@@ -33,6 +33,7 @@ function applyOverrides(o) {
       active: !(a[x.id] && a[x.id].active === false),
     })),
     categories: DEFAULTS.categories.slice(),
+    tribes: (DEFAULTS.tribes || []).slice(),
     updatedAt: o.updatedAt || null,
     updatedBy: o.updatedBy || null,
   };

@@ -41,6 +41,10 @@ const emptyListingForm = {
   paymentReceived: false,
   contractSigned: false,
   repCommissionRate: "",
+  tribes: [],
+  verified: false,
+  lat: null,
+  lng: null,
 };
 
 // Why a listing isn't showing on the website (mirrors isLive in api/listings.js).
@@ -202,6 +206,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
       price: l.price ?? "",
       repCommissionRate: l.repCommissionRate ?? "",
       addOns: l.addOns || [],
+      tribes: l.tribes || [],
+      verified: !!l.verified,
     });
     setError("");
     setNotice("");
@@ -225,11 +231,40 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     }
     if (!form.signerName.trim() || !form.signerEmail.trim()) return setError("Add the name and email of the person who will sign the contract.");
 
+    // Map pin: look up the address when it's new or has changed.
+    const fullCity = buildCityString(form.cityName, form.country, form.state);
+    let lat = form.lat ?? null;
+    let lng = form.lng ?? null;
+    let mapNote = "";
+    const moved = !editingRecord || editingRecord.address !== form.address || editingRecord.city !== fullCity;
+    if (form.address.trim() && (lat === null || moved)) {
+      try {
+        const g = await fetch(`/api/geocode?q=${encodeURIComponent(`${form.address}, ${fullCity}`)}`);
+        if (g.ok) {
+          const pos = await g.json();
+          lat = pos.lat;
+          lng = pos.lon;
+        } else {
+          lat = null;
+          lng = null;
+          mapNote = " We couldn't find that address on the map, so it won't have a map pin. Check the address and save again.";
+        }
+      } catch (e) {
+        mapNote = " The map lookup didn't respond, so the map pin may be missing. Save again later to retry.";
+      }
+    } else if (!form.address.trim()) {
+      lat = null;
+      lng = null;
+    }
+
     const payload = {
       id: form.id || undefined,
+      tribes: form.tribes,
+      lat,
+      lng,
       partnerId: form.partnerId,
       businessName: form.businessName,
-      city: buildCityString(form.cityName, form.country, form.state),
+      city: fullCity,
       category: form.category,
       address: form.address,
       phone: form.phone,
@@ -249,6 +284,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     };
     if (isAdmin) {
       payload.contractSigned = form.contractSigned;
+      payload.verified = form.verified;
       if (form.repCommissionRate !== "") payload.repCommissionRate = form.repCommissionRate;
       if (form.id) {
         payload.status = "approved";
@@ -262,7 +298,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         isAdmin
           ? "Saved and approved. It goes live on the website once the contract is signed, payment is received and the start date arrives."
           : "Sent for review. An admin will approve it before it can go live."
-      );
+      ) + mapNote;
       cancelEdit();
       await load();
     } catch (e) {
@@ -463,6 +499,29 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
             ))}
         </div>
 
+        <h3 style={{ ...sectionTitle, marginTop: 12 }}>Tribes</h3>
+        <p style={{ fontSize: 12, color: "#F5EFE699", margin: "-4px 0 8px" }}>Travelers can filter by these on the website. Pick any that fit.</p>
+        <div role="group" aria-label="Tribes" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {(rateCard.tribes || []).map((t) => {
+            const on = form.tribes.includes(t);
+            return (
+              <label key={t} style={{ display: "inline-flex", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 999, border: `1px solid ${on ? "#D9662E" : "#F5EFE633"}`, background: on ? "#2E1F4A" : "transparent", fontSize: 13, cursor: "pointer" }}>
+                <input type="checkbox" checked={on} onChange={() => set({ tribes: on ? form.tribes.filter((x) => x !== t) : [...form.tribes, t] })} style={{ accentColor: "#D9662E" }} />
+                {t}
+              </label>
+            );
+          })}
+        </div>
+
+        {isAdmin && (
+          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 14, borderRadius: 12, border: "1px solid #1C9C9C66", background: "#1C9C9C14", marginBottom: 14, cursor: "pointer" }}>
+            <input type="checkbox" checked={form.verified} onChange={(e) => set({ verified: e.target.checked })} style={{ marginTop: 3, accentColor: "#1C9C9C" }} />
+            <span style={{ fontSize: 13, lineHeight: 1.5 }}>
+              <strong style={{ color: "#5FD0D0" }}>FunMaps Verified (admins only).</strong> Tick only after this business passes the free Verified review (all five required standards and at least three strengths). It is never sold or tied to advertising.
+            </span>
+          </label>
+        )}
+
         <h3 style={{ ...sectionTitle, marginTop: 12 }}>Contract &amp; payment</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 12 }}>
           <div>
@@ -571,6 +630,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   {l.pendingChanges && !l.changesSentBack && <span style={pill("#E8B84B", "#1B1030")}>CHANGES PENDING REVIEW</span>}
                   {l.pendingChanges && l.changesSentBack && <span style={pill("#B23A72", "#FFFFFF")}>↩ CHANGES SENT BACK</span>}
                   {l.live ? <span style={pill("#1C9C9C", "#1B1030")}>LIVE ON WEBSITE</span> : <span style={pill("#B23A7222", "#E58AB5")}>NOT LIVE</span>}
+                  {l.verified && <span style={pill("#5FD0D022", "#5FD0D0")}>✓ FUNMAPS VERIFIED</span>}
                 </div>
                 <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
                   {l.city} · {money(l.price)} / year · {l.startDate} to {l.endDate}
@@ -579,6 +639,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                 <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
                   Contract {l.contractSigned ? "signed ✓" : "not signed"} · Payment {l.paymentReceived ? "received ✓" : "not received"} · Signer: {l.signerName || "—"}
                   {(l.createdByName || l.createdBy) && ` · added by ${l.createdByName || l.createdBy}`}
+                </p>
+                <p style={{ fontSize: 12, color: "#F5EFE699", marginTop: 4 }}>
+                  {l.tribes?.length ? `Tribes: ${l.tribes.join(", ")}` : "No tribes"} · {l.lat != null ? "On the map" : l.address ? "No map pin yet: check the address" : "No address, so no map pin"}
                 </p>
                 {!l.live && reasons.length > 0 && <p style={{ fontSize: 12, color: "#F5EFE699", marginTop: 4 }}>Not on the website yet: {reasons.join(", ")}.</p>}
               </div>

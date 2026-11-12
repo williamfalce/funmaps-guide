@@ -9,7 +9,10 @@
       "period": "year",
       "label": "Recommended",
       "rank": 1,
-      "image": { "width": 800, "height": 400 },
+      "image": {
+        "width": 800,
+        "height": 400
+      },
       "descriptionLimit": 600,
       "includes": "Top of category as Recommended, Google review, map pin, front-page banner for 90 days, 2 social media posts"
     },
@@ -20,7 +23,10 @@
       "period": "year",
       "label": "Recommended",
       "rank": 2,
-      "image": { "width": 600, "height": 300 },
+      "image": {
+        "width": 600,
+        "height": 300
+      },
       "descriptionLimit": 350,
       "includes": "Recommended on destination and category pages, Google stars, map pin, front-page banner for 30 days, 1 social media post"
     },
@@ -31,7 +37,10 @@
       "period": "year",
       "label": "Recommended",
       "rank": 2,
-      "image": { "width": 600, "height": 300 },
+      "image": {
+        "width": 600,
+        "height": 300
+      },
       "descriptionLimit": 350,
       "includes": "Recommended on its category page, Google stars, map pin, front-page banner for 30 days, 1 social media post"
     },
@@ -42,18 +51,71 @@
       "period": "year",
       "label": "Featured",
       "rank": 3,
-      "image": { "width": 200, "height": 200 },
+      "image": {
+        "width": 200,
+        "height": 200
+      },
       "descriptionLimit": 160,
       "includes": "Listed as Featured: image, business name, Google stars, address, phone, description, website link"
     }
   ],
   "addOns": [
-    { "id": "home-banner", "name": "Rotating home page banner (410 × 94)", "price": 3000, "period": "month" },
-    { "id": "destination-banner", "name": "Rotating destination page banner (410 × 94)", "price": 3000, "period": "month" },
-    { "id": "category-banner", "name": "Rotating category page banner (410 × 94)", "price": 1500, "period": "month" },
-    { "id": "featured-article", "name": "Featured blog / article", "price": 395, "period": "month" },
-    { "id": "event-listing", "name": "Event listing", "price": 375, "period": "month" },
-    { "id": "social-posts", "name": "Social media posts (Facebook, Instagram, TikTok)", "price": 375, "period": "month" }
+    {
+      "id": "home-banner",
+      "name": "Rotating home page banner (410 × 94)",
+      "price": 3000,
+      "period": "month"
+    },
+    {
+      "id": "destination-banner",
+      "name": "Rotating destination page banner (410 × 94)",
+      "price": 3000,
+      "period": "month"
+    },
+    {
+      "id": "category-banner",
+      "name": "Rotating category page banner (410 × 94)",
+      "price": 1500,
+      "period": "month"
+    },
+    {
+      "id": "featured-article",
+      "name": "Featured blog / article",
+      "price": 395,
+      "period": "month"
+    },
+    {
+      "id": "event-listing",
+      "name": "Event listing",
+      "price": 375,
+      "period": "month"
+    },
+    {
+      "id": "social-posts",
+      "name": "Social media posts (Facebook, Instagram, TikTok)",
+      "price": 375,
+      "period": "month"
+    }
   ],
-  "categories": ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"]
+  "categories": [
+    "Accommodations",
+    "Arts&Entertainment",
+    "Attractions",
+    "Bars&Clubs",
+    "Events",
+    "Resources",
+    "Restaurants",
+    "Shopping&Services",
+    "Weddings"
+  ],
+  "tribes": [
+    "Bear",
+    "Leather",
+    "Luxury",
+    "Cruises",
+    "Weddings",
+    "Deals",
+    "Events",
+    "Parties"
+  ]
 }

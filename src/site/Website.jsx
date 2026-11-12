@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import logo from "../assets/funmaps-logo.png";
 import Home from "./Home.jsx";
 import Verified from "./Verified.jsx";
-import { LEGACY, COMPASS_URL, ADVERTISE_URL, BRAND } from "./siteData.js";
+import Destination from "./Destination.jsx";
+import { DESTINATIONS, LEGACY, COMPASS_URL, ADVERTISE_URL, BRAND } from "./siteData.js";
 
 // The FunMaps.com website. On funmaps.com it lives at the root; on
 // compass.funmaps.com it is a preview under /site (hidden from search engines).
@@ -49,9 +50,9 @@ function Header() {
           <img src={logo} alt="FunMaps" className="block h-[38px] w-auto md:h-[46px]" />
         </a>
         <nav aria-label="Main" className="order-last flex w-full gap-5 overflow-x-auto whitespace-nowrap text-[14px] font-semibold md:order-none md:w-auto md:gap-6 md:text-[15px]">
-          <a href="#destinations" className="no-underline" style={{ color: BRAND.ink }}>Destinations</a>
-          <a href="#tribes" className="no-underline" style={{ color: BRAND.ink }}>Things to do</a>
-          <a href="#stories" className="no-underline" style={{ color: BRAND.ink }}>Stories</a>
+          <a href={href("/#destinations")} className="no-underline" style={{ color: BRAND.ink }}>Destinations</a>
+          <a href={href("/#tribes")} className="no-underline" style={{ color: BRAND.ink }}>Things to do</a>
+          <a href={href("/#stories")} className="no-underline" style={{ color: BRAND.ink }}>Stories</a>
           <a href={href("/verified")} className="no-underline" style={{ color: BRAND.ink }}>FunMaps Verified</a>
         </nav>
         <a href={COMPASS_URL} className="rounded-full px-4 py-2.5 text-[13px] font-bold text-white no-underline md:px-[18px] md:py-3 md:text-sm" style={{ background: BRAND.magenta }}>
@@ -98,7 +99,11 @@ function NotFound() {
 
 export default function Website() {
   const path = window.location.pathname.replace(/\/+$/, "").slice(BASE.length);
-  const page = PAGES[path];
+  const destMatch = path.match(/^\/destinations\/([a-z0-9-]+)$/);
+  const dest = destMatch && DESTINATIONS.find((d) => d.slug === destMatch[1]);
+  const page = dest
+    ? { component: () => <Destination slug={dest.slug} />, title: `Gay ${dest.name}: LGBTQ+ travel guide and map | FunMaps` }
+    : PAGES[path];
   useHead(page ? page.title : "Page not found | FunMaps");
   const Page = page ? page.component : NotFound;
   return (

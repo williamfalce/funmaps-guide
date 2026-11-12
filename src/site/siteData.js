@@ -18,16 +18,49 @@ export const LEGACY = {
 export const COMPASS_URL = "https://compass.funmaps.com/";
 export const ADVERTISE_URL = "mailto:info@funmaps.com?subject=Advertising%20on%20FunMaps";
 
-// Destinations featured on the homepage. Each links to its city page; until
-// the new map-first city pages are built, that is a search of the current site.
+// Destinations with a map-first city page at /destinations/<slug>.
+// "cities" and "regions" decide which website listings belong to the page:
+// a listing's city is stored as "City, ST" or "City, Country".
+// "query" searches today's WordPress site for the matching city guide.
+// "compass" is the destination name handed to Compass.
 export const DESTINATIONS = [
-  { name: "Fort Lauderdale & Wilton Manors", query: "Fort Lauderdale", tint: "#B7563C" },
-  { name: "New York City", query: "New York", tint: "#4E5B8C" },
-  { name: "Atlanta", query: "Atlanta", tint: "#7D3A86" },
-  { name: "San Juan", query: "San Juan", tint: "#2F7F88" },
-  { name: "Costa Rica", query: "Costa Rica", tint: "#5E7C4A" },
-  { name: "Michigan", query: "Michigan", tint: "#9E4466" },
+  {
+    slug: "fort-lauderdale", name: "Fort Lauderdale & Wilton Manors", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
+    cities: ["Fort Lauderdale", "Wilton Manors", "Oakland Park", "Lauderdale-By-The-Sea", "Pompano Beach", "Hollywood"], regions: [],
+    center: [26.155, -80.13], zoom: 12, tint: "#B7563C",
+  },
+  {
+    slug: "new-york-city", name: "New York City", query: "New York", compass: "New York, NY",
+    cities: ["New York", "New York City", "Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"], regions: [],
+    center: [40.735, -73.99], zoom: 12, tint: "#4E5B8C",
+  },
+  {
+    slug: "atlanta", name: "Atlanta", query: "Atlanta", compass: "Atlanta, GA",
+    cities: ["Atlanta", "Decatur"], regions: [],
+    center: [33.78, -84.38], zoom: 12, tint: "#7D3A86",
+  },
+  {
+    slug: "san-juan", name: "San Juan", query: "San Juan", compass: "San Juan, Puerto Rico",
+    cities: ["San Juan", "Condado", "Carolina", "Isla Verde"], regions: [],
+    center: [18.45, -66.06], zoom: 12, tint: "#2F7F88",
+  },
+  {
+    slug: "costa-rica", name: "Costa Rica", query: "Costa Rica", compass: "Costa Rica",
+    cities: [], regions: ["Costa Rica"],
+    center: [9.75, -84.0], zoom: 7, tint: "#5E7C4A",
+  },
+  {
+    slug: "michigan", name: "Michigan", query: "Michigan", compass: "Michigan",
+    cities: [], regions: ["MI", "Michigan"],
+    center: [43.4, -85.4], zoom: 6, tint: "#9E4466",
+  },
 ];
+
+// Does a listing's "City, ST" / "City, Country" belong to this destination?
+export function inDestination(dest, cityString) {
+  const [city = "", region = ""] = String(cityString || "").split(",").map((x) => x.trim().toLowerCase());
+  return dest.cities.some((c) => c.toLowerCase() === city) || dest.regions.some((r) => r.toLowerCase() === region);
+}
 
 // Today's FunMaps "Fun Things To Do" themes, shown as "Browse by tribe".
 export const TRIBES = [

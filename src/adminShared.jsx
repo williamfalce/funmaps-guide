@@ -69,6 +69,7 @@ export const FIELD_LABELS = {
   website: "Website", googleUrl: "Google listing", description: "Description", product: "Product",
   price: "Price ($/yr)", addOns: "Add-ons", signerName: "Signer", signerEmail: "Signer email",
   signerTitle: "Signer title", paymentReceived: "Payment received",
+  tribes: "Tribes",
 };
 
 export function changedFields(rec) {

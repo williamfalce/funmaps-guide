@@ -85,7 +85,7 @@ function Hero() {
     const term = q.trim();
     if (!term) return;
     const match = DESTINATIONS.find((d) => d.name.toLowerCase().includes(term.toLowerCase()) || d.query.toLowerCase() === term.toLowerCase());
-    window.location.href = LEGACY.search(match ? match.query : term);
+    window.location.href = match ? href(`/destinations/${match.slug}`) : LEGACY.search(term);
   };
   return (
     <section className="mx-auto max-w-[1280px] px-6 pt-10">
@@ -178,7 +178,7 @@ function Destinations() {
       </div>
       <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         {DESTINATIONS.map((d) => (
-          <a key={d.name} href={LEGACY.search(d.query)} className="relative flex h-[220px] flex-col justify-end overflow-hidden rounded-[20px] p-5 text-white no-underline" style={{ background: d.tint }}>
+          <a key={d.slug} href={href(`/destinations/${d.slug}`)} className="relative flex h-[220px] flex-col justify-end overflow-hidden rounded-[20px] p-5 text-white no-underline" style={{ background: d.tint }}>
             <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: "#FFFFFFE6", color: BRAND.ink }}>
               <MapIcon color={BRAND.ink} size={12} /> Map guide
             </span>

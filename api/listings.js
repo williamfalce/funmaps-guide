@@ -28,9 +28,11 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 // Never set through POST/PUT bodies.
 const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack"];
 // Only admins may change these; sales values are dropped.
-const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate"];
+// "verified" is FunMaps Verified: earned through the free Verified review, never
+// tied to advertising, so only admins set it.
+const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate", "verified"];
 // Fields travelers (and the public website) may see.
-const PUBLIC_FIELDS = ["id", "city", "businessName", "category", "address", "phone", "website", "googleUrl", "description", "imageUrl", "product"];
+const PUBLIC_FIELDS = ["id", "city", "businessName", "category", "address", "phone", "website", "googleUrl", "description", "imageUrl", "product", "verified", "tribes", "lat", "lng"];
 const PENDING_META = ["pendingChanges", "pendingChangesAt", "pendingChangesBy"];
 
 function today() {
@@ -123,6 +125,20 @@ function normalize(input, card, { creating }) {
   if (has("endDate")) {
     if (input.endDate && !isDate(input.endDate)) return { error: "Enter a valid end date" };
     out.endDate = input.endDate || "";
+  }
+  if (has("tribes")) {
+    const picked = Array.isArray(input.tribes) ? input.tribes : [];
+    out.tribes = (card.tribes || []).filter((t) => picked.includes(t));
+  }
+  if (has("verified")) out.verified = !!input.verified;
+  if (has("lat") || has("lng")) {
+    // Map location, looked up from the address by the admin screen. Blank clears it.
+    const lat = input.lat === "" || input.lat === null ? null : Number(input.lat);
+    const lng = input.lng === "" || input.lng === null ? null : Number(input.lng);
+    const ok = (v, max) => v === null || (Number.isFinite(v) && Math.abs(v) <= max);
+    if (!ok(lat, 90) || !ok(lng, 180)) return { error: "Invalid map location" };
+    out.lat = lat;
+    out.lng = lng;
   }
   if (has("paymentReceived")) out.paymentReceived = !!input.paymentReceived;
   if (has("contractSigned")) out.contractSigned = !!input.contractSigned;
@@ -238,6 +254,10 @@ module.exports = async (req, res) => {
           signerTitle: "",
           paymentReceived: false,
           contractSigned: false,
+          verified: false,
+          tribes: [],
+          lat: null,
+          lng: null,
           repCommissionRate: card.digitalCommissionRate,
           ...fields,
           active: true,
