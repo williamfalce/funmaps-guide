@@ -66,6 +66,15 @@ export default function AdminPanel() {
   const [authError, setAuthError] = useState("");
   const [activeTab, setActiveTab] = useState("partners"); // "partners" | "sponsorships" | "deals" | "listings" | "ratecard" | "team"
 
+  // The rate card's Compass section: default partner commission by tier and
+  // the sponsor banner price, filled into new entries.
+  const [compassCard, setCompassCard] = useState([]);
+  const compassRate = (tier) => compassCard.find((x) => x.kind === "partner" && x.tier === tier)?.commissionRate ?? emptyPartnerForm.commissionRate;
+  const compassItem = (tier) => compassCard.find((x) => x.kind === "partner" && x.tier === tier);
+  const sponsorItem = compassCard.find((x) => x.kind === "sponsorship");
+  const newPartnerForm = () => ({ ...emptyPartnerForm, commissionRate: compassRate("basic") });
+  const newSponsorshipForm = () => ({ ...emptySponsorshipForm, annualPrice: sponsorItem?.price ?? emptySponsorshipForm.annualPrice });
+
   // Partners (commission-based, Basic/Premium tiers)
   const [partners, setPartners] = useState([]);
   const [partnerForm, setPartnerForm] = useState(emptyPartnerForm);
@@ -247,6 +256,22 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
+    if (!unlocked) return;
+    apiCall("rate-card", "GET", null, adminKey, "")
+      .then((d) => {
+        const items = d.rateCard?.compass || [];
+        setCompassCard(items);
+        const basic = items.find((x) => x.kind === "partner" && x.tier === "basic");
+        const sponsor = items.find((x) => x.kind === "sponsorship");
+        // Blank "new" forms pick up the rate card values.
+        if (basic) setPartnerForm((f) => (f.id || f.commissionRate !== emptyPartnerForm.commissionRate ? f : { ...f, commissionRate: basic.commissionRate }));
+        if (sponsor) setSponsorshipForm((f) => (f.id || f.annualPrice !== emptySponsorshipForm.annualPrice ? f : { ...f, annualPrice: sponsor.price }));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlocked]);
+
+  useEffect(() => {
     if (unlocked && activeTab === "partners") loadPartners();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlocked, activeTab, partnerFilterCity]);
@@ -325,7 +350,7 @@ export default function AdminPanel() {
       } else {
         await apiCall("banners", "POST", payload, adminKey);
       }
-      setPartnerForm(emptyPartnerForm);
+      setPartnerForm(newPartnerForm());
       await loadPartners();
     } catch (e) {
       if (e.message.includes("Invalid admin key")) {
@@ -459,7 +484,7 @@ export default function AdminPanel() {
       } else {
         await apiCall("sponsorships", "POST", payload, adminKey);
       }
-      setSponsorshipForm(emptySponsorshipForm);
+      setSponsorshipForm(newSponsorshipForm());
       await loadSponsorships();
     } catch (e) {
       if (e.message.includes("Invalid admin key")) {
@@ -850,7 +875,12 @@ export default function AdminPanel() {
                   <label style={labelStyle}>TIER (controls visual style — border, image layout, badge — not pricing)</label>
                   <select
                     value={partnerForm.tier}
-                    onChange={(e) => setPartnerForm({ ...partnerForm, tier: e.target.value })}
+                    onChange={(e) => {
+                      const tier = e.target.value;
+                      // Follow the rate card's commission for the new tier unless a negotiated rate was typed in.
+                      const followRate = Number(partnerForm.commissionRate) === Number(compassRate(partnerForm.tier));
+                      setPartnerForm({ ...partnerForm, tier, commissionRate: followRate ? compassRate(tier) : partnerForm.commissionRate });
+                    }}
                     style={inputStyle}
                   >
                     <option value="basic">Featured Partner (Basic display)</option>
@@ -913,6 +943,12 @@ export default function AdminPanel() {
                 <div>
                   <label style={labelStyle}>{adminRole === "admin" ? "COMMISSION RATE (%) — set whatever you negotiated with this partner" : "COMMISSION RATE (%) — the rate you negotiated; an admin approves it"}</label>
                   <input type="number" min={0} max={100} value={partnerForm.commissionRate} onChange={(e) => setPartnerForm({ ...partnerForm, commissionRate: Number(e.target.value) })} style={inputStyle} />
+                  {compassItem(partnerForm.tier) && (
+                    <p style={{ fontSize: 11.5, marginTop: 4, color: Number(partnerForm.commissionRate) !== Number(compassRate(partnerForm.tier)) ? "#E8B84B" : "#F5EFE699" }}>
+                      Rate card: {compassItem(partnerForm.tier).name}, {compassRate(partnerForm.tier)}%.
+                      {Number(partnerForm.commissionRate) !== Number(compassRate(partnerForm.tier)) && " This differs; an admin approves negotiated rates."}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -950,7 +986,7 @@ export default function AdminPanel() {
                 </button>
                 {partnerForm.id && (
                   <button
-                    onClick={() => setPartnerForm(emptyPartnerForm)}
+                    onClick={() => setPartnerForm(newPartnerForm())}
                     style={{ background: "transparent", color: "#F5EFE699", border: "1px solid #F5EFE633", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}
                   >
                     Cancel Edit
@@ -1088,6 +1124,12 @@ export default function AdminPanel() {
                 <div>
                   <label style={labelStyle}>ANNUAL PRICE ($)</label>
                   <input type="number" value={sponsorshipForm.annualPrice} onChange={(e) => setSponsorshipForm({ ...sponsorshipForm, annualPrice: Number(e.target.value) })} style={inputStyle} />
+                  {sponsorItem && (
+                    <p style={{ fontSize: 11.5, marginTop: 4, color: Number(sponsorshipForm.annualPrice) !== Number(sponsorItem.price) ? "#E8B84B" : "#F5EFE699" }}>
+                      Rate card: {sponsorItem.name}, ${Number(sponsorItem.price).toLocaleString("en-US")} / year.
+                      {Number(sponsorshipForm.annualPrice) !== Number(sponsorItem.price) && " This differs; an admin approves negotiated prices."}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label style={labelStyle}>CTA BUTTON TEXT</label>
@@ -1130,7 +1172,7 @@ export default function AdminPanel() {
                 </button>
                 {sponsorshipForm.id && (
                   <button
-                    onClick={() => setSponsorshipForm(emptySponsorshipForm)}
+                    onClick={() => setSponsorshipForm(newSponsorshipForm())}
                     style={{ background: "transparent", color: "#F5EFE699", border: "1px solid #F5EFE633", padding: "10px 20px", borderRadius: 8, cursor: "pointer" }}
                   >
                     Cancel Edit

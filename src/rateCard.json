@@ -1,5 +1,5 @@
 {
-  "_note": "Defaults from the 2026 FunMaps digital rate card. Admins can change prices and turn products on or off in the admin panel's Rate Card tab; those changes are saved in Redis and override these defaults. Description limits and image sizes are FunMaps' own layout settings.",
+  "_note": "Defaults from the 2026 FunMaps rate card (printed guides, website and Compass). Admins can change prices and turn products on or off in the admin panel's Rate Card tab; those changes are saved in Redis and override these defaults. Description limits and image sizes are FunMaps' own layout settings.",
   "digitalCommissionRate": 20,
   "products": [
     {
@@ -165,6 +165,32 @@
         "Parties",
         "Weddings"
       ]
+    }
+  ],
+  "compass": [
+    {
+      "id": "compass-sponsor",
+      "kind": "sponsorship",
+      "name": "Compass Travel Itinerary Sponsor Banner Listing",
+      "price": 3000,
+      "period": "year",
+      "includes": "Top of itinerary page"
+    },
+    {
+      "id": "compass-basic",
+      "kind": "partner",
+      "tier": "basic",
+      "name": "Compass Travel Itinerary Basic Listing (with image)",
+      "commissionRate": 15,
+      "includes": "In appropriate category"
+    },
+    {
+      "id": "compass-premium",
+      "kind": "partner",
+      "tier": "premium",
+      "name": "Compass Travel Itinerary Premium Listing (text only, no image)",
+      "commissionRate": 22,
+      "includes": "In appropriate category"
     }
   ]
 }

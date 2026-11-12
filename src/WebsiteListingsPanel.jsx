@@ -800,7 +800,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
 // existing listings keep the price they were sold at.
 export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
   const [card, setCard] = useState(null);
-  const [edits, setEdits] = useState({ products: {}, addOns: {}, digitalCommissionRate: undefined });
+  const [edits, setEdits] = useState({ products: {}, addOns: {}, compass: {}, digitalCommissionRate: undefined });
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -808,7 +808,7 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
     try {
       const data = await apiCall("rate-card", "GET", null, adminKey, "");
       setCard(data.rateCard);
-      setEdits({ products: {}, addOns: {}, digitalCommissionRate: undefined });
+      setEdits({ products: {}, addOns: {}, compass: {}, digitalCommissionRate: undefined });
     } catch (e) {
       setMessage("Couldn't load the rate card.");
     }
@@ -829,7 +829,7 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
     try {
       const data = await apiCall("rate-card", "PUT", edits, adminKey);
       setCard(data.rateCard);
-      setEdits({ products: {}, addOns: {}, digitalCommissionRate: undefined });
+      setEdits({ products: {}, addOns: {}, compass: {}, digitalCommissionRate: undefined });
       setMessage("Rate card saved. New listings use these prices; existing listings keep theirs.");
     } catch (e) {
       setMessage(e.message || "Couldn't save the rate card.");
@@ -849,7 +849,20 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
           <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</div>
           {item.includes && <div style={{ fontSize: 12, color: "#F5EFE699" }}>{item.includes}</div>}
         </div>
-        {item.free ? (
+        {item.commissionRate !== undefined ? (
+          <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              aria-label={`Commission for ${item.name}`}
+              value={e.commissionRate !== undefined ? e.commissionRate : item.commissionRate}
+              onChange={(ev) => edit(kind, item.id, { commissionRate: ev.target.value })}
+              style={{ ...inputStyle, width: 80 }}
+            />
+            % commission
+          </label>
+        ) : item.free ? (
           <span style={{ fontSize: 13, fontWeight: 700, color: "#1C9C9C" }}>Free</span>
         ) : (
         <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}>
@@ -884,6 +897,11 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
       {card.products.map((p) => row("products", p))}
       <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 16, color: "#D9662E" }}>Add-ons (per month)</h3>
       {card.addOns.map((a) => row("addOns", a))}
+      <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 16, color: "#D9662E" }}>Compass travel itinerary</h3>
+      <p style={{ fontSize: 12, color: "#F5EFE699", margin: "2px 0 0" }}>
+        The sponsor banner price fills in on new Compass sponsorships; the commission rates fill in on new Compass partners by tier. Reps can still enter a negotiated amount for an admin to approve.
+      </p>
+      {(card.compass || []).map((x) => row("compass", x))}
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 16, flexWrap: "wrap" }}>
         <label htmlFor="rc-commission" style={{ ...labelStyle, marginBottom: 0 }}>
           DEFAULT REP COMMISSION ON DIGITAL SALES (%)

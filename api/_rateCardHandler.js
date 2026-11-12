@@ -35,6 +35,7 @@ async function handleRateCard(req, res) {
         // The public doesn't need to see products that are switched off or who edited prices.
         card.products = card.products.filter((p) => p.active);
         card.addOns = card.addOns.filter((a) => a.active);
+        card.compass = card.compass.filter((x) => x.active);
         delete card.updatedBy;
         delete card.digitalCommissionRate;
       }
