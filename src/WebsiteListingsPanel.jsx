@@ -47,6 +47,17 @@ const emptyListingForm = {
   lng: null,
 };
 
+const FREE_PRODUCT = "directory";
+
+// A free directory listing whose details haven't been checked for a year.
+function dueForCheck(l) {
+  if (l.product !== FREE_PRODUCT) return false;
+  if (!l.lastCheckedAt) return true;
+  const d = new Date(l.lastCheckedAt);
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10) <= todayStr();
+}
+
 // Why a listing isn't showing on the website (mirrors isLive in api/listings.js).
 function notLiveReasons(l) {
   const r = [];
@@ -54,6 +65,7 @@ function notLiveReasons(l) {
   if (l.status === "pending") r.push("waiting for admin approval");
   if (l.status === "needs_changes") r.push("sent back to the rep for changes");
   if (l.active === false) r.push("paused");
+  if (l.product === FREE_PRODUCT) return r;
   if (!l.contractSigned) r.push("contract not signed");
   if (!l.paymentReceived) r.push("payment not received");
   if (l.startDate && l.startDate > t) r.push(`starts ${l.startDate}`);
@@ -121,6 +133,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
   const [filter, setFilter] = useState("all");
 
   const product = rateCard?.products.find((p) => p.id === form.product);
+  const isFreeForm = !!product?.free;
   const editingRecord = form.id ? listings.find((l) => l.id === form.id) || null : null;
   const commissionRate = form.repCommissionRate !== "" ? Number(form.repCommissionRate) : rateCard?.digitalCommissionRate ?? 20;
 
@@ -258,12 +271,12 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     setNotice("");
     if (!form.businessName.trim() || !form.cityName.trim()) return setError("Business name and city are required.");
     if (form.country === "United States" && !form.state) return setError("Please select a state.");
-    if (!form.imageUrl) return setError(`Upload the advertiser's image (${product?.image.width} × ${product?.image.height}).`);
+    if (!isFreeForm && !form.imageUrl) return setError(`Upload the advertiser's image (${product?.image.width} × ${product?.image.height}).`);
     if (imageWarning) return setError(imageWarning + " Upload a larger image or pick a different product.");
-    if (product && form.description.length > product.descriptionLimit) {
+    if (!isFreeForm && product && form.description.length > product.descriptionLimit) {
       return setError(`The description is ${form.description.length} characters; ${product.name} allows ${product.descriptionLimit}.`);
     }
-    if (!form.signerName.trim() || !form.signerEmail.trim()) return setError("Add the name and email of the person who will sign the contract.");
+    if (!isFreeForm && (!form.signerName.trim() || !form.signerEmail.trim())) return setError("Add the name and email of the person who will sign the contract.");
 
     // Map pin: look up the address when it's new or has changed.
     const fullCity = buildCityString(form.cityName, form.country, form.state);
@@ -329,11 +342,16 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     try {
       await apiCall("listings", form.id ? "PUT" : "POST", payload, adminKey);
       setNotice(
-        (isAdmin
-          ? "Saved and approved. It goes live on the website once the contract is signed, payment is received and the start date arrives."
-          : "Sent for review. An admin will approve it before it can go live.") + mapNote
+        (isFreeForm
+          ? isAdmin
+            ? "Saved and approved. The directory listing is on the website now."
+            : "Sent for review. The directory listing goes on the website as soon as an admin approves it."
+          : isAdmin
+            ? "Saved and approved. It goes live on the website once the contract is signed, payment is received and the start date arrives."
+            : "Sent for review. An admin will approve it before it can go live.") + mapNote
       );
-      cancelEdit();
+      // Keep the product picked, so several directory listings can be added in a row.
+      setForm({ ...emptyListingForm, startDate: todayStr(), product: form.product });
       await load();
     } catch (e) {
       setError(e.message || "Couldn't save that listing — try again.");
@@ -367,6 +385,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     return <p style={{ color: "#F5EFE699" }}>{error || "Loading the rate card..."}</p>;
   }
 
+  const isFreeOf = (id) => !!rateCard.products.find((x) => x.id === id)?.free;
   const monthly = rateCard.addOns.filter((a) => form.addOns.includes(a.id)).reduce((t, a) => t + a.price, 0);
   const annual = form.price !== "" ? Number(form.price) : product?.price || 0;
   const priceDiffers = product && form.price !== "" && Number(form.price) !== product.price;
@@ -376,6 +395,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     if (filter === "sentback") return l.status === "needs_changes" || l.changesSentBack;
     if (filter === "live") return l.live;
     if (filter === "notlive") return !l.live;
+    if (filter === "paid") return !isFreeOf(l.product);
+    if (filter === "free") return isFreeOf(l.product);
+    if (filter === "recheck") return dueForCheck(l);
     return true;
   });
 
@@ -390,7 +412,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{form.id ? "Edit Website Listing" : "Add Website Listing"}</h2>
         <EditingBanner record={editingRecord} isAdmin={isAdmin} label={saveLabel(isAdmin, editingRecord, "Listing")} />
         <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
-          A FunMaps.com profile from the rate card. It shows on the website once an admin approves it, the contract is signed, payment is received and the start date arrives.
+          A FunMaps.com profile from the rate card. Paid profiles show on the website once an admin approves them, the contract is signed, payment is received and the start date arrives. Free directory listings show as soon as an admin approves them.
         </p>
 
         <h3 style={sectionTitle}>Business</h3>
@@ -473,16 +495,20 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</span>
                     <span style={{ color: "#D9662E", fontWeight: 600, fontSize: 13 }}>
-                      {money(p.price)} / {p.period}
+                      {p.free ? "Free" : `${money(p.price)} / ${p.period}`}
                     </span>
                     <span style={{ fontSize: 12, color: "#F5EFE6aa" }}>
-                      Shown as "{p.label}" · {p.image.width} × {p.image.height} image · up to {p.descriptionLimit} characters
+                      {p.free
+                        ? "Listed after paid profiles · no photo, description or paid label"
+                        : `Shown as "${p.label}" · ${p.image.width} × ${p.image.height} image · up to ${p.descriptionLimit} characters`}
                     </span>
                   </span>
                 </label>
               );
             })}
         </div>
+        {!isFreeForm && (
+          <>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 12 }}>
           <div>
             <label htmlFor="wl-price" style={labelStyle}>PRICE ($ PER YEAR)</label>
@@ -533,6 +559,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
             ))}
         </div>
 
+          </>
+        )}
+
         <h3 style={{ ...sectionTitle, marginTop: 12 }}>Tribes</h3>
         <p style={{ fontSize: 12, color: "#F5EFE699", margin: "-4px 0 8px" }}>Travelers can filter by these on the website. Pick any that fit.</p>
         {(rateCard.tribeGroups || []).map((g) => (
@@ -566,6 +595,12 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           </label>
         )}
 
+        {isFreeForm ? (
+          <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
+            Free directory listing: no contract, payment or end date. Admins re-check directory listings once a year to keep them current.
+          </p>
+        ) : (
+          <>
         <h3 style={{ ...sectionTitle, marginTop: 12 }}>Contract &amp; payment</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 12 }}>
           <div>
@@ -628,6 +663,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           </div>
         </div>
 
+          </>
+        )}
+
         {error && <p role="alert" style={{ color: "#B23A72", fontSize: 13, marginBottom: 10 }}>{error}</p>}
         {notice && <p style={{ color: "#1C9C9C", fontSize: 13, marginBottom: 10 }}>{notice}</p>}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -652,6 +690,9 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           <option value="sentback">Sent back to rep ({listings.filter((l) => l.status === "needs_changes" || l.changesSentBack).length})</option>
           <option value="live">Live on the website ({listings.filter((l) => l.live).length})</option>
           <option value="notlive">Not live ({listings.filter((l) => !l.live).length})</option>
+          <option value="paid">Paid profiles ({listings.filter((l) => !isFreeOf(l.product)).length})</option>
+          <option value="free">Free directory ({listings.filter((l) => isFreeOf(l.product)).length})</option>
+          <option value="recheck">Directory due for re-check ({listings.filter(dueForCheck).length})</option>
         </select>
       </div>
 
@@ -676,6 +717,13 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   {l.live ? <span style={pill("#1C9C9C", "#1B1030")}>LIVE ON WEBSITE</span> : <span style={pill("#B23A7222", "#E58AB5")}>NOT LIVE</span>}
                   {l.verified && <span style={pill("#5FD0D022", "#5FD0D0")}>✓ FUNMAPS VERIFIED</span>}
                 </div>
+                {p?.free ? (
+                  <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
+                    {l.city} · Free directory listing · {l.lastCheckedAt ? `last checked ${l.lastCheckedAt}` : "not checked yet"}
+                    {dueForCheck(l) && <span style={{ color: "#E8B84B", fontWeight: 700 }}> · due for a re-check</span>}
+                  </p>
+                ) : (
+                <>
                 <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
                   {l.city} · {money(l.price)} / year · {l.startDate} to {l.endDate}
                   {l.addOns?.length ? ` · ${l.addOns.length} add-on${l.addOns.length > 1 ? "s" : ""}` : ""}
@@ -684,6 +732,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   Contract {l.contractSigned ? "signed ✓" : "not signed"} · Payment {l.paymentReceived ? "received ✓" : "not received"} · Signer: {l.signerName || "—"}
                   {(l.createdByName || l.createdBy) && ` · added by ${l.createdByName || l.createdBy}`}
                 </p>
+                </>
+                )}
                 <p style={{ fontSize: 12, color: "#F5EFE699", marginTop: 4 }}>
                   {l.tribes?.length ? `Tribes: ${l.tribes.join(", ")}` : "No tribes"} · {l.lat != null ? "On the map" : l.address ? "No map pin yet: check the address" : "No address, so no map pin"}
                 </p>
@@ -707,12 +757,17 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   <SendBackButton endpoint="listings" rec={l} adminKey={adminKey} onDone={load} style={{ ...smallBtn, color: "#E58AB5", border: "1px solid #B23A7260" }} />
                 </>
               )}
-              {isAdmin && (
+              {isAdmin && p?.free && (
+                <button onClick={() => quickUpdate(l, { markChecked: true })} style={{ ...smallBtn, color: dueForCheck(l) ? "#E8B84B" : "#F5EFE6cc" }}>
+                  Mark checked today
+                </button>
+              )}
+              {isAdmin && !p?.free && (
                 <button onClick={() => quickUpdate(l, { contractSigned: !l.contractSigned })} style={{ ...smallBtn, color: "#F5EFE6cc" }}>
                   {l.contractSigned ? "Mark contract unsigned" : "Mark contract signed"}
                 </button>
               )}
-              {isAdmin && (
+              {isAdmin && !p?.free && (
                 <button onClick={() => quickUpdate(l, { paymentReceived: !l.paymentReceived })} style={{ ...smallBtn, color: "#F5EFE6cc" }}>
                   {l.paymentReceived ? "Mark unpaid" : "Mark paid"}
                 </button>
@@ -794,6 +849,9 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
           <div style={{ fontWeight: 700, fontSize: 14 }}>{item.name}</div>
           {item.includes && <div style={{ fontSize: 12, color: "#F5EFE699" }}>{item.includes}</div>}
         </div>
+        {item.free ? (
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#1C9C9C" }}>Free</span>
+        ) : (
         <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}>
           $
           <input
@@ -806,6 +864,7 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
           />
           / {item.period === "month" ? "mo" : "yr"}
         </label>
+        )}
         <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13, cursor: "pointer" }}>
           <input type="checkbox" checked={active} onChange={(ev) => edit(kind, item.id, { active: ev.target.checked })} style={{ accentColor: "#D9662E" }} />
           Offered

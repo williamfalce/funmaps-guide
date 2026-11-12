@@ -24,7 +24,7 @@ function applyOverrides(o) {
     digitalCommissionRate: validMoney(o.digitalCommissionRate) && Number(o.digitalCommissionRate) <= 100 ? Number(o.digitalCommissionRate) : DEFAULTS.digitalCommissionRate,
     products: DEFAULTS.products.map((x) => ({
       ...x,
-      price: p[x.id] && validMoney(p[x.id].price) ? Number(p[x.id].price) : x.price,
+      price: x.free ? 0 : p[x.id] && validMoney(p[x.id].price) ? Number(p[x.id].price) : x.price,
       active: !(p[x.id] && p[x.id].active === false),
     })),
     addOns: DEFAULTS.addOns.map((x) => ({

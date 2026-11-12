@@ -9,7 +9,10 @@ import RATE_CARD from "../rateCard.json";
 
 const prettyCategory = (c) => String(c || "").replace(/&/g, " & ");
 const isRecommended = (l) => l.label === "Recommended";
-const pinColor = (l) => (isRecommended(l) ? BRAND.gold : BRAND.magenta);
+// Free directory listings have no paid label.
+const isDirectory = (l) => !l.label;
+const DIRECTORY_PIN = "#6F6479";
+const pinColor = (l) => (isRecommended(l) ? BRAND.gold : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
 
 function decode(html) {
   const t = document.createElement("textarea");
@@ -47,6 +50,7 @@ function VerifiedBadge({ small }) {
 }
 
 function PaidLabel({ listing }) {
+  if (isDirectory(listing)) return null;
   return isRecommended(listing) ? (
     <div className="flex items-center gap-1.5">
       <span className="rounded-full px-2.5 py-1 text-xs font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink }}>★ Recommended</span>
@@ -109,11 +113,12 @@ function FunMap({ dest, items }) {
     const placed = items.filter(({ listing }) => listing.lat != null && listing.lng != null);
     placed.forEach(({ n, listing }) => {
       const rec = isRecommended(listing);
+      const sz = isDirectory(listing) ? 26 : 34;
       const icon = L.divIcon({
         className: "",
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-        html: `<span style="display:flex;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${BRAND.teal},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 13px 'Plus Jakarta Sans',sans-serif;color:${rec ? BRAND.ink : "#fff"}">${n}</span></span>`,
+        iconSize: [sz, sz],
+        iconAnchor: [sz / 2, sz],
+        html: `<span style="display:flex;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${BRAND.teal},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 ${sz === 26 ? 11 : 13}px 'Plus Jakarta Sans',sans-serif;color:${rec ? BRAND.ink : "#fff"}">${n}</span></span>`,
       });
       L.marker([listing.lat, listing.lng], { icon, title: `${n}. ${listing.businessName}` })
         .bindPopup(`<strong>${n}. ${listing.businessName.replace(/</g, "&lt;")}</strong><br>${prettyCategory(listing.category)}`)
@@ -129,6 +134,7 @@ function FunMap({ dest, items }) {
       <div className="pointer-events-none absolute bottom-3.5 left-3.5 z-[500] flex flex-wrap gap-3.5 rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFFFFFEE" }}>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Recommended</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps Verified</span>
       </div>
     </div>
@@ -219,7 +225,11 @@ export default function Destination({ slug }) {
 
   const gold = shown.filter(({ listing }) => listing.rank === 1);
   const premium = shown.filter(({ listing }) => listing.rank === 2);
-  const basic = shown.filter(({ listing }) => listing.rank !== 1 && listing.rank !== 2);
+  const basic = shown.filter(({ listing }) => listing.rank !== 1 && listing.rank !== 2 && !isDirectory(listing));
+  const directory = shown.filter(({ listing }) => isDirectory(listing));
+  const directoryByCategory = [...new Set(directory.map(({ listing }) => listing.category))]
+    .sort()
+    .map((c) => ({ category: c, items: directory.filter(({ listing }) => listing.category === c) }));
   const chip = (on) => ({ borderColor: on ? BRAND.night : "#DDD3E4", background: on ? BRAND.night : "#FFFFFF", color: on ? "#FFFFFF" : BRAND.ink });
 
   return (
@@ -400,6 +410,43 @@ export default function Destination({ slug }) {
                     </div>
                   </div>
                 </article>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {directory.length > 0 && (
+          <div className="mt-2">
+            <h2 className="m-0 text-xl font-extrabold">{gold.length + premium.length + basic.length > 0 ? `All places in ${dest.name}` : `Places in ${dest.name}`}</h2>
+            <p className="mb-3 mt-1 text-sm" style={{ color: BRAND.muted }}>Our full directory, free to every business we list. Verified places first.</p>
+            <div className="flex flex-col gap-6">
+              {directoryByCategory.map(({ category, items }) => (
+                <div key={category}>
+                  {directoryByCategory.length > 1 && <h3 className="mb-1 text-[13px] font-bold uppercase tracking-[0.06em]" style={{ color: BRAND.muted }}>{prettyCategory(category)}</h3>}
+                  <ul className="m-0 list-none divide-y p-0" style={{ borderTop: `1px solid ${BRAND.line}`, borderBottom: `1px solid ${BRAND.line}` }}>
+                    {items.map(({ n, listing: l }) => (
+                      <li key={l.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3" style={{ borderColor: BRAND.line }}>
+                        <PinNumber n={n} listing={l} size={24} />
+                        <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-0.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[15px] font-bold">{l.businessName}</span>
+                            {l.verified && <span className="text-[11px] font-bold" style={{ color: BRAND.tealDark }}>✓ FunMaps Verified</span>}
+                          </div>
+                          <span className="text-[13px]" style={{ color: BRAND.muted }}>
+                            {[l.address, l.city].filter(Boolean).join(", ")}
+                            {l.tribes?.length ? ` · ${l.tribes.join(" · ")}` : ""}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-[13px] font-bold">
+                          {l.phone && <a href={`tel:${l.phone.replace(/[^0-9+]/g, "")}`}>{l.phone}</a>}
+                          {l.website && <a href={l.website} target="_blank" rel="noopener">Website</a>}
+                          {l.address && <a href={directionsUrl(l)} target="_blank" rel="noopener">Directions</a>}
+                          <TripButton compact inTrip={inTrip(l)} onClick={() => toggleTrip(l)} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
             </div>
           </div>

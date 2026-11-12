@@ -57,6 +57,18 @@
       },
       "descriptionLimit": 160,
       "includes": "Listed as Featured: image, business name, Google stars, address, phone, description, website link"
+    },
+    {
+      "id": "directory",
+      "name": "Directory Listing (free)",
+      "price": 0,
+      "period": "year",
+      "label": null,
+      "rank": 4,
+      "image": null,
+      "descriptionLimit": 0,
+      "free": true,
+      "includes": "Free: business name, category, address, phone, website, tribes and a map pin, listed after the paid profiles. No photo, description or paid label."
     }
   ],
   "addOns": [

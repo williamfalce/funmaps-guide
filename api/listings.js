@@ -26,7 +26,7 @@ const { handleRateCard } = require("./_rateCardHandler");
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
 // Never set through POST/PUT bodies.
-const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack"];
+const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack", "lastCheckedAt"];
 // Only admins may change these; sales values are dropped.
 // "verified" is FunMaps Verified: earned through the free Verified review, never
 // tied to advertising, so only admins set it.
@@ -60,11 +60,16 @@ function cleanUrl(v) {
   return /^https?:\/\//i.test(t) ? t : `https://${t}`;
 }
 
+// The free directory listing: no contract, payment, dates, photo or description.
+const FREE_PRODUCT = "directory";
+const isFree = (l) => l.product === FREE_PRODUCT;
+
 // A listing shows on the website only when all of these are true.
+// Free directory listings only need admin approval and not being paused.
 function isLive(l, onDate = today()) {
+  if (l.status !== "approved" || l.active === false) return false;
+  if (isFree(l)) return true;
   return (
-    l.status === "approved" &&
-    l.active !== false &&
     l.contractSigned === true &&
     l.paymentReceived === true &&
     (!l.startDate || l.startDate <= onDate) &&
@@ -153,6 +158,11 @@ function normalize(input, card, { creating }) {
 // Fills in derived values after a create or merge.
 function finalize(rec, card) {
   const p = card.products.find((x) => x.id === rec.product);
+  if (isFree(rec)) {
+    Object.assign(rec, { price: 0, addOns: [], imageUrl: "", description: "", endDate: "" });
+    if (!rec.startDate) rec.startDate = today();
+    return rec;
+  }
   if ((rec.price === null || rec.price === undefined) && p) rec.price = p.price;
   if (!rec.startDate) rec.startDate = today();
   if (!rec.endDate || rec.endDate < rec.startDate) rec.endDate = addOneYear(rec.startDate);
@@ -165,7 +175,7 @@ function toPublic(rec, card) {
   const p = card.products.find((x) => x.id === rec.product);
   if (p) {
     out.productName = p.name;
-    out.label = p.label; // "Recommended" or "Featured" — the paid-placement label shown on the site
+    out.label = p.label || null; // "Recommended" or "Featured" (paid placements); none for free listings
     out.rank = p.rank;
     out.image = p.image;
   }
@@ -220,7 +230,9 @@ module.exports = async (req, res) => {
       // Best tier first; within a tier, a fresh random order each request.
       const byRank = {};
       for (const l of live) (byRank[l.rank ?? 99] = byRank[l.rank ?? 99] || []).push(l);
-      const ordered = Object.keys(byRank).map(Number).sort((a, b) => a - b).flatMap((r) => shuffle(byRank[r]));
+      // Free directory listings (no label) aren't rotated: Verified first, then A to Z.
+      const az = (list) => list.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || a.businessName.localeCompare(b.businessName));
+      const ordered = Object.keys(byRank).map(Number).sort((a, b) => a - b).flatMap((r) => (byRank[r][0].label ? shuffle(byRank[r]) : az(byRank[r])));
       res.status(200).json({ listings: ordered });
       return;
     }
@@ -263,6 +275,7 @@ module.exports = async (req, res) => {
           active: true,
           status: role === "admin" ? "approved" : "pending",
           createdBy: role,
+          lastCheckedAt: role === "admin" ? today() : null,
           createdByName: auth.name,
           createdByUserId: auth.userId,
           createdAt: Date.now(),
@@ -275,7 +288,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === "PUT") {
-      const { id, approveChanges, rejectChanges, sendBack: doSendBack, note, ...body } = req.body || {};
+      const { id, approveChanges, rejectChanges, sendBack: doSendBack, note, markChecked, ...body } = req.body || {};
       if (!id) {
         res.status(400).json({ error: "id is required" });
         return;
@@ -330,6 +343,9 @@ module.exports = async (req, res) => {
         if (req.body.status === "approved" || approveChanges) merged.status = "approved";
         if (approveChanges || rejectChanges) for (const f of PENDING_META) delete merged[f];
         merged.updatedByName = auth.name;
+        // "Last checked": an admin confirmed the details are still right (saved the
+        // whole form, approved it, or clicked "Mark checked today").
+        if (markChecked || req.body.status === "approved" || approveChanges) merged.lastCheckedAt = today();
         if (approveChanges || rejectChanges || (merged.status === "approved" && isUnapproved(existing.status))) clearReview(merged);
         updated = finalize(merged, card);
       }
