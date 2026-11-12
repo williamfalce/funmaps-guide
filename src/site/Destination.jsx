@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DESTINATIONS, inDestination, LEGACY, COMPASS_URL, WORDPRESS_URL, BRAND } from "./siteData.js";
 import { href } from "./Website.jsx";
+import RATE_CARD from "../rateCard.json";
 
 // Map-first destination page: an interactive FunMap of the city's live
 // website listings (numbered pins), filters, the listings by tier with honest
@@ -273,13 +274,20 @@ export default function Destination({ slug }) {
           </div>
         )}
         {(tribes.length > 0 || verifiedCount > 0) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {tribes.length > 0 && <span className="mr-1 text-[13px] font-bold" style={{ color: BRAND.muted }}>Tribe</span>}
-            {tribes.map((t) => (
-              <button key={t} type="button" aria-pressed={tribe === t} onClick={() => setTribe(tribe === t ? null : t)} className="min-h-[40px] cursor-pointer rounded-full border px-3.5 py-2 text-sm font-semibold" style={chip(tribe === t)}>
-                {t}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {RATE_CARD.tribeGroups
+              .map((g) => ({ group: g.group, present: g.tribes.filter((t) => tribes.includes(t)) }))
+              .filter((g) => g.present.length)
+              .map((g) => (
+                <div key={g.group} role="group" aria-label={`${g.group} tribes`} className="flex flex-wrap items-center gap-2">
+                  <span className="mr-0.5 text-[13px] font-bold" style={{ color: BRAND.muted }}>{g.group}</span>
+                  {g.present.map((t) => (
+                    <button key={t} type="button" aria-pressed={tribe === t} onClick={() => setTribe(tribe === t ? null : t)} className="min-h-[40px] cursor-pointer rounded-full border px-3.5 py-2 text-sm font-semibold" style={chip(tribe === t)}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              ))}
             {verifiedCount > 0 && (
               <button
                 type="button"

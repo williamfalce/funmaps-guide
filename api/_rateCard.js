@@ -33,7 +33,8 @@ function applyOverrides(o) {
       active: !(a[x.id] && a[x.id].active === false),
     })),
     categories: DEFAULTS.categories.slice(),
-    tribes: (DEFAULTS.tribes || []).slice(),
+    tribeGroups: (DEFAULTS.tribeGroups || []).map((g) => ({ group: g.group, tribes: g.tribes.slice() })),
+    tribes: (DEFAULTS.tribeGroups || []).flatMap((g) => g.tribes),
     updatedAt: o.updatedAt || null,
     updatedBy: o.updatedBy || null,
   };

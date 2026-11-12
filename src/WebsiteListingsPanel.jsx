@@ -501,17 +501,27 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
 
         <h3 style={{ ...sectionTitle, marginTop: 12 }}>Tribes</h3>
         <p style={{ fontSize: 12, color: "#F5EFE699", margin: "-4px 0 8px" }}>Travelers can filter by these on the website. Pick any that fit.</p>
-        <div role="group" aria-label="Tribes" style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-          {(rateCard.tribes || []).map((t) => {
-            const on = form.tribes.includes(t);
-            return (
-              <label key={t} style={{ display: "inline-flex", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 999, border: `1px solid ${on ? "#D9662E" : "#F5EFE633"}`, background: on ? "#2E1F4A" : "transparent", fontSize: 13, cursor: "pointer" }}>
-                <input type="checkbox" checked={on} onChange={() => set({ tribes: on ? form.tribes.filter((x) => x !== t) : [...form.tribes, t] })} style={{ accentColor: "#D9662E" }} />
-                {t}
-              </label>
-            );
-          })}
-        </div>
+        {(rateCard.tribeGroups || []).map((g) => (
+          <div key={g.group} role="group" aria-label={`${g.group} tribes`} style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "#F5EFE6B3", marginBottom: 6 }}>{g.group}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {g.tribes.map((t) => {
+                const on = form.tribes.includes(t);
+                return (
+                  <label key={t} style={{ display: "inline-flex", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 999, border: `1px solid ${on ? "#D9662E" : "#F5EFE633"}`, background: on ? "#2E1F4A" : "transparent", fontSize: 13, cursor: "pointer" }}>
+                    <input type="checkbox" checked={on} onChange={() => set({ tribes: on ? form.tribes.filter((x) => x !== t) : [...form.tribes, t] })} style={{ accentColor: "#D9662E" }} />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {form.tribes.filter((t) => !(rateCard.tribes || []).includes(t)).length > 0 && (
+          <p style={{ fontSize: 12, color: "#F2B544", margin: "0 0 12px" }}>
+            No longer on the list, will be removed when saved: {form.tribes.filter((t) => !(rateCard.tribes || []).includes(t)).join(", ")}
+          </p>
+        )}
 
         {isAdmin && (
           <label style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 14, borderRadius: 12, border: "1px solid #1C9C9C66", background: "#1C9C9C14", marginBottom: 14, cursor: "pointer" }}>

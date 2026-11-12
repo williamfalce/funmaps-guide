@@ -108,14 +108,51 @@
     "Shopping&Services",
     "Weddings"
   ],
-  "tribes": [
-    "Bear",
-    "Leather",
-    "Luxury",
-    "Cruises",
-    "Weddings",
-    "Deals",
-    "Events",
-    "Parties"
+  "tribeGroups": [
+    {
+      "group": "Gay Men",
+      "tribes": [
+        "Bear",
+        "Clean Cut",
+        "Daddy",
+        "Discreet",
+        "Leather",
+        "Otters",
+        "Pig",
+        "Rugged",
+        "Silver Fox",
+        "Twink",
+        "Twunk"
+      ]
+    },
+    {
+      "group": "Lesbians",
+      "tribes": [
+        "Butch",
+        "Femme",
+        "Stud"
+      ]
+    },
+    {
+      "group": "Trans",
+      "tribes": [
+        "MTF",
+        "FTM",
+        "Non-Binary",
+        "Gender Queer",
+        "TransFem",
+        "TransMasc"
+      ]
+    },
+    {
+      "group": "Travel",
+      "tribes": [
+        "Cruises",
+        "Deals",
+        "Events",
+        "Parties",
+        "Weddings"
+      ]
+    }
   ]
 }
