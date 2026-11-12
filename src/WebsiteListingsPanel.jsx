@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, saveLabel, EditingBanner, apiCall } from "./adminShared.jsx";
 
-// ---------- Website Listings ----------
-// FunMaps.com profiles sold from the rate card (Gold Star, Premium, Basic).
+// ---------- Website & Print Listings ----------
+// Profiles sold from the rate card (Gold Star, Premium, Basic, free Directory).
+// The same business details are used on FunMaps.com and in the printed guide.
 // Sales reps enter them; admins approve. A listing appears on the website only
 // once it is approved, the contract is signed, payment is received, and today
 // falls between its start and end dates (see api/listings.js, isLive).
@@ -148,7 +149,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
       setListings((ls.listings || []).slice().reverse()); // newest first
       setPartners(ps.banners || []);
     } catch (e) {
-      setError("Couldn't load website listings.");
+      setError("Couldn't load listings.");
     }
   }
 
@@ -409,10 +410,10 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
   return (
     <>
       <div style={card}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{form.id ? "Edit Website Listing" : "Add Website Listing"}</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>{form.id ? "Edit Listing (website & printed guide)" : "Add Listing (website & printed guide)"}</h2>
         <EditingBanner record={editingRecord} isAdmin={isAdmin} label={saveLabel(isAdmin, editingRecord, "Listing")} />
         <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>
-          A FunMaps.com profile from the rate card. Paid profiles show on the website once an admin approves them, the contract is signed, payment is received and the start date arrives. Free directory listings show as soon as an admin approves them.
+          These business details are used on FunMaps.com and in the printed FunMaps guide, so check them carefully. Paid profiles show on the website once an admin approves them, the contract is signed, payment is received and the start date arrives. Free directory listings show as soon as an admin approves them.
         </p>
 
         <h3 style={sectionTitle}>Business</h3>
@@ -466,7 +467,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
             </div>
           )}
           <div>
-            <label htmlFor="wl-address" style={labelStyle}>ADDRESS (FOR THE MAP PIN)</label>
+            <label htmlFor="wl-address" style={labelStyle}>ADDRESS (PRINTED GUIDE AND MAP PIN)</label>
             <input id="wl-address" value={form.address} onChange={(e) => set({ address: e.target.value })} style={inputStyle} />
           </div>
           <div>
@@ -483,7 +484,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           </div>
         </div>
 
-        <h3 style={{ ...sectionTitle, marginTop: 8 }}>Website profile (rate card)</h3>
+        <h3 style={{ ...sectionTitle, marginTop: 8 }}>Profile (rate card)</h3>
         <div role="radiogroup" aria-label="Rate card product" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginBottom: 12 }}>
           {rateCard.products
             .filter((p) => p.active || p.id === form.product)
@@ -696,7 +697,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         </select>
       </div>
 
-      {shown.length === 0 && <p style={{ color: "#F5EFE699" }}>{listings.length === 0 ? "No website listings yet — add one above." : "Nothing matches that filter."}</p>}
+      {shown.length === 0 && <p style={{ color: "#F5EFE699" }}>{listings.length === 0 ? "No listings yet — add one above." : "Nothing matches that filter."}</p>}
 
       {shown.map((l) => {
         const p = rateCard.products.find((x) => x.id === l.product);
@@ -893,7 +894,7 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
         FunMaps' advertising prices for the printed guides and FunMaps.com. Reps see these when adding listings. Changes apply to new listings only; existing listings keep the price they were sold at.
         {card.updatedBy && ` Last changed by ${card.updatedBy}${card.updatedAt ? ` on ${new Date(card.updatedAt).toLocaleDateString()}` : ""}.`}
       </p>
-      <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 10, color: "#D9662E" }}>Website profiles (per year)</h3>
+      <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 10, color: "#D9662E" }}>Website & print profiles (per year)</h3>
       {card.products.map((p) => row("products", p))}
       <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 16, color: "#D9662E" }}>Add-ons (per month)</h3>
       {card.addOns.map((a) => row("addOns", a))}

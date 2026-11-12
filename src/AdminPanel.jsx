@@ -806,7 +806,7 @@ export default function AdminPanel() {
         <nav aria-label="Admin sections" style={{ display: "flex", gap: 18, marginBottom: 20, flexWrap: "wrap", alignItems: "flex-end" }}>
           {[
             { group: "Compass", tabs: [["partners", "Partners (Commission)"], ["sponsorships", "Sponsorships (Flat Fee)"], ["deals", "Deals (Self-Expiring)"]] },
-            { group: "FunMaps.com", tabs: [["listings", "Website Listings"]] },
+            { group: "FunMaps.com & Printed Guide", tabs: [["listings", "Website & Print Listings"]] },
             ...(adminRole === "admin" ? [{ group: "Settings", tabs: [["ratecard", "Rate Card"], ["team", "Team"]] }] : []),
           ].map(({ group, tabs }) => (
             <div key={group} role="group" aria-label={group}>
