@@ -22,6 +22,14 @@
       "destination": "/api/click?type=sponsorships"
     },
     {
+      "source": "/site",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/site/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin",
       "destination": "/index.html"
     }
