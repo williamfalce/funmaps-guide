@@ -180,7 +180,7 @@
       "id": "compass-basic",
       "kind": "partner",
       "tier": "basic",
-      "name": "Compass Travel Itinerary Basic Listing (with image)",
+      "name": "Compass Travel Itinerary Basic Listing (text only, no image)",
       "commissionRate": 15,
       "includes": "In appropriate category"
     },
@@ -188,7 +188,7 @@
       "id": "compass-premium",
       "kind": "partner",
       "tier": "premium",
-      "name": "Compass Travel Itinerary Premium Listing (text only, no image)",
+      "name": "Compass Travel Itinerary Premium Listing (with image)",
       "commissionRate": 22,
       "includes": "In appropriate category"
     }

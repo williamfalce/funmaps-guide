@@ -963,8 +963,11 @@ export default function AdminPanel() {
                 style={{ ...inputStyle, marginBottom: 14 }}
               />
 
+              {partnerForm.tier !== "premium" ? (
+                <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 14 }}>Basic partners are text only: Compass shows no image. Choose Recommended Partner (Premium) to include an image or logo.</p>
+              ) : (
               <div style={{ marginBottom: 14 }}>
-                <label style={labelStyle}>{partnerForm.tier === "premium" ? "IMAGE / LOGO *" : "IMAGE / LOGO (optional for Basic)"}</label>
+                <label style={labelStyle}>IMAGE / LOGO *</label>
                 {partnerForm.imageUrl && (
                   <div style={{ marginBottom: 8 }}>
                     <img src={partnerForm.imageUrl} alt="Partner" style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8 }} />
@@ -973,6 +976,7 @@ export default function AdminPanel() {
                 <input type="file" accept="image/*" onChange={handlePartnerImageSelect} disabled={uploadingPartnerImage} style={{ fontSize: 13, color: "#F5EFE6" }} />
                 {uploadingPartnerImage && <p style={{ fontSize: 12, color: "#1C9C9C", marginTop: 4 }}>Uploading...</p>}
               </div>
+              )}
 
               {partnerError && <p style={{ color: "#B23A72", fontSize: 13, marginBottom: 10 }}>{partnerError}</p>}
 
