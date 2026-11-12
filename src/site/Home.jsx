@@ -95,11 +95,6 @@ function Hero() {
             LGBTQ+ travel guides · 34 years of maps
           </p>
           <h1 className="m-0 text-[40px] font-extrabold leading-[1.03] tracking-[-0.02em] sm:text-[58px]">Go where you're welcome.</h1>
-          <ul aria-label="Why FunMaps" className="mt-3.5 flex list-none flex-wrap gap-x-[22px] gap-y-2 p-0 text-[14.5px] font-semibold" style={{ color: BRAND.body }}>
-            <li className="inline-flex items-center gap-1.5"><Check />FunMaps Verified places</li>
-            <li className="inline-flex items-center gap-1.5"><MapIcon />Printed FunMaps for 34 years</li>
-            <li className="inline-flex items-center gap-1.5"><StarIcon />Endorsed by visitors bureaus, IGLTA and NGLCC affiliates</li>
-          </ul>
         </div>
         <form role="search" onSubmit={submit} className="flex min-w-0 flex-[1_1_440px] flex-wrap gap-2 rounded-2xl border bg-white p-2" style={{ borderColor: "#DDD3E4", boxShadow: "0 10px 30px #24152F14" }}>
           <label htmlFor="site-where" className="sr-only">Where are you going?</label>
@@ -143,6 +138,19 @@ function Hero() {
         </a>
       </div>
     </section>
+  );
+}
+
+// Trust line, as a full-width strip right under the hero images.
+function TrustStrip() {
+  return (
+    <div className="mt-7 border-y" style={{ background: BRAND.soft, borderColor: BRAND.line }}>
+      <ul aria-label="Why FunMaps" className="mx-auto flex max-w-[1280px] list-none flex-wrap gap-x-7 gap-y-2 px-6 py-3.5 text-sm font-semibold" style={{ color: BRAND.body }}>
+        <li className="inline-flex items-center gap-1.5"><Check />FunMaps Verified places</li>
+        <li className="inline-flex items-center gap-1.5"><MapIcon />Printed FunMaps for 34 years</li>
+        <li className="inline-flex items-center gap-1.5"><StarIcon />Endorsed by visitors bureaus, IGLTA and NGLCC affiliates</li>
+      </ul>
+    </div>
   );
 }
 
@@ -362,6 +370,7 @@ export default function Home() {
   return (
     <main>
       <Hero />
+      <TrustStrip />
       <Tribes />
       <Destinations />
       <Recommended />
