@@ -79,6 +79,34 @@ function imageDimensions(src) {
   });
 }
 
+// Phone photos are often 4–12 MB, too big to send to the server. Shrink the
+// image in the browser first: no wider than needed (at least the product's
+// required size, up to 1600 px) and saved as a JPEG under about 1.5 MB.
+async function shrinkImage(dataUrl, width, height, product) {
+  const minW = product?.image?.width || 0;
+  const targetW = Math.min(width, Math.max(minW, 1600));
+  const targetH = Math.round((height * targetW) / width);
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = reject;
+    i.src = dataUrl;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, targetW, targetH);
+  ctx.drawImage(img, 0, 0, targetW, targetH);
+  let out = "";
+  for (const q of [0.88, 0.8, 0.7, 0.6, 0.5]) {
+    out = canvas.toDataURL("image/jpeg", q);
+    if (out.length < 2_000_000) break; // ~1.5 MB once decoded
+  }
+  return out;
+}
+
 export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelStyle }) {
   const isAdmin = adminRole === "admin";
   const [rateCard, setRateCard] = useState(null);
@@ -179,13 +207,19 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         setError(sizeProblem + " Ask the advertiser for a larger image.");
         return;
       }
-      const res = await fetch("/api/upload-venue-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-        body: JSON.stringify({ imageDataUrl: dataUrl, filename: file.name }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      const small = await shrinkImage(dataUrl, width, height, product);
+      let res;
+      try {
+        res = await fetch("/api/upload-venue-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+          body: JSON.stringify({ imageDataUrl: small, filename: file.name.replace(/\.[^.]+$/, "") + ".jpg" }),
+        });
+      } catch {
+        throw new Error("Couldn't reach the server to upload the image. Check your internet connection and try again.");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Image upload failed (error ${res.status}). Try again.`);
       set({ imageUrl: data.url });
     } catch (err) {
       setError(err.message || "Image upload failed — try a smaller file (under 2 MB).");
@@ -295,10 +329,10 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     try {
       await apiCall("listings", form.id ? "PUT" : "POST", payload, adminKey);
       setNotice(
-        isAdmin
+        (isAdmin
           ? "Saved and approved. It goes live on the website once the contract is signed, payment is received and the start date arrives."
-          : "Sent for review. An admin will approve it before it can go live."
-      ) + mapNote;
+          : "Sent for review. An admin will approve it before it can go live.") + mapNote
+      );
       cancelEdit();
       await load();
     } catch (e) {

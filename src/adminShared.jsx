@@ -107,13 +107,18 @@ export function PendingChangesNote({ rec }) {
 
 export async function apiCall(endpoint, method, body, adminKey, query) {
   const url = `/api/${endpoint}` + (query ? `?${query}` : "");
-  const res = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json", "x-admin-key": adminKey || "" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json", "x-admin-key": adminKey || "" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new Error("Couldn't reach the server. Check your internet connection and try again.");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Something went wrong on the server (error ${res.status}). Try again in a minute.`);
   return data;
 }
 
