@@ -23,11 +23,23 @@ export const ADVERTISE_URL = "mailto:info@funmaps.com?subject=Advertising%20on%2
 // a listing's city is stored as "City, ST" or "City, Country".
 // "query" searches today's WordPress site for the matching city guide.
 // "compass" is the destination name handed to Compass.
+const BROWARD_GAY_AREA = ["Fort Lauderdale", "Wilton Manors", "Oakland Park"];
+
 export const DESTINATIONS = [
+  // Fort Lauderdale, Wilton Manors and Oakland Park sit side by side, so their
+  // pages share the same places (BROWARD_GAY_AREA); each map stays zoomed on
+  // its own city ("fitToPins: false") instead of zooming out to every pin.
   {
-    slug: "fort-lauderdale", name: "Fort Lauderdale & Wilton Manors", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
-    cities: ["Fort Lauderdale", "Wilton Manors", "Oakland Park", "Lauderdale-By-The-Sea", "Pompano Beach", "Hollywood"], regions: [],
-    center: [26.155, -80.13], zoom: 12, tint: "#B7563C",
+    slug: "fort-lauderdale", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
+    cities: BROWARD_GAY_AREA, regions: [], center: [26.1224, -80.1373], zoom: 13, fitToPins: false, tint: "#B7563C",
+  },
+  {
+    slug: "wilton-manors", name: "Wilton Manors", query: "Wilton Manors", compass: "Wilton Manors, FL",
+    cities: BROWARD_GAY_AREA, regions: [], center: [26.1606, -80.1376], zoom: 15, fitToPins: false, tint: "#C2477A",
+  },
+  {
+    slug: "oakland-park", name: "Oakland Park", query: "Oakland Park", compass: "Oakland Park, FL",
+    cities: BROWARD_GAY_AREA, regions: [], center: [26.1723, -80.132], zoom: 14, fitToPins: false, tint: "#A86A2E",
   },
   {
     slug: "new-york-city", name: "New York City", query: "New York", compass: "New York, NY",

@@ -590,7 +590,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           <label style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 14, borderRadius: 12, border: "1px solid #1C9C9C66", background: "#1C9C9C14", marginBottom: 14, cursor: "pointer" }}>
             <input type="checkbox" checked={form.verified} onChange={(e) => set({ verified: e.target.checked })} style={{ marginTop: 3, accentColor: "#1C9C9C" }} />
             <span style={{ fontSize: 13, lineHeight: 1.5 }}>
-              <strong style={{ color: "#5FD0D0" }}>FunMaps Verified (admins only).</strong> Tick only after this business passes the free Verified review (all five required standards and at least three strengths). It is never sold or tied to advertising.
+              <strong style={{ color: "#5FD0D0" }}>FunMaps LGBTQ+ Verified (admins only).</strong> Tick only after this business passes the free Verified review (all five required standards and at least three strengths). It is never sold or tied to advertising.
             </span>
           </label>
         )}
@@ -715,7 +715,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                   {l.pendingChanges && !l.changesSentBack && <span style={pill("#E8B84B", "#1B1030")}>CHANGES PENDING REVIEW</span>}
                   {l.pendingChanges && l.changesSentBack && <span style={pill("#B23A72", "#FFFFFF")}>↩ CHANGES SENT BACK</span>}
                   {l.live ? <span style={pill("#1C9C9C", "#1B1030")}>LIVE ON WEBSITE</span> : <span style={pill("#B23A7222", "#E58AB5")}>NOT LIVE</span>}
-                  {l.verified && <span style={pill("#5FD0D022", "#5FD0D0")}>✓ FUNMAPS VERIFIED</span>}
+                  {l.verified && <span style={pill("#5FD0D022", "#5FD0D0")}>✓ FUNMAPS LGBTQ+ VERIFIED</span>}
                 </div>
                 {p?.free ? (
                   <p style={{ fontSize: 13, color: "#F5EFE6cc" }}>
@@ -875,9 +875,9 @@ export function RateCardPanel({ adminKey, inputStyle, labelStyle }) {
 
   return (
     <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-      <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>Rate Card</h2>
+      <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>Rate Card: printed guides &amp; website</h2>
       <p style={{ fontSize: 12, color: "#F5EFE699", marginBottom: 10 }}>
-        Prices reps see when adding website listings. Changes apply to new listings only; existing listings keep the price they were sold at.
+        FunMaps' advertising prices for the printed guides and FunMaps.com. Reps see these when adding listings. Changes apply to new listings only; existing listings keep the price they were sold at.
         {card.updatedBy && ` Last changed by ${card.updatedBy}${card.updatedAt ? ` on ${new Date(card.updatedAt).toLocaleDateString()}` : ""}.`}
       </p>
       <h3 style={{ fontSize: 13, fontWeight: 700, marginTop: 10, color: "#D9662E" }}>Website profiles (per year)</h3>

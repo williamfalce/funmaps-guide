@@ -1,13 +1,13 @@
 import { BRAND } from "./siteData.js";
 
-// Public explanation of the FunMaps Verified badge, from the FunMaps LGBTQ+
+// Public explanation of the FunMaps LGBTQ+ Verified badge, from the FunMaps LGBTQ+
 // Friendly Verified Criteria (Oct 2026).
 const REQUIRED = [
   ["Written non-discrimination policy", "covering sexual orientation and gender identity, for both guests and staff."],
   ["Equal treatment in practice", "same-sex couples get the same rooms, tables, packages and prices as anyone else, and no dress codes or rules target trans or gender-nonconforming people."],
   ["A named contact", "responsible for guest complaints about discrimination, and a commitment to respond."],
   ["No recent credible discrimination complaints", "checked with a review search covering the past two years."],
-  ["A signed FunMaps Verified pledge", "agreeing to these standards, to fix problems reported to FunMaps, and to lose the badge if they don't."],
+  ["A signed FunMaps LGBTQ+ Verified pledge", "agreeing to these standards, to fix problems reported to FunMaps, and to lose the badge if they don't."],
 ];
 
 const STRENGTHS = [
@@ -23,8 +23,8 @@ const STRENGTHS = [
 export default function Verified() {
   return (
     <main className="mx-auto max-w-[860px] px-6 pt-12">
-      <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.12em]" style={{ color: BRAND.teal }}>FunMaps Verified</p>
-      <h1 className="m-0 text-[40px] font-extrabold leading-tight tracking-[-0.02em]">What the Verified badge means</h1>
+      <p className="mb-2 text-[13px] font-bold uppercase tracking-[0.12em]" style={{ color: BRAND.teal }}>FunMaps LGBTQ+ Verified</p>
+      <h1 className="m-0 text-[40px] font-extrabold leading-tight tracking-[-0.02em]">What the LGBTQ+ Verified badge means</h1>
       <p className="mt-4 text-lg leading-relaxed" style={{ color: BRAND.body }}>
         FunMaps verifies what a business does, not who works there. A Verified business meets all five required standards and at least three strengths, and is checked again every year.
       </p>
@@ -63,7 +63,7 @@ export default function Verified() {
       </ol>
 
       <p className="mt-8 text-[15px]" style={{ color: BRAND.body }}>
-        Had an experience that doesn't match the badge? Tell us at <a href="mailto:info@funmaps.com?subject=FunMaps%20Verified%20report">info@funmaps.com</a>.
+        Had an experience that doesn't match the badge? Tell us at <a href="mailto:info@funmaps.com?subject=FunMaps%20LGBTQ%2B%20Verified%20report">info@funmaps.com</a>.
       </p>
     </main>
   );

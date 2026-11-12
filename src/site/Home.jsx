@@ -146,7 +146,7 @@ function TrustStrip() {
   return (
     <div className="mt-7 border-y" style={{ background: BRAND.soft, borderColor: BRAND.line }}>
       <ul aria-label="Why FunMaps" className="mx-auto flex max-w-[1280px] list-none flex-wrap gap-x-7 gap-y-2 px-6 py-3.5 text-sm font-semibold" style={{ color: BRAND.body }}>
-        <li className="inline-flex items-center gap-1.5"><Check />FunMaps Verified places</li>
+        <li className="inline-flex items-center gap-1.5"><Check />FunMaps LGBTQ+ Verified places</li>
         <li className="inline-flex items-center gap-1.5"><MapIcon />Printed FunMaps for 34 years</li>
         <li className="inline-flex items-center gap-1.5"><StarIcon />Endorsed by visitors bureaus, IGLTA and NGLCC affiliates</li>
       </ul>
@@ -206,7 +206,7 @@ function Recommended() {
       <div className="mb-5">
         <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">Recommended by FunMaps</h2>
         <p className="mt-1.5 text-sm" style={{ color: BRAND.muted }}>
-          Recommended listings are paid placements. FunMaps Verified is earned separately and can't be bought.
+          Recommended listings are paid placements. FunMaps LGBTQ+ Verified is earned separately and can't be bought.
         </p>
       </div>
       {listings.length === 0 ? (
@@ -265,11 +265,11 @@ function WhyTrust() {
       <div className="grid gap-[22px]" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
         <div className={box} style={{ background: "#EEF8F8" }}>
           <Check size={30} />
-          <h3 className="m-0 text-xl font-extrabold">FunMaps Verified</h3>
+          <h3 className="m-0 text-xl font-extrabold">FunMaps LGBTQ+ Verified</h3>
           <p className="m-0 text-[15px] leading-relaxed" style={{ color: BRAND.body }}>
             Five required standards, from a written non-discrimination policy to equal treatment in practice, checked every year. Free, and never sold with advertising.
           </p>
-          <a href={href("/verified")} className="text-sm font-bold">What Verified means</a>
+          <a href={href("/verified")} className="text-sm font-bold">What LGBTQ+ Verified means</a>
         </div>
         <div className={box} style={{ background: "#FDF1E8" }}>
           <MapIcon size={30} />

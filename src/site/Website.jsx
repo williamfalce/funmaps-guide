@@ -13,7 +13,7 @@ export const href = (p) => `${BASE}${p}` || "/";
 
 const PAGES = {
   "": { component: Home, title: "FunMaps | LGBTQ+ Travel Guides, Maps & Trip Planner" },
-  "/verified": { component: Verified, title: "What FunMaps Verified means | FunMaps" },
+  "/verified": { component: Verified, title: "What FunMaps LGBTQ+ Verified means | FunMaps" },
 };
 
 function useHead(title) {
@@ -53,7 +53,7 @@ function Header() {
           <a href={href("/#destinations")} className="no-underline" style={{ color: BRAND.ink }}>Destinations</a>
           <a href={href("/#tribes")} className="no-underline" style={{ color: BRAND.ink }}>Things to do</a>
           <a href={href("/#stories")} className="no-underline" style={{ color: BRAND.ink }}>Stories</a>
-          <a href={href("/verified")} className="no-underline" style={{ color: BRAND.ink }}>FunMaps Verified</a>
+          <a href={href("/verified")} className="no-underline" style={{ color: BRAND.ink }}>FunMaps LGBTQ+ Verified</a>
         </nav>
         <a href={COMPASS_URL} className="rounded-full px-4 py-2.5 text-[13px] font-bold text-white no-underline md:px-[18px] md:py-3 md:text-sm" style={{ background: BRAND.magenta }}>
           Plan with Compass
@@ -71,12 +71,12 @@ function Footer() {
           <img src={logo} alt="FunMaps" className="h-10 w-auto self-start" />
           <span className="leading-relaxed">Fort Lauderdale, Florida · <a href="mailto:info@funmaps.com">info@funmaps.com</a></span>
           <span className="leading-relaxed">
-            "Recommended" and "Featured" listings, banners and sponsored stories are paid placements. FunMaps Verified is free and can't be bought.
+            "Recommended" and "Featured" listings, banners and sponsored stories are paid placements. FunMaps LGBTQ+ Verified is free and can't be bought.
           </span>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap content-start gap-[22px]">
           <a href={LEGACY.about}>About</a>
-          <a href={href("/verified")}>What Verified means</a>
+          <a href={href("/verified")}>What LGBTQ+ Verified means</a>
           <a href={ADVERTISE_URL}>Advertise</a>
           <a href={LEGACY.contact}>Contact</a>
           <a href={LEGACY.privacy}>Privacy</a>

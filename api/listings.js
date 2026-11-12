@@ -28,7 +28,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 // Never set through POST/PUT bodies.
 const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByUserId", "createdAt", "updatedByName", "pendingChanges", "pendingChangesAt", "pendingChangesBy", "reviewNote", "reviewNoteBy", "reviewNoteAt", "changesSentBack", "lastCheckedAt"];
 // Only admins may change these; sales values are dropped.
-// "verified" is FunMaps Verified: earned through the free Verified review, never
+// "verified" is FunMaps LGBTQ+ Verified: earned through the free Verified review, never
 // tied to advertising, so only admins set it.
 const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate", "verified"];
 // Fields travelers (and the public website) may see.

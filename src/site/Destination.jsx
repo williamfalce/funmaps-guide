@@ -44,7 +44,7 @@ function VerifiedBadge({ small }) {
   return (
     <span className={`inline-flex items-center gap-1 self-start rounded-full font-bold ${small ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs"}`} style={{ background: "#E3F3F3", color: BRAND.tealDark }}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>
-      FunMaps Verified
+      FunMaps LGBTQ+ Verified
     </span>
   );
 }
@@ -124,7 +124,8 @@ function FunMap({ dest, items }) {
         .bindPopup(`<strong>${n}. ${listing.businessName.replace(/</g, "&lt;")}</strong><br>${prettyCategory(listing.category)}`)
         .addTo(layer.current);
     });
-    if (placed.length > 1) map.current.fitBounds(L.latLngBounds(placed.map(({ listing }) => [listing.lat, listing.lng])), { padding: [40, 40], maxZoom: 15 });
+    if (dest.fitToPins === false) map.current.setView(dest.center, dest.zoom);
+    else if (placed.length > 1) map.current.fitBounds(L.latLngBounds(placed.map(({ listing }) => [listing.lat, listing.lng])), { padding: [40, 40], maxZoom: 15 });
     else if (placed.length === 1) map.current.setView([placed[0].listing.lat, placed[0].listing.lng], 14);
     else map.current.setView(dest.center, dest.zoom);
   }, [items, dest]);
@@ -135,7 +136,7 @@ function FunMap({ dest, items }) {
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Recommended</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps Verified</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps LGBTQ+ Verified</span>
       </div>
     </div>
   );
@@ -240,7 +241,7 @@ export default function Destination({ slug }) {
         </p>
         <h1 className="m-0 text-[36px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-[52px]">Gay {dest.name}</h1>
         <p className="mt-3 max-w-[760px] text-[17px] leading-relaxed" style={{ color: BRAND.body }}>
-          Where to stay, eat, drink and explore in {dest.name}, with FunMaps Verified welcoming places and insider picks.{" "}
+          Where to stay, eat, drink and explore in {dest.name}, with FunMaps LGBTQ+ Verified welcoming places and insider picks.{" "}
           <a href={LEGACY.search(dest.query)}>Read the full FunMaps guide to {dest.name}</a>.
         </p>
       </section>
@@ -251,10 +252,10 @@ export default function Destination({ slug }) {
           <div className="flex flex-col gap-2 rounded-[22px] p-[22px]" style={{ background: "#EEF8F8" }}>
             <h2 className="m-0 flex items-center gap-2 text-[19px] font-extrabold">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={BRAND.teal} strokeWidth="2" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>
-              {verifiedCount} FunMaps Verified {verifiedCount === 1 ? "place" : "places"} here
+              {verifiedCount} FunMaps LGBTQ+ Verified {verifiedCount === 1 ? "place" : "places"} here
             </h2>
             <p className="m-0 text-sm leading-relaxed" style={{ color: BRAND.body }}>Checked against our published standards every year. Free, and never sold with advertising.</p>
-            <a href={href("/verified")} className="text-sm font-bold">What Verified means</a>
+            <a href={href("/verified")} className="text-sm font-bold">What LGBTQ+ Verified means</a>
           </div>
           <div className="flex flex-col gap-2 rounded-[22px] p-[22px]" style={{ background: "#F5EDF7" }}>
             <h2 className="m-0 text-[19px] font-extrabold">Plan {dest.name} with Compass</h2>
@@ -306,7 +307,7 @@ export default function Destination({ slug }) {
                 className="ml-auto inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-bold"
                 style={{ borderColor: BRAND.teal, background: verifiedOnly ? BRAND.teal : "#FFFFFF", color: verifiedOnly ? "#FFFFFF" : BRAND.tealDark }}
               >
-                ✓ Verified only
+                ✓ LGBTQ+ Verified only
               </button>
             )}
           </div>
@@ -397,7 +398,7 @@ export default function Destination({ slug }) {
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap gap-1.5">
                       <PaidLabel listing={l} />
-                      {l.verified && <span className="text-[11px] font-bold" style={{ color: BRAND.tealDark }}>✓ Verified</span>}
+                      {l.verified && <span className="text-[11px] font-bold" style={{ color: BRAND.tealDark }}>✓ LGBTQ+ Verified</span>}
                     </div>
                     <h3 className="m-0 text-base font-extrabold">{l.businessName}</h3>
                     <p className="m-0 text-[13px]" style={{ color: BRAND.muted }}>
@@ -430,7 +431,7 @@ export default function Destination({ slug }) {
                         <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-0.5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-[15px] font-bold">{l.businessName}</span>
-                            {l.verified && <span className="text-[11px] font-bold" style={{ color: BRAND.tealDark }}>✓ FunMaps Verified</span>}
+                            {l.verified && <span className="text-[11px] font-bold" style={{ color: BRAND.tealDark }}>✓ FunMaps LGBTQ+ Verified</span>}
                           </div>
                           <span className="text-[13px]" style={{ color: BRAND.muted }}>
                             {[l.address, l.city].filter(Boolean).join(", ")}
