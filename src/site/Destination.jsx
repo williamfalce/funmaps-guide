@@ -3,6 +3,8 @@ import { DESTINATIONS, inDestination, LEGACY, COMPASS_URL, WORDPRESS_URL, BRAND 
 import { href } from "./Website.jsx";
 import RATE_CARD from "../rateCard.json";
 
+// Tribes are only used to filter; they are never shown on a listing card,
+// since advertisers didn't choose that wording for their ad.
 // Map-first destination page: an interactive FunMap of the city's live
 // website listings (numbered pins), filters, the listings by tier with honest
 // paid-placement labels, and "Add to my trip" which hands the picks to Compass.
@@ -349,7 +351,6 @@ export default function Destination({ slug }) {
               <p className="m-0 text-[12.5px] font-bold uppercase tracking-[0.06em]" style={{ color: BRAND.muted }}>{prettyCategory(l.category)} · {l.city}</p>
               <h2 className="m-0 text-[30px] font-extrabold leading-tight">{l.businessName}</h2>
               {l.verified && <VerifiedBadge />}
-              {l.tribes?.length > 0 && <p className="m-0 text-sm" style={{ color: BRAND.muted }}>{l.tribes.join(" · ")}</p>}
               {l.description && <p className="m-0 text-base leading-relaxed" style={{ color: BRAND.body }}>{l.description}</p>}
               <div className="mt-1.5 flex flex-wrap gap-2.5">
                 <TripButton inTrip={inTrip(l)} onClick={() => toggleTrip(l)} />
@@ -373,7 +374,6 @@ export default function Destination({ slug }) {
                   <p className="m-0 text-xs font-bold uppercase tracking-[0.06em]" style={{ color: BRAND.muted }}>{prettyCategory(l.category)} · {l.city}</p>
                   <h3 className="m-0 text-[21px] font-extrabold">{l.businessName}</h3>
                   {l.verified && <VerifiedBadge small />}
-                  {l.tribes?.length > 0 && <p className="m-0 text-sm" style={{ color: BRAND.muted }}>{l.tribes.join(" · ")}</p>}
                   {l.description && <p className="m-0 text-[15px] leading-relaxed" style={{ color: BRAND.body }}>{l.description}</p>}
                   <div className="mt-auto flex flex-wrap gap-2.5 pt-1.5">
                     <TripButton inTrip={inTrip(l)} onClick={() => toggleTrip(l)} />
@@ -402,7 +402,7 @@ export default function Destination({ slug }) {
                     </div>
                     <h3 className="m-0 text-base font-extrabold">{l.businessName}</h3>
                     <p className="m-0 text-[13px]" style={{ color: BRAND.muted }}>
-                      {prettyCategory(l.category)}{l.tribes?.length ? ` · ${l.tribes.join(" · ")}` : ""}
+                      {prettyCategory(l.category)}
                     </p>
                     {l.phone && <a href={`tel:${l.phone.replace(/[^0-9+]/g, "")}`} className="text-[13px]">{l.phone}</a>}
                     <div className="mt-1 flex flex-wrap gap-2">
@@ -435,7 +435,6 @@ export default function Destination({ slug }) {
                           </div>
                           <span className="text-[13px]" style={{ color: BRAND.muted }}>
                             {[l.address, l.city].filter(Boolean).join(", ")}
-                            {l.tribes?.length ? ` · ${l.tribes.join(" · ")}` : ""}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-[13px] font-bold">
