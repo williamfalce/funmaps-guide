@@ -14,6 +14,10 @@
       "destination": "/api/listings?resource=stories"
     },
     {
+      "source": "/api/subscribe",
+      "destination": "/api/listings?resource=subscribe"
+    },
+    {
       "source": "/api/banner-click",
       "destination": "/api/click?type=banners"
     },

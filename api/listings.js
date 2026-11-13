@@ -23,6 +23,7 @@ const { isUnapproved, sendBack, clearReview } = require("./_review");
 const { getRateCard, validMoney } = require("./_rateCard");
 const { handleRateCard } = require("./_rateCardHandler");
 const { handleStories } = require("./_storiesHandler");
+const { handleSubscribe } = require("./_subscribeHandler");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
@@ -200,6 +201,8 @@ module.exports = async (req, res) => {
   if (req.query.resource === "rate-card") return handleRateCard(req, res);
   // /api/stories (Traveler Stories) is served from here too; see api/_storiesHandler.js.
   if (req.query.resource === "stories") return handleStories(req, res);
+  // /api/subscribe (newsletter sign-up, sent to Brevo); see api/_subscribeHandler.js.
+  if (req.query.resource === "subscribe") return handleSubscribe(req, res);
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");

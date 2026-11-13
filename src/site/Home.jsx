@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DESTINATIONS, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND } from "./siteData.js";
 import { href } from "./Website.jsx";
+import { openSignup } from "./SignupPopup.jsx";
 
 const card = { borderColor: BRAND.line };
 
@@ -442,10 +443,10 @@ function SignupAndAdvertise() {
       <div className="flex flex-wrap gap-[22px]">
         <div className="flex min-w-0 flex-[1_1_420px] flex-col items-start gap-3.5 rounded-[22px] p-9 text-white" style={{ background: BRAND.night }}>
           <h2 className="m-0 text-[26px] font-extrabold">Get the best of LGBTQ+ travel</h2>
-          <p className="m-0 text-[15px]" style={{ color: "#E9E0F0" }}>New places, events and deals from FunMaps.</p>
-          <a href={LEGACY.newsletter} className="rounded-[10px] px-5 py-3 text-[15px] font-bold no-underline" style={{ background: BRAND.orange, color: BRAND.ink }}>
-            Subscribe to the newsletter
-          </a>
+          <p className="m-0 text-[15px]" style={{ color: "#E9E0F0" }}>Our free LGBTQ+ trip guide, the FunMaps newsletter and subscriber-only deals.</p>
+          <button type="button" onClick={openSignup} className="cursor-pointer rounded-[10px] border-0 px-5 py-3 text-[15px] font-bold" style={{ background: BRAND.orange, color: BRAND.ink }}>
+            Get the free guide &amp; newsletter
+          </button>
         </div>
         <div className="flex min-w-0 flex-[1_1_420px] flex-col items-start gap-3.5 rounded-[22px] p-9" style={{ background: "#FDF1E8" }}>
           <h2 className="m-0 text-[26px] font-extrabold">Welcome LGBTQ+ travelers to your business</h2>
