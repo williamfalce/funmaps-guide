@@ -31,7 +31,7 @@ export const DESTINATIONS = [
   // its own city ("fitToPins: false") instead of zooming out to every pin.
   {
     slug: "fort-lauderdale", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
-    cities: BROWARD_GAY_AREA, regions: [], center: [26.1224, -80.1373], zoom: 13, fitToPins: false, tint: "#B7563C",
+    cities: BROWARD_GAY_AREA, regions: [], center: [26.135, -80.135], zoom: 12, fitToPins: false, tint: "#B7563C",
   },
   {
     slug: "wilton-manors", name: "Wilton Manors", query: "Wilton Manors", compass: "Wilton Manors, FL",

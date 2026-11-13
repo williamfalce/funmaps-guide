@@ -50,6 +50,14 @@ const emptyListingForm = {
 
 const FREE_PRODUCT = "directory";
 
+// What to ask the map service: the address alone when it already names the
+// city, otherwise the address plus "City, ST".
+function geoQuery(address, cityName, fullCity) {
+  const a = String(address || "").trim();
+  const city = String(cityName || fullCity.split(",")[0] || "").trim().toLowerCase();
+  return city && a.toLowerCase().includes(city) ? a : `${a}, ${fullCity}`;
+}
+
 // A free directory listing whose details haven't been checked for a year.
 function dueForCheck(l) {
   if (l.product !== FREE_PRODUCT) return false;
@@ -131,6 +139,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
   const [imageWarning, setImageWarning] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pinBusy, setPinBusy] = useState("");
+  const [pinMessage, setPinMessage] = useState(null); // { ok, text } shown above the list
   const [filter, setFilter] = useState("all");
 
   const product = rateCard?.products.find((p) => p.id === form.product);
@@ -287,7 +297,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
     const moved = !editingRecord || editingRecord.address !== form.address || editingRecord.city !== fullCity;
     if (form.address.trim() && (lat === null || moved)) {
       try {
-        const g = await fetch(`/api/geocode?q=${encodeURIComponent(`${form.address}, ${fullCity}`)}`);
+        const g = await fetch(`/api/geocode?q=${encodeURIComponent(geoQuery(form.address, form.cityName, fullCity))}`);
         if (g.ok) {
           const pos = await g.json();
           lat = pos.lat;
@@ -358,6 +368,24 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
       setError(e.message || "Couldn't save that listing — try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Looks up a saved listing's address on the map and saves the pin.
+  async function findPin(l) {
+    setPinBusy(l.id);
+    setPinMessage(null);
+    try {
+      const g = await fetch(`/api/geocode?q=${encodeURIComponent(geoQuery(l.address, parseCityString(l.city).cityName, l.city))}`);
+      if (!g.ok) throw new Error(`We couldn't find "${l.address}" on the map. Edit the listing and check the street address.`);
+      const pos = await g.json();
+      await apiCall("listings", "PUT", { id: l.id, lat: pos.lat, lng: pos.lon }, adminKey);
+      setPinMessage({ ok: true, text: `Map pin added for ${l.businessName}.` });
+      await load();
+    } catch (e) {
+      setPinMessage({ ok: false, text: e.message || "Couldn't look up that address." });
+    } finally {
+      setPinBusy("");
     }
   }
 
@@ -697,6 +725,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
         </select>
       </div>
 
+      {pinMessage && <p role="status" style={{ color: pinMessage.ok ? "#1C9C9C" : "#B23A72", fontSize: 13, marginBottom: 10 }}>{pinMessage.text}</p>}
       {shown.length === 0 && <p style={{ color: "#F5EFE699" }}>{listings.length === 0 ? "No listings yet — add one above." : "Nothing matches that filter."}</p>}
 
       {shown.map((l) => {
@@ -776,6 +805,11 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
               {isAdmin && (
                 <button onClick={() => quickUpdate(l, { active: l.active === false })} style={{ ...smallBtn, color: l.active === false ? "#1C9C9C" : "#F5EFE699" }}>
                   {l.active === false ? "Activate" : "Pause"}
+                </button>
+              )}
+              {isAdmin && l.lat == null && l.address && (
+                <button onClick={() => findPin(l)} disabled={pinBusy === l.id} style={{ ...smallBtn, color: "#E8B84B" }}>
+                  {pinBusy === l.id ? "Looking up..." : "Find map pin"}
                 </button>
               )}
               <button onClick={() => startEdit(l)} style={{ ...smallBtn, color: "#1C9C9C" }}>
