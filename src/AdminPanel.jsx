@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, saveLabel, EditingBanner, apiCall } from "./adminShared.jsx";
 import { WebsiteListingsPanel, RateCardPanel } from "./WebsiteListingsPanel.jsx";
 import { StoriesPanel } from "./StoriesPanel.jsx";
+import { LatestLinksPanel } from "./LatestLinksPanel.jsx";
 
 const CATEGORIES = ["Accommodations", "Arts&Entertainment", "Attractions", "Bars&Clubs", "Events", "Resources", "Restaurants", "Shopping&Services", "Weddings"];
 const BUDGET_OPTIONS = [
@@ -808,7 +809,7 @@ export default function AdminPanel() {
           {[
             { group: "Compass", tabs: [["partners", "Partners (Commission)"], ["sponsorships", "Sponsorships (Flat Fee)"], ["deals", "Deals (Self-Expiring)"]] },
             { group: "FunMaps.com & Printed Guide", tabs: [["listings", "Website & Print Listings"], ...(adminRole === "admin" ? [["stories", "Traveler Stories"]] : [])] },
-            ...(adminRole === "admin" ? [{ group: "Settings", tabs: [["ratecard", "Rate Card"], ["team", "Team"]] }] : []),
+            ...(adminRole === "admin" ? [{ group: "Settings", tabs: [["ratecard", "Rate Card"], ["latestlinks", "Newsletter & Guide"], ["team", "Team"]] }] : []),
           ].map(({ group, tabs }) => (
             <div key={group} role="group" aria-label={group}>
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#F5EFE699", marginBottom: 6 }}>{group}</div>
@@ -830,6 +831,7 @@ export default function AdminPanel() {
 
         {activeTab === "team" && adminRole === "admin" && <TeamPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
         {activeTab === "listings" && <WebsiteListingsPanel adminKey={adminKey} adminRole={adminRole} inputStyle={inputStyle} labelStyle={labelStyle} />}
+        {activeTab === "latestlinks" && adminRole === "admin" && <LatestLinksPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
         {activeTab === "stories" && adminRole === "admin" && <StoriesPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
         {activeTab === "ratecard" && adminRole === "admin" && <RateCardPanel adminKey={adminKey} inputStyle={inputStyle} labelStyle={labelStyle} />}
 
