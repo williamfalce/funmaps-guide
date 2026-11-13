@@ -326,7 +326,20 @@ export default function Destination({ slug }) {
           <p className="m-0 text-sm" style={{ color: BRAND.muted }}>
             <a href={href("/")}>Home</a> / <a href={href("/#destinations")}>Destinations</a> / {dest.name}
           </p>
-          <TribePicker counts={tribeCounts} picked={picked} setPicked={setPicked} />
+          <div role="group" aria-label="Filters" className="flex flex-wrap items-center gap-2">
+            {verifiedCount > 0 && (
+              <button
+                type="button"
+                aria-pressed={verifiedOnly}
+                onClick={() => setVerifiedOnly(!verifiedOnly)}
+                className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-bold"
+                style={{ borderColor: BRAND.teal, background: verifiedOnly ? BRAND.teal : "#FFFFFF", color: verifiedOnly ? "#FFFFFF" : BRAND.tealDark }}
+              >
+                ✓ LGBTQ+ Verified only
+              </button>
+            )}
+            <TribePicker counts={tribeCounts} picked={picked} setPicked={setPicked} />
+          </div>
         </div>
         <h1 className="m-0 text-[36px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-[52px]">Gay {dest.name}</h1>
         <p className="mt-3 max-w-[760px] text-[17px] leading-relaxed" style={{ color: BRAND.body }}>
@@ -371,21 +384,6 @@ export default function Destination({ slug }) {
                 {label}
               </button>
             ))}
-          </div>
-        )}
-        {verifiedCount > 0 && (
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {verifiedCount > 0 && (
-              <button
-                type="button"
-                aria-pressed={verifiedOnly}
-                onClick={() => setVerifiedOnly(!verifiedOnly)}
-                className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-bold"
-                style={{ borderColor: BRAND.teal, background: verifiedOnly ? BRAND.teal : "#FFFFFF", color: verifiedOnly ? "#FFFFFF" : BRAND.tealDark }}
-              >
-                ✓ LGBTQ+ Verified only
-              </button>
-            )}
           </div>
         )}
         {all !== null && all.length > 0 && (
