@@ -152,7 +152,7 @@ export default function SignupPopup({ path }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
       writeState({ ...readState(), subscribed: true });
-      setDone(true);
+      setDone(data.alreadySubscribed ? "already" : true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -180,7 +180,17 @@ export default function SignupPopup({ path }) {
           ×
         </button>
 
-        {done ? (
+        {done === "already" ? (
+          <div className="flex flex-col gap-3 px-7 pb-8 pt-8">
+            <h2 id="signup-title" className="m-0 pr-8 text-[26px] font-extrabold leading-tight">You're already on the list!</h2>
+            <p className="m-0 text-[16px] leading-relaxed" style={{ color: BRAND.body }}>
+              <strong>{email.trim()}</strong> already gets the FunMaps newsletter. We've saved your trip interests so the deals we send fit you better.
+            </p>
+            <button type="button" onClick={close} className="mt-2 cursor-pointer self-start rounded-[10px] border-0 px-5 py-3 text-[15px] font-bold text-white" style={{ background: BRAND.magenta }}>
+              Keep exploring
+            </button>
+          </div>
+        ) : done ? (
           <div className="flex flex-col gap-3 px-7 pb-8 pt-8">
             <h2 id="signup-title" className="m-0 pr-8 text-[26px] font-extrabold leading-tight">Almost there! Check your inbox.</h2>
             <p className="m-0 text-[16px] leading-relaxed" style={{ color: BRAND.body }}>
