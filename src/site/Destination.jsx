@@ -179,9 +179,10 @@ function CityStories({ dest }) {
   );
 }
 
-// "Show venues for your tribe": a compact multi-select. Only tribes that some
-// place in this destination has are offered, grouped as on the rate card.
-function TribePicker({ present, picked, setPicked }) {
+// "Venues for your tribe": a compact multi-select of every tribe on the rate
+// card. Travelers pick the tribes they identify with; the count shows how many
+// places here are tagged with each.
+function TribePicker({ counts, picked, setPicked }) {
   const [open, setOpen] = useState(false);
   const box = useRef(null);
   useEffect(() => {
@@ -196,7 +197,7 @@ function TribePicker({ present, picked, setPicked }) {
       document.removeEventListener("keydown", close);
     };
   }, [open]);
-  const groups = RATE_CARD.tribeGroups.map((g) => ({ group: g.group, tribes: g.tribes.filter((t) => present.includes(t)) })).filter((g) => g.tribes.length);
+  const groups = RATE_CARD.tribeGroups;
   const toggle = (t) => setPicked(picked.includes(t) ? picked.filter((x) => x !== t) : [...picked, t]);
   const summary = picked.length === 0 ? "All" : picked.length <= 2 ? picked.join(", ") : `${picked.length} selected`;
   return (
@@ -214,8 +215,8 @@ function TribePicker({ present, picked, setPicked }) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-[1100] mt-2 sm:left-auto sm:right-0 w-[min(340px,calc(100vw-48px))] rounded-2xl border bg-white p-4" style={{ borderColor: BRAND.line, boxShadow: "0 14px 34px #1A122633" }}>
-          <div className="flex max-h-[360px] flex-col gap-3.5 overflow-y-auto">
+        <div className="absolute left-0 top-full z-[1100] mt-2 sm:left-auto sm:right-0 w-[min(420px,calc(100vw-48px))] rounded-2xl border bg-white p-4" style={{ borderColor: BRAND.line, boxShadow: "0 14px 34px #1A122633" }}>
+          <div className="flex max-h-[min(440px,60vh)] flex-col gap-3.5 overflow-y-auto">
             {groups.map((g) => (
               <fieldset key={g.group} className="m-0 border-0 p-0">
                 <legend className="mb-1.5 p-0 text-xs font-bold uppercase tracking-[0.06em]" style={{ color: BRAND.muted }}>{g.group}</legend>
@@ -224,6 +225,7 @@ function TribePicker({ present, picked, setPicked }) {
                     <label key={t} className="inline-flex min-h-[36px] cursor-pointer items-center gap-2 text-[15px]">
                       <input type="checkbox" checked={picked.includes(t)} onChange={() => toggle(t)} style={{ width: 18, height: 18, accentColor: BRAND.magenta }} />
                       {t}
+                      {counts[t] ? <span className="text-xs" style={{ color: BRAND.muted }}>({counts[t]})</span> : null}
                     </label>
                   ))}
                 </div>
@@ -248,7 +250,24 @@ export default function Destination({ slug }) {
   const dest = DESTINATIONS.find((d) => d.slug === slug);
   const [all, setAll] = useState(null);
   const [cat, setCat] = useState("all");
-  const [picked, setPicked] = useState([]); // selected tribes; a place shows if it has any of them
+  // Selected tribes; a place shows if it has any of them. It's the traveler's
+  // own choice, so it follows them to other destination pages (this browser only).
+  const [picked, setPickedState] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("funmaps-tribes") || "[]");
+      return Array.isArray(saved) ? saved.filter((t) => RATE_CARD.tribeGroups.some((g) => g.tribes.includes(t))) : [];
+    } catch {
+      return [];
+    }
+  });
+  const setPicked = (next) => {
+    setPickedState(next);
+    try {
+      localStorage.setItem("funmaps-tribes", JSON.stringify(next));
+    } catch {
+      // storage blocked: the choice just lasts for this page
+    }
+  };
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [trip, setTrip] = useState(() => (dest ? loadTrip(dest.slug) : []));
 
@@ -267,7 +286,8 @@ export default function Destination({ slug }) {
     ({ listing: l }) => (cat === "all" || l.category === cat) && (!picked.length || (l.tribes || []).some((t) => picked.includes(t))) && (!verifiedOnly || l.verified)
   );
   const categories = [...new Set(numbered.map(({ listing }) => listing.category).filter(Boolean))];
-  const tribes = [...new Set(numbered.flatMap(({ listing }) => listing.tribes || []))];
+  const tribeCounts = {};
+  for (const { listing } of numbered) for (const t of listing.tribes || []) tribeCounts[t] = (tribeCounts[t] || 0) + 1;
   const verifiedCount = numbered.filter(({ listing }) => listing.verified).length;
 
   const toggleTrip = (l) => {
@@ -306,7 +326,7 @@ export default function Destination({ slug }) {
           <p className="m-0 text-sm" style={{ color: BRAND.muted }}>
             <a href={href("/")}>Home</a> / <a href={href("/#destinations")}>Destinations</a> / {dest.name}
           </p>
-          {tribes.length > 0 && <TribePicker present={tribes} picked={picked} setPicked={setPicked} />}
+          <TribePicker counts={tribeCounts} picked={picked} setPicked={setPicked} />
         </div>
         <h1 className="m-0 text-[36px] font-extrabold leading-[1.05] tracking-[-0.02em] sm:text-[52px]">Gay {dest.name}</h1>
         <p className="mt-3 max-w-[760px] text-[17px] leading-relaxed" style={{ color: BRAND.body }}>
@@ -387,7 +407,9 @@ export default function Destination({ slug }) {
         )}
         {all !== null && all.length > 0 && shown.length === 0 && (
           <div className="flex flex-col items-center gap-3 rounded-[18px] border border-dashed p-8 text-center" style={{ borderColor: "#DDD3E4" }}>
-            <p className="m-0 font-bold">No places match those filters.</p>
+            <p className="m-0 font-bold">
+              {picked.length ? `No places here are tagged ${picked.join(" or ")} yet.` : "No places match those filters."}
+            </p>
             <button type="button" onClick={() => { setCat("all"); setPicked([]); setVerifiedOnly(false); }} className="cursor-pointer rounded-[10px] border bg-white px-4 py-2.5 text-sm font-bold" style={{ borderColor: "#DDD3E4" }}>
               Clear filters
             </button>
