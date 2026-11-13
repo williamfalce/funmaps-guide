@@ -74,14 +74,14 @@ export function inDestination(dest, cityString) {
   return dest.cities.some((c) => c.toLowerCase() === city) || dest.regions.some((r) => r.toLowerCase() === region);
 }
 
-// Today's FunMaps "Fun Things To Do" themes, shown as "Browse by tribe".
+// Travel themes on the homepage's "Browse by tribe" row (alphabetical).
+// Each links to matching FunMaps articles.
 export const TRIBES = [
-  { name: "Bear Necessities", query: "bear" },
-  { name: "Leather", query: "leather" },
-  { name: "Luxury", query: "luxury" },
   { name: "Cruises", query: "cruise" },
+  { name: "Luxury", query: "luxury" },
+  { name: "On a Budget", query: "budget" },
+  { name: "Travel Deals", query: "deals" },
   { name: "Weddings", query: "wedding" },
-  { name: "Travel deals", query: "deals" },
 ];
 
 export const BRAND = {
