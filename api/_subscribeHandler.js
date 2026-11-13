@@ -76,26 +76,31 @@ async function handleSubscribe(req, res) {
     res.status(502).json({ error: `We couldn't sign you up just now. Please try again in a few minutes. (Ref: ${ref})` });
   };
 
+  // Someone already on the newsletter list: no new confirmation email (and no
+  // second welcome email, which only fires when someone joins the list); just
+  // add any new interests and their first name.
+  async function alreadySubscribed() {
+    const c = await brevo(`contacts/${encodeURIComponent(email)}`, "GET");
+    const contact = c.ok ? await c.json().catch(() => null) : null;
+    if (!contact || !(contact.listIds || []).includes(NEWSLETTER_LIST_ID) || contact.emailBlacklisted) return false;
+    const had = (contact.attributes && contact.attributes.INTERESTS) || [];
+    const merged = [...new Set([...(Array.isArray(had) ? had : []), ...interests])];
+    const update = {};
+    if (firstName) update.FIRSTNAME = firstName;
+    if (merged.length) update.INTERESTS = merged;
+    if (Object.keys(update).length) await brevo(`contacts/${encodeURIComponent(email)}`, "PUT", { attributes: update });
+    return true;
+  }
+
   try {
+    if (await alreadySubscribed()) return void res.status(200).json({ ok: true, alreadySubscribed: true });
     const r = await brevo("contacts/doubleOptinConfirmation", "POST", { email, attributes, includeListIds: [NEWSLETTER_LIST_ID], templateId: DOI_TEMPLATE_ID, redirectionUrl });
     if (r.ok) return void res.status(200).json({ ok: true });
     const data = await r.json().catch(() => ({}));
     console.error("Brevo sign-up failed", r.status, data.code, data.message);
 
-    // Already a contact: if they're on the newsletter list, just save their
-    // new name and interests and tell them they're already subscribed.
-    if (r.status === 400 && (data.code === "duplicate_parameter" || /already exist/i.test(data.message || ""))) {
-      const c = await brevo(`contacts/${encodeURIComponent(email)}`, "GET");
-      const contact = c.ok ? await c.json().catch(() => null) : null;
-      if (contact && (contact.listIds || []).includes(NEWSLETTER_LIST_ID) && !contact.emailBlacklisted) {
-        const had = (contact.attributes && contact.attributes.INTERESTS) || [];
-        const merged = [...new Set([...(Array.isArray(had) ? had : []), ...interests])];
-        const update = {};
-        if (firstName) update.FIRSTNAME = firstName;
-        if (merged.length) update.INTERESTS = merged;
-        if (Object.keys(update).length) await brevo(`contacts/${encodeURIComponent(email)}`, "PUT", { attributes: update });
-        return void res.status(200).json({ ok: true, alreadySubscribed: true });
-      }
+    if (r.status === 400 && (data.code === "duplicate_parameter" || /already exist/i.test(data.message || "")) && (await alreadySubscribed())) {
+      return void res.status(200).json({ ok: true, alreadySubscribed: true });
     }
     if (r.status === 400 && /email/i.test(data.message || "") && !/already/i.test(data.message || "")) {
       return void res.status(400).json({ error: "Please check your email address." });
