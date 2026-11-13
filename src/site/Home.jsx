@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { DESTINATIONS, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND } from "./siteData.js";
 import { href } from "./Website.jsx";
-import RATE_CARD from "../rateCard.json";
 
 const card = { borderColor: BRAND.line };
 
@@ -155,13 +154,19 @@ function TrustStrip() {
   );
 }
 
-// Story topics: travel styles plus the rate card's tribes, each alphabetical.
+// Story topics: the tribe groups and the travel styles, alphabetical.
 // Each button opens matching FunMaps articles (a WordPress search for now).
+// "Trans" searches "transgender", since "trans" also matches "transportation".
 const STORY_TOPICS = [
-  { group: "Travel styles", items: TRIBES.map((t) => ({ name: t.name, query: t.query })) },
-  ...RATE_CARD.tribeGroups
-    .filter((g) => g.group !== "Travel")
-    .map((g) => ({ group: g.group, items: [...g.tribes].sort((x, y) => x.localeCompare(y)).map((t) => ({ name: t, query: t })) })),
+  {
+    group: "Your tribe",
+    items: [
+      { name: "Gay Men", query: "gay men" },
+      { name: "Lesbians", query: "lesbian" },
+      { name: "Trans", query: "transgender" },
+    ],
+  },
+  { group: "Travel style", items: TRIBES.map((t) => ({ name: t.name, query: t.query })) },
 ];
 
 function StoryTopics() {
