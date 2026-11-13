@@ -156,14 +156,14 @@ function TrustStrip() {
 
 // Story topics: the tribe groups and the travel styles, alphabetical.
 // Each button opens matching FunMaps articles (a WordPress search for now).
-// "Trans" searches "transgender", since "trans" also matches "transportation".
+// "Transgender" is spelled out: a search for "trans" also matches "transportation".
 const STORY_TOPICS = [
   {
     group: "Your tribe",
     items: [
       { name: "Gay Men", query: "gay men" },
       { name: "Lesbians", query: "lesbian" },
-      { name: "Trans", query: "transgender" },
+      { name: "Transgender", query: "transgender" },
     ],
   },
   { group: "Travel style", items: TRIBES.map((t) => ({ name: t.name, query: t.query })) },
