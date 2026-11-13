@@ -10,6 +10,10 @@
       "destination": "/api/listings?resource=rate-card"
     },
     {
+      "source": "/api/stories",
+      "destination": "/api/listings?resource=stories"
+    },
+    {
       "source": "/api/banner-click",
       "destination": "/api/click?type=banners"
     },

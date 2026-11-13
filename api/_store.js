@@ -16,6 +16,7 @@ const STORES = {
   sponsorships: { key: "sponsorships", legacyKey: "sponsorships-v1" },
   deals: { key: "deals", legacyKey: "deals-v1" },
   listings: { key: "listings", legacyKey: null }, // website listings: new, nothing to copy
+  stories: { key: "stories", legacyKey: null }, // traveler stories sent in from the website
 };
 
 function parse(v) {

@@ -22,6 +22,7 @@ const { makeStore } = require("./_store");
 const { isUnapproved, sendBack, clearReview } = require("./_review");
 const { getRateCard, validMoney } = require("./_rateCard");
 const { handleRateCard } = require("./_rateCardHandler");
+const { handleStories } = require("./_storiesHandler");
 
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 
@@ -197,6 +198,8 @@ function normCity(name) {
 module.exports = async (req, res) => {
   // /api/rate-card is rewritten here (see vercel.json) to save a serverless function.
   if (req.query.resource === "rate-card") return handleRateCard(req, res);
+  // /api/stories (Traveler Stories) is served from here too; see api/_storiesHandler.js.
+  if (req.query.resource === "stories") return handleStories(req, res);
   res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key");

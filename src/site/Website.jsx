@@ -3,6 +3,7 @@ import logo from "../assets/funmaps-logo.png";
 import Home from "./Home.jsx";
 import Verified from "./Verified.jsx";
 import Destination from "./Destination.jsx";
+import ShareStory from "./ShareStory.jsx";
 import { DESTINATIONS, LEGACY, COMPASS_URL, ADVERTISE_URL, BRAND } from "./siteData.js";
 
 // The FunMaps.com website. On funmaps.com it lives at the root; on
@@ -14,6 +15,7 @@ export const href = (p) => `${BASE}${p}` || "/";
 const PAGES = {
   "": { component: Home, title: "FunMaps | LGBTQ+ Travel Guides, Maps & Trip Planner" },
   "/verified": { component: Verified, title: "What FunMaps LGBTQ+ Verified means | FunMaps" },
+  "/share-your-trip": { component: ShareStory, title: "Share your trip: Traveler Stories | FunMaps" },
 };
 
 function useHead(title) {
@@ -77,6 +79,7 @@ function Footer() {
         <nav aria-label="Footer" className="flex flex-wrap content-start gap-[22px]">
           <a href={LEGACY.about}>About</a>
           <a href={href("/verified")}>What LGBTQ+ Verified means</a>
+          <a href={href("/share-your-trip")}>Share your trip</a>
           <a href={ADVERTISE_URL}>Advertise</a>
           <a href={LEGACY.contact}>Contact</a>
           <a href={LEGACY.privacy}>Privacy</a>

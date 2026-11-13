@@ -366,6 +366,76 @@ function Stories() {
   );
 }
 
+// Traveler Stories: personal trips sent in through "Share your trip" and
+// published in WordPress under the "Traveler Stories" category.
+function TravelerStories() {
+  const [posts, setPosts] = useState(null);
+  useEffect(() => {
+    fetch(`${WORDPRESS_URL}/wp-json/wp/v2/categories?slug=traveler-stories`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((cats) => {
+        if (!Array.isArray(cats) || !cats[0]) return [];
+        return fetch(`${WORDPRESS_URL}/wp-json/wp/v2/posts?categories=${cats[0].id}&per_page=3&_embed=wp:featuredmedia`).then((r) => (r.ok ? r.json() : []));
+      })
+      .then((list) =>
+        setPosts(
+          (Array.isArray(list) ? list : []).map((p) => {
+            const text = decode((p.excerpt?.rendered || "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+            const firstImg = (p.content?.rendered || "").match(/<img[^>]+src="([^"]+)"/);
+            return {
+              id: p.id,
+              title: decode(p.title?.rendered || ""),
+              link: p.link,
+              excerpt: text.length > 220 ? `${text.slice(0, 217)}…` : text,
+              image: p._embedded?.["wp:featuredmedia"]?.[0]?.source_url || (firstImg ? firstImg[1] : ""),
+            };
+          })
+        )
+      )
+      .catch(() => setPosts([]));
+  }, []);
+  return (
+    <section id="traveler-stories" className="mx-auto max-w-[1280px] px-6 pt-20">
+      <div className="mb-[18px] flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="m-0 text-[28px] font-extrabold">Traveler Stories</h2>
+          <p className="m-0 mt-1 text-[16px]" style={{ color: BRAND.muted }}>Real trips, told by LGBTQ+ travelers.</p>
+        </div>
+        {posts && posts.length > 0 && (
+          <a href={`${WORDPRESS_URL}/category/traveler-stories/`} className="text-sm font-bold">More traveler stories</a>
+        )}
+      </div>
+      {posts && posts.length > 0 && (
+        <div className="mb-5 grid gap-[18px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(300px, 100%), 1fr))" }}>
+          {posts.map((p) => (
+            <a key={p.id} href={p.link} className="flex flex-col overflow-hidden rounded-[20px] border no-underline" style={{ borderColor: BRAND.line, color: BRAND.ink }}>
+              {p.image && (
+                <div style={{ aspectRatio: "16 / 9", background: BRAND.soft }}>
+                  <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" />
+                </div>
+              )}
+              <div className="flex flex-col gap-2 p-5">
+                <span aria-hidden="true" className="text-[40px] font-extrabold leading-[0.6]" style={{ color: BRAND.magenta }}>“</span>
+                <h3 className="m-0 text-lg font-extrabold leading-snug">{p.title}</h3>
+                {p.excerpt && <p className="m-0 text-[14.5px] leading-relaxed" style={{ color: BRAND.body }}>{p.excerpt}</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-[22px] p-6 sm:p-8" style={{ background: "#FDF1E8" }}>
+        <div className="flex max-w-[640px] flex-col gap-1.5">
+          <h3 className="m-0 text-[20px] font-extrabold">Been somewhere great? Share your trip.</h3>
+          <p className="m-0 text-[15px]" style={{ color: BRAND.body }}>Tell other LGBTQ+ travelers where you went, what you loved and what to know. We publish our favorites.</p>
+        </div>
+        <a href={href("/share-your-trip")} className="rounded-[10px] px-5 py-3 text-[15px] font-bold text-white no-underline" style={{ background: BRAND.magenta }}>
+          Share your trip
+        </a>
+      </div>
+    </section>
+  );
+}
+
 function SignupAndAdvertise() {
   return (
     <section className="mx-auto max-w-[1280px] px-6 pt-20">
@@ -400,6 +470,7 @@ export default function Home() {
       <Recommended />
       <WhyTrust />
       <Stories />
+      <TravelerStories />
       <SignupAndAdvertise />
     </main>
   );
