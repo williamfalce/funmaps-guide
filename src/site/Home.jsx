@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DESTINATIONS, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND } from "./siteData.js";
+import { DESTINATIONS, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND, postImage } from "./siteData.js";
 import { href } from "./Website.jsx";
 import { openSignup } from "./SignupPopup.jsx";
 
@@ -335,7 +335,7 @@ function Stories() {
             title: decode(p.title?.rendered || ""),
             link: p.link,
             date: p.date,
-            image: p._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "",
+            image: postImage(p),
           }))
         )
       )
@@ -352,7 +352,7 @@ function Stories() {
         {posts.map((p) => (
           <a key={p.id} href={p.link} className="flex flex-col gap-2.5 no-underline" style={{ color: BRAND.ink }}>
             <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: "3 / 2", background: "#C27A4A" }}>
-              {p.image && <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" />}
+              {p.image && <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
             </div>
             <h3 className="m-0 text-lg font-extrabold leading-snug">{p.title}</h3>
             <span className="text-[13px]" style={{ color: BRAND.muted }}>
@@ -382,13 +382,12 @@ function TravelerStories() {
         setPosts(
           (Array.isArray(list) ? list : []).map((p) => {
             const text = decode((p.excerpt?.rendered || "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-            const firstImg = (p.content?.rendered || "").match(/<img[^>]+src="([^"]+)"/);
             return {
               id: p.id,
               title: decode(p.title?.rendered || ""),
               link: p.link,
               excerpt: text.length > 220 ? `${text.slice(0, 217)}…` : text,
-              image: p._embedded?.["wp:featuredmedia"]?.[0]?.source_url || (firstImg ? firstImg[1] : ""),
+              image: postImage(p),
             };
           })
         )
@@ -412,7 +411,7 @@ function TravelerStories() {
             <a key={p.id} href={p.link} className="flex flex-col overflow-hidden rounded-[20px] border no-underline" style={{ borderColor: BRAND.line, color: BRAND.ink }}>
               {p.image && (
                 <div style={{ aspectRatio: "16 / 9", background: BRAND.soft }}>
-                  <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" />
+                  <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 </div>
               )}
               <div className="flex flex-col gap-2 p-5">

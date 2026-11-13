@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DESTINATIONS, inDestination, LEGACY, COMPASS_URL, WORDPRESS_URL, BRAND } from "./siteData.js";
+import { DESTINATIONS, inDestination, LEGACY, COMPASS_URL, WORDPRESS_URL, BRAND, postImage } from "./siteData.js";
 import { href } from "./Website.jsx";
 import RATE_CARD from "../rateCard.json";
 
@@ -155,7 +155,7 @@ function CityStories({ dest }) {
             id: p.id,
             title: decode(p.title?.rendered || ""),
             link: p.link,
-            image: p._embedded?.["wp:featuredmedia"]?.[0]?.source_url || "",
+            image: postImage(p),
           }))
         )
       )
@@ -169,7 +169,7 @@ function CityStories({ dest }) {
         {posts.map((p) => (
           <a key={p.id} href={p.link} className="flex flex-col gap-2.5 no-underline" style={{ color: BRAND.ink }}>
             <div className="overflow-hidden rounded-2xl" style={{ aspectRatio: "3 / 2", background: dest.tint }}>
-              {p.image && <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" />}
+              {p.image && <img src={p.image} alt="" className="block h-full w-full object-cover" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />}
             </div>
             <h3 className="m-0 text-lg font-extrabold leading-snug">{p.title}</h3>
           </a>

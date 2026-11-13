@@ -15,6 +15,26 @@ export const LEGACY = {
   newsletter: `${WORDPRESS_URL}/subscriptions/`,
 };
 
+// An article's picture: its featured image, or else the first photo in the
+// article (many older posts have no featured image set). WordPress lists the
+// sizes that exist for that photo in "srcset"; the largest one is used.
+export function postImage(p) {
+  const featured = p?._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+  if (featured) return featured;
+  const tag = String(p?.content?.rendered || "").match(/<img\b[^>]*>/i)?.[0];
+  if (!tag) return "";
+  const srcset = tag.match(/srcset="([^"]+)"/i)?.[1];
+  if (srcset) {
+    const best = srcset
+      .split(",")
+      .map((x) => x.trim().split(/\s+/))
+      .map(([url, w]) => ({ url, w: parseInt(w, 10) || 0 }))
+      .sort((a, b) => b.w - a.w)[0];
+    if (best?.url) return best.url;
+  }
+  return tag.match(/src="([^"]+)"/i)?.[1] || "";
+}
+
 export const COMPASS_URL = "https://compass.funmaps.com/";
 export const ADVERTISE_URL = "mailto:info@funmaps.com?subject=Advertising%20on%20FunMaps";
 
