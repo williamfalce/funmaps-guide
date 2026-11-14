@@ -483,7 +483,7 @@ export default function Destination({ slug }) {
         {basic.length > 0 && (
           <div>
             <h2 className="mb-3 text-xl font-extrabold">Featured Partners</h2>
-            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(340px, 100%), 1fr))" }}>
               {basic.map(({ n, listing: l }) => (
                 <article key={l.id} className="flex items-start gap-3.5 rounded-2xl border p-3.5" style={{ borderColor: BRAND.line }}>
                   <div className="relative shrink-0 overflow-visible rounded-xl" style={{ width: 96, height: 96, background: dest.tint }}>
@@ -499,6 +499,7 @@ export default function Destination({ slug }) {
                     <p className="m-0 text-[13px]" style={{ color: BRAND.muted }}>
                       {prettyCategory(l.category)}
                     </p>
+                    {l.description && <p className="m-0 text-[13.5px] leading-snug" style={{ color: BRAND.body }}>{l.description}</p>}
                     {l.phone && <a href={`tel:${l.phone.replace(/[^0-9+]/g, "")}`} className="text-[13px]">{l.phone}</a>}
                     <div className="mt-1 flex flex-wrap gap-2">
                       <TripButton compact inTrip={inTrip(l)} onClick={() => toggleTrip(l)} />
