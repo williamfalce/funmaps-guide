@@ -52,8 +52,8 @@
       "label": "Featured Partner",
       "rank": 3,
       "image": {
-        "width": 200,
-        "height": 200
+        "width": 255,
+        "height": 150
       },
       "descriptionLimit": 225,
       "includes": "Listed as a Featured Partner: image, business name, Google stars, address, phone, description, website link"
