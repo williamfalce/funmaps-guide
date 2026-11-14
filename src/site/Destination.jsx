@@ -436,11 +436,14 @@ export default function Destination({ slug }) {
         )}
 
         {gold.map(({ n, listing: l }) => (
-          <article key={l.id} className="flex flex-wrap overflow-hidden rounded-3xl border-2 bg-white" style={{ borderColor: BRAND.gold }}>
-            <div className="relative min-w-0 flex-[3_1_520px]" style={{ aspectRatio: "2 / 1", background: dest.tint }}>
-              {l.imageUrl && <img src={l.imageUrl} alt="" className="block h-full w-full object-cover" />}
-              <div className="absolute left-4 top-4"><PaidLabel listing={l} /></div>
-              <div className="absolute bottom-4 left-4"><PinNumber n={n} listing={l} size={34} /></div>
+          <article key={l.id} className="flex flex-wrap items-start overflow-hidden rounded-3xl border-2 bg-white" style={{ borderColor: BRAND.gold }}>
+            {/* The image keeps the 2:1 ad shape (800 × 400) however long the text is, so nothing is cropped. */}
+            <div className="min-w-0 flex-[3_1_520px] p-3.5">
+              <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: "2 / 1", background: dest.tint }}>
+                {l.imageUrl && <img src={l.imageUrl} alt="" className="block h-full w-full object-cover" />}
+                <div className="absolute left-3.5 top-3.5"><PaidLabel listing={l} /></div>
+                <div className="absolute bottom-3.5 left-3.5"><PinNumber n={n} listing={l} size={34} /></div>
+              </div>
             </div>
             <div className="flex min-w-0 flex-[2_1_340px] flex-col justify-center gap-2.5 p-[30px]">
               <p className="m-0 text-[12.5px] font-bold uppercase tracking-[0.06em]" style={{ color: BRAND.muted }}>{prettyCategory(l.category)} · {l.city}</p>
