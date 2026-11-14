@@ -284,7 +284,7 @@ function Partners() {
                   {l.rank === 1 ? (
                     <span className="rounded-full px-2.5 py-1 text-xs font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink }}>★ Gold Star Partner</span>
                   ) : (
-                    <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Premium Partner</span>
+                    <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: "#5B2A9E" }}>Premium Partner</span>
                   )}
                   <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
                 </div>

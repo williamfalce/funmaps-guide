@@ -17,9 +17,12 @@ const isGoldStar = (l) => l.rank === 1;
 const isPremium = (l) => l.rank === 2;
 // Free directory listings have no paid label.
 const isDirectory = (l) => !l.label;
-const DIRECTORY_PIN = "#6F6479";
-const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isPremium(l) ? BRAND.orangeDark : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
-const pinText = (l) => (isGoldStar(l) ? BRAND.ink : "#FFFFFF");
+// Tier colors: Gold Star gold, Premium purple, Featured green, free light blue.
+const PREMIUM_COLOR = "#5B2A9E";
+const FEATURED_COLOR = "#2E7D32";
+const DIRECTORY_PIN = "#8CC4EE";
+const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isPremium(l) ? PREMIUM_COLOR : isDirectory(l) ? DIRECTORY_PIN : FEATURED_COLOR);
+const pinText = (l) => (isGoldStar(l) || isDirectory(l) ? BRAND.ink : "#FFFFFF");
 
 function decode(html) {
   const t = document.createElement("textarea");
@@ -67,11 +70,11 @@ function PaidLabel({ listing }) {
     );
   return isPremium(listing) ? (
     <div className="flex items-center gap-1.5">
-      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Premium Partner</span>
+      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: PREMIUM_COLOR }}>Premium Partner</span>
       <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
     </div>
   ) : (
-    <span className="text-[11px] font-bold" style={{ color: BRAND.magenta }}>Featured Partner · paid placement</span>
+    <span className="text-[11px] font-bold" style={{ color: FEATURED_COLOR }}>Featured Partner · paid placement</span>
   );
 }
 
@@ -147,8 +150,8 @@ function FunMap({ dest, items }) {
       <div ref={box} role="region" aria-label={`Map of ${dest.name} with numbered pins for the places listed below`} className="h-full w-full" />
       <div className="pointer-events-none absolute bottom-3.5 left-3.5 z-[500] flex flex-wrap gap-3.5 rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFFFFFEE" }}>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Gold Star Partner</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.orangeDark }} />Premium Partner</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured Partner</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: PREMIUM_COLOR }} />Premium Partner</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: FEATURED_COLOR }} />Featured Partner</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps LGBTQ+ Verified</span>
       </div>
