@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ImportListings } from "./ImportListings.jsx";
 import { US_STATES, COUNTRIES, parseCityString, buildCityString, withPending, PendingChangesNote, SendBackButton, ReviewNoteBox, saveLabel, EditingBanner, apiCall } from "./adminShared.jsx";
 
 // ---------- Website & Print Listings ----------
@@ -708,6 +709,8 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
           )}
         </div>
       </div>
+
+      {isAdmin && <ImportListings adminKey={adminKey} rateCard={rateCard} listings={listings} onDone={load} inputStyle={inputStyle} />}
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <label htmlFor="wl-filter" style={{ ...labelStyle, marginBottom: 0 }}>

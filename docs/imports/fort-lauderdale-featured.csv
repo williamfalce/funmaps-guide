@@ -1,0 +1,50 @@
+Business name,Category,Street address,City,State,Phone,Website,Notes
+Atlantic Hotel & Spa,Accommodations,2209 NE 26th St,Wilton Manors,FL,(954) 564-7764,https://www.atlantichotelfl.com/,Same address and phone as Cabanas Guesthouse on the old site; likely a copy error. Check before importing.
+B Ocean Resort,Accommodations,1140 Seabreeze Blvd,Fort Lauderdale,FL,(954) 564-1000,https://www.boceanresort.com/,
+Big Coconut Guesthouse,Accommodations,1021 NE 13th Ave,Fort Lauderdale,FL,(954) 712-9600,http://thebigcoconutguesthouse.com,
+Cabanas Guesthouse & Spa,Accommodations,2209 NE 26th St,Wilton Manors,FL,(954) 564-7764,http://thecabanasguesthouse.com,
+Ed Lugo Resort,Accommodations,2404 NE 8th Ave,Wilton Manors,FL,(954) 275-8299,http://www.edlugoresort.com/,
+Embassy Suites Ft. Lauderdale,Accommodations,1100 SE 17th St.,Fort Lauderdale,FL,(954) 527-2700,https://www.hilton.com/en/locations/usa/florida/fort-lauderdale/embassy-suites,
+Fantasy Island Inn,Accommodations,2440 NE 7th Ave,Wilton Manors,FL,(954) 320-9635,https://fantasyislandinn.com/,
+The Grand Resort & Spa,Accommodations,539 N Birch Rd,Fort Lauderdale,FL,(954) 630-3000,https://thegrandresortandspa.com/,
+W Fort Lauderdale,Accommodations,401 N Fort Lauderdale Beach Blvd,Fort Lauderdale,FL,(954) 414-8200,https://www.marriott.com/en-us/hotels/fllwh-w-fort-lauderdale/overview/,
+ArtServe,Arts & Entertainment,1350 E Sunrise Blvd,Fort Lauderdale,FL,(954) 462-8190,https://artserve.org/,
+Art Frenzie,Arts & Entertainment,2330 Wilton Dr,Wilton Manors,FL,(954) 560-3684,https://www.facebook.com/ArtFrenzie,
+Broward Center for the Performing Arts,Arts & Entertainment,201 SW 5th Ave,Fort Lauderdale,FL,(954) 462-0222,https://www.browardcenter.org/,"Also listed under Attractions on the old site; imported once, as Arts & Entertainment."
+Empire Stage,Arts & Entertainment,1140 N Flagler Dr,Fort Lauderdale,FL,304 678-1496,https://empirestage.com/,"Phone on the old site reads ""304 678-1496""; area code looks wrong. Check."
+Gray Box Theater,Arts & Entertainment,1444 NE 26th St,Wilton Manors,FL,(954) 836-6000,https://www.facebook.com/grayboxtheater/,
+Island City Stage,Arts & Entertainment,2304 N Dixie Hwy,Wilton Manors,FL,(954) 928-9800,https://www.islandcitystage.org/,
+Parker Playhouse,Arts & Entertainment,707 NE 8th St,Fort Lauderdale,FL,(954) 462-0222,https://www.parkerplayhouse.com/,
+South Florida Symphony Orchestra,Arts & Entertainment,441 NE 5th Ave Suite 3,Fort Lauderdale,FL,(954) 522-8445,https://southfloridasymphony.org/,
+Blue Moon Outdoor Adventures,Attractions,1101 Bayview Dr,Fort Lauderdale,FL,(954) 781-0073,https://bluemoonoutdooradventures.com/,
+Bonnett House Museum & Gardens,Attractions,900 N Birch Rd,Fort Lauderdale,FL,(954) 563-5393,https://www.bonnethouse.org/,
+Butterfly World,Attractions,3600 W. Sample Road,Coconut Creek,FL,(954) 977-4400,https://butterflyworld.com/,"Coconut Creek: outside Fort Lauderdale, Wilton Manors and Oakland Park, so it will not show on those pages."
+Everglades Holiday Park Tours,Attractions,21940 Griffin Rd,Fort Lauderdale,FL,(954) 434-8111,https://www.evergladesholidaypark.com/,
+Harrah's Pompano Beach,Attractions,777 Isle of Capri Blvd,Pompano Beach,FL,(954) 972-2000,https://www.caesars.com/harrahs-pompano-beach,"Pompano Beach: outside the three Broward destinations, so it will not show on those pages."
+Hugh Taylor Birch Park,Attractions,3109 E Sunrise Blvd,Fort Lauderdale,FL,(954) 564-4521,https://www.floridastateparks.org/HughTaylorBirch,
+Int'l Swimming Hall of Fame,Attractions,1 Hall of Fame Dr,Fort Lauderdale,FL,(954) 462-6536,https://ishof.org/,
+Jungle Queen River Boats,Attractions,801 Seabreeze Blvd,Fort Lauderdale,FL,(954) 462-5596,https://junglequeen.com/,
+Seminole Hard Rock Casino,Attractions,1 Seminole Way,Davie,FL,(866) 502-7529,https://casino.hardrock.com/hollywood,"Davie: outside the three Broward destinations, so it will not show on those pages."
+Water Taxi,Attractions,335 SE 6th Ave,Fort Lauderdale,FL,(954) 467-6677,https://watertaxi.com/,Several stops; using stop F1 for the map pin.
+DrYnk Bar & Lounge,Bars & Clubs,2255 Wilton Dr,Wilton Manors,FL,(954) 530-1800,https://drynkftl.com/,
+Georgie's Alibi Monkey Bar,Bars & Clubs,2266 Wilton Dr,Wilton Manors,FL,(954) 565-2526,https://www.alibiwiltonmanors.com/,
+GYM Sports Bar,Bars & Clubs,2287 Wilton Dr,Wilton Manors,FL,(954) 990-7973,https://www.facebook.com/GYMSportsbarFortLauderdale,
+Hunters Nightclubs,Bars & Clubs,2232-2238 Wilton Dr,Wilton Manors,FL,(954) 630-3556,https://www.huntersftlauderdale.com/,
+Johnsons,Bars & Clubs,2340 Wilton Dr,Wilton Manors,FL,(954) 908-1272,https://johnsonsfl.com/,
+Le Boy,Bars & Clubs,1243 NE 11th Ave,Fort Lauderdale,FL,(754) 200-4940,https://www.leboy.com/,
+Lit Bar,Bars & Clubs,2440 Wilton Dr,Wilton Manors,FL,,https://www.litwilton.com/,No phone on the old site.
+Pub on the Drive,Bars & Clubs,2283 Wilton Dr,Wilton Manors,FL,(754) 200-5244,https://www.thepubwm.com/,
+Scandals Saloon,Bars & Clubs,3073 NE 6th Ave,Wilton Manors,FL,(954) 567-2432,https://www.facebook.com/scandalsfla/,
+Tropics Grille,Bars & Clubs,2000 Wilton Dr,Wilton Manors,FL,(954) 530-3361,https://www.tropicsgrillefla.com/,"Also listed under Restaurants on the old site; imported once, as Bars & Clubs."
+Castelli Real Estate,Resources,2227 Wilton Dr,Wilton Manors,FL,(954) 563-9889,https://www.castellihomes.com/,
+Dennis Dean,Resources,,Fort Lauderdale,FL,954-240-8307,https://dennisdean.com/,"Photographer, by appointment; no street address, so no map pin."
+IGLTA,Resources,"5079 North Dixie Hwy, #367",Fort Lauderdale,FL,(954) 630-1637,https://www.iglta.org/,
+Latinos Salud,Resources,1401 NE 26th St,Wilton Manors,FL,(954) 765-6239,https://www.latinossalud.org/,
+Stork's Bakery,Restaurants,2505 NE 15th Ave,Wilton Manors,FL,(954) 567-3220,https://storksbakery.com/,
+Spencer's Corner Bar,Restaurants,2390 Wilton Dr,Wilton Manors,FL,(954) 368-2558,http://spencerscornerbar.com/,
+Rosie's Bar & Grill,Restaurants,2449 Wilton Dr,Wilton Manors,FL,(954) 563-0123,https://www.rosiesbarandgrill.com/,
+Bell Pharmacy Wilton Manors,Shopping & Services,2201 Wilton Dr Ste 12,Wilton Manors,FL,954-545-2355,https://www.bellspecialtypharmacy.com/,
+Bodytex Fitness,Shopping & Services,2216 N Dixie Hwy,Wilton Manors,FL,(954) 661-6696,https://bodytekfitness.com/,"Website says ""Bodytek""; check the spelling of the name."
+My TropX,Shopping & Services,1514 NE 4th Ave,Fort Lauderdale,FL,(954) 522-5988,https://www.mytropx.com/,
+Out Of The Closet,Shopping & Services,2097 Wilton Dr,Wilton Manors,FL,(954) 358-5580,https://outofthecloset.org/,
+Pride Factory,Shopping & Services,2365 Wilton Dr,Wilton Manors,FL,(954) 463-6600,https://www.pridefactory.com/,
