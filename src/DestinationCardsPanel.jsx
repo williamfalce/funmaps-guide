@@ -36,6 +36,8 @@ async function shrinkPhoto(file) {
 
 export function DestinationCardsPanel({ adminKey, inputStyle, labelStyle }) {
   const [custom, setCustom] = useState(null);
+  const [season, setSeason] = useState("Winter");
+  const [seasonNote, setSeasonNote] = useState("");
   const [hooks, setHooks] = useState({});
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState({});
@@ -43,7 +45,10 @@ export function DestinationCardsPanel({ adminKey, inputStyle, labelStyle }) {
   useEffect(() => {
     fetch("/api/destinations")
       .then((r) => r.json())
-      .then((d) => setCustom(d.destinations || {}))
+      .then((d) => {
+        setCustom(d.destinations || {});
+        if (typeof d.season === "string") setSeason(d.season);
+      })
       .catch(() => setCustom({}));
   }, []);
 
@@ -91,6 +96,31 @@ export function DestinationCardsPanel({ adminKey, inputStyle, labelStyle }) {
       <p style={{ fontSize: 12.5, color: "#F5EFE6aa", lineHeight: 1.6, marginBottom: 14 }}>
         The photo and one-line hook on each homepage destination card, and which destinations the homepage shows (for seasonal swaps; hidden ones keep their map pages). Use landscape photos 1,200 pixels wide or more, that FunMaps owns or has permission to use. The place counts on the cards update by themselves from the listings.
       </p>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+        <label htmlFor="dc-season" style={{ ...labelStyle, marginBottom: 0 }}>HOMEPAGE HEADING</label>
+        <select
+          id="dc-season"
+          value={season}
+          onChange={async (e) => {
+            const next = e.target.value;
+            setSeason(next);
+            setSeasonNote("");
+            try {
+              await apiCall("destinations", "PUT", { season: next }, adminKey);
+              setSeasonNote(`Saved: the homepage now says "${next ? `Popular ${next} Destinations` : "Popular Destinations"}".`);
+            } catch (err) {
+              setSeasonNote(err.message || "Couldn't save.");
+            }
+          }}
+          style={{ ...inputStyle, maxWidth: 300 }}
+        >
+          {["Winter", "Spring", "Summer", "Fall"].map((x) => (
+            <option key={x} value={x}>Popular {x} Destinations</option>
+          ))}
+          <option value="">Popular Destinations (no season)</option>
+        </select>
+        {seasonNote && <span role="status" style={{ fontSize: 12.5, color: "#1C9C9C" }}>{seasonNote}</span>}
+      </div>
       {DESTINATIONS.map((d) => {
         const c = custom[d.slug] || {};
         const image = c.imageUrl || d.image;

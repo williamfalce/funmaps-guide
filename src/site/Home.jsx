@@ -197,11 +197,15 @@ function StoryTopics() {
 // website listings. Photos and hooks can be changed in the admin screen.
 function Destinations() {
   const [custom, setCustom] = useState({});
+  const [season, setSeason] = useState("Winter");
   const [listings, setListings] = useState([]);
   useEffect(() => {
     fetch("/api/destinations")
       .then((r) => (r.ok ? r.json() : {}))
-      .then((d) => setCustom(d.destinations || {}))
+      .then((d) => {
+        setCustom(d.destinations || {});
+        if (typeof d.season === "string") setSeason(d.season);
+      })
       .catch(() => {});
     fetch("/api/listings")
       .then((r) => (r.ok ? r.json() : {}))
@@ -211,7 +215,7 @@ function Destinations() {
   return (
     <section id="destinations" className="mx-auto max-w-[1280px] px-6 pt-14">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">Popular destinations</h2>
+        <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">{season ? `Popular ${season} Destinations` : "Popular Destinations"}</h2>
         <a href={`${WORDPRESS_URL}/`} className="text-[15px] font-bold">All destinations</a>
       </div>
       <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(270px, 100%), 1fr))" }}>

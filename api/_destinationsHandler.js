@@ -4,11 +4,14 @@
 // /api/destinations to /api/listings?resource=destinations).
 //
 // GET /api/destinations           -> { destinations: { <slug>: { imageUrl?, hook? } } }  (public)
-// PUT /api/destinations (admin)   { slug, imageUrl?, hook?, showOnHome? }   ("" clears back to the default)
+// PUT /api/destinations (admin)   { slug, imageUrl?, hook?, showOnHome? }  or  { season }   ("" clears back to the default)
 
 const { getRedis, getAuth } = require("./_auth");
 
 const KEY = "settings:destinations";
+const SEASON_KEY = "settings:season"; // the homepage heading: "Popular <season> Destinations"
+const SEASONS = ["Winter", "Spring", "Summer", "Fall", ""];
+const DEFAULT_SEASON = "Winter";
 const parse = (v) => (v === null || v === undefined ? null : typeof v === "string" ? JSON.parse(v) : v);
 
 async function handleDestinations(req, res) {
@@ -16,13 +19,19 @@ async function handleDestinations(req, res) {
   try {
     if (req.method === "GET") {
       res.setHeader("Cache-Control", "public, max-age=60");
-      return void res.status(200).json({ destinations: (db && parse(await db.get(KEY))) || {} });
+      const season = db ? await db.get(SEASON_KEY) : null;
+      return void res.status(200).json({ destinations: (db && parse(await db.get(KEY))) || {}, season: season === null || season === undefined ? DEFAULT_SEASON : String(season) });
     }
     if (req.method !== "PUT") return void res.status(405).json({ error: "Method not allowed" });
     if (!db) return void res.status(501).json({ error: "Storage not configured" });
     const auth = await getAuth(req, db);
     if (!auth || auth.role !== "admin") return void res.status(403).json({ error: "Only an admin can change destination cards" });
-    const { slug, imageUrl, hook, showOnHome } = req.body || {};
+    const { slug, imageUrl, hook, showOnHome, season } = req.body || {};
+    if (season !== undefined) {
+      if (!SEASONS.includes(season)) return void res.status(400).json({ error: "Unknown season" });
+      await db.set(SEASON_KEY, season);
+      return void res.status(200).json({ destinations: parse(await db.get(KEY)) || {}, season });
+    }
     if (!/^[a-z0-9-]{1,60}$/.test(String(slug || ""))) return void res.status(400).json({ error: "Unknown destination" });
     const all = parse(await db.get(KEY)) || {};
     const entry = { ...(all[slug] || {}) };
