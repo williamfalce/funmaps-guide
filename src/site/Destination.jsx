@@ -17,9 +17,11 @@ const isGoldStar = (l) => l.rank === 1;
 const isPremium = (l) => l.rank === 2;
 // Free directory listings have no paid label.
 const isDirectory = (l) => !l.label;
-// Tier colors: Gold Star gold, Premium purple, Featured green, free light blue.
+// Tier colors: Gold Star gold, Premium purple, Featured orange, free light blue.
 const PREMIUM_COLOR = "#5B2A9E";
-const FEATURED_COLOR = "#2E7D32";
+const FEATURED_COLOR = BRAND.orangeDark;
+// Ring around the map pins of FunMaps LGBTQ+ Verified places.
+const VERIFIED_RING = "#1E8C3A";
 const DIRECTORY_PIN = "#8CC4EE";
 const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isPremium(l) ? PREMIUM_COLOR : isDirectory(l) ? DIRECTORY_PIN : FEATURED_COLOR);
 const pinText = (l) => (isGoldStar(l) || isDirectory(l) ? BRAND.ink : "#FFFFFF");
@@ -83,7 +85,7 @@ function PinNumber({ n, listing, size = 30 }) {
     <span
       aria-label={`Map pin ${n}`}
       className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold"
-      style={{ width: size, height: size, fontSize: size * 0.42, background: pinColor(listing), color: pinText(listing), boxShadow: listing.verified ? `0 0 0 3px ${BRAND.teal}` : "none" }}
+      style={{ width: size, height: size, fontSize: size * 0.42, background: pinColor(listing), color: pinText(listing), boxShadow: listing.verified ? `0 0 0 3px ${VERIFIED_RING}` : "none" }}
     >
       {n}
     </span>
@@ -134,7 +136,7 @@ function FunMap({ dest, items }) {
         className: "",
         iconSize: [sz, sz],
         iconAnchor: [sz / 2, sz],
-        html: `<span style="display:flex;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${BRAND.teal},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 ${sz === 26 ? 11 : 13}px 'Plus Jakarta Sans',sans-serif;color:${pinText(listing)}">${isGoldStar(listing) ? "★" : ""}${n}</span></span>`,
+        html: `<span style="display:flex;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${VERIFIED_RING},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 ${sz === 26 ? 11 : 13}px 'Plus Jakarta Sans',sans-serif;color:${pinText(listing)}">${isGoldStar(listing) ? "★" : ""}${n}</span></span>`,
       });
       L.marker([listing.lat, listing.lng], { icon, title: `${n}. ${listing.businessName}` })
         .bindPopup(`<strong>${n}. ${listing.businessName.replace(/</g, "&lt;")}</strong><br>${prettyCategory(listing.category)}`)
@@ -153,7 +155,7 @@ function FunMap({ dest, items }) {
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: PREMIUM_COLOR }} />Premium Partner</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: FEATURED_COLOR }} />Featured Partner</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps LGBTQ+ Verified</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${VERIFIED_RING}` }} />FunMaps LGBTQ+ Verified</span>
       </div>
     </div>
   );
