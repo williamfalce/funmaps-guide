@@ -30,7 +30,7 @@ export default function Verified() {
       </p>
 
       <div className="mt-6 rounded-2xl p-5 text-[15px] leading-relaxed" style={{ background: "#EEF8F8", color: BRAND.body }}>
-        <strong style={{ color: BRAND.tealDark }}>Verification is free and separate from advertising.</strong> Paying for a listing never earns or speeds up the badge. "Gold Star", "Recommended" and "Featured" listings are paid placements; Verified is earned.
+        <strong style={{ color: BRAND.tealDark }}>Verification is free and separate from advertising.</strong> Paying for a listing never earns or speeds up the badge. Partner listings (Gold Star, Premium and Featured) are paid placements; Verified is earned.
       </div>
 
       <h2 className="mt-10 text-2xl font-extrabold">Required standards: all five</h2>

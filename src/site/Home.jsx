@@ -251,23 +251,23 @@ function Destinations() {
   );
 }
 
-// "Recommended by FunMaps": live Gold Star and Premium website listings from
+// "FunMaps Partners": live Gold Star and Premium website listings from
 // the admin screen (only approved, signed, paid and in date — see api/listings.js).
-function Recommended() {
+function Partners() {
   const [listings, setListings] = useState(null);
   useEffect(() => {
     fetch("/api/listings")
       .then((r) => (r.ok ? r.json() : { listings: [] }))
-      .then((d) => setListings((d.listings || []).filter((l) => l.label === "Recommended").slice(0, 6)))
+      .then((d) => setListings((d.listings || []).filter((l) => l.rank === 1 || l.rank === 2).slice(0, 6)))
       .catch(() => setListings([]));
   }, []);
   if (listings === null) return null;
   return (
     <section className="mx-auto max-w-[1280px] px-6 pt-[72px]">
       <div className="mb-5">
-        <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">Recommended by FunMaps</h2>
+        <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">FunMaps Partners</h2>
         <p className="mt-1.5 text-sm" style={{ color: BRAND.muted }}>
-          Recommended listings are paid placements. FunMaps LGBTQ+ Verified is earned separately and can't be bought.
+          Businesses that support FunMaps and LGBTQ+ travelers. Partner listings are paid placements; FunMaps LGBTQ+ Verified is earned separately and can't be bought.
         </p>
       </div>
       {listings.length === 0 ? (
@@ -281,7 +281,11 @@ function Recommended() {
               <div className="relative" style={{ aspectRatio: "2 / 1", background: "#5A4A8E" }}>
                 {l.imageUrl && <img src={l.imageUrl} alt="" className="block h-full w-full object-cover" />}
                 <div className="absolute left-3 top-3 flex items-center gap-1.5">
-                  <span className="rounded-full px-2.5 py-1 text-xs font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink }}>★ Recommended</span>
+                  {l.rank === 1 ? (
+                    <span className="rounded-full px-2.5 py-1 text-xs font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink }}>★ Gold Star Partner</span>
+                  ) : (
+                    <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Premium Partner</span>
+                  )}
                   <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
                 </div>
               </div>
@@ -504,7 +508,7 @@ export default function Home() {
       <Hero />
       <TrustStrip />
       <Destinations />
-      <Recommended />
+      <Partners />
       <WhyTrust />
       <Stories />
       <TravelerStories />

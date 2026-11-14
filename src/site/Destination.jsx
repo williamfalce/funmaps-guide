@@ -10,14 +10,15 @@ import RATE_CARD from "../rateCard.json";
 // paid-placement labels, and "Add to my trip" which hands the picks to Compass.
 
 const prettyCategory = (c) => String(c || "").replace(/&/g, " & ");
-// Tiers, top to bottom: Gold Star (rank 1), Premium shown as Recommended
-// (rank 2), Basic shown as Featured (rank 3), free Directory (no label).
+// Tiers, top to bottom: Gold Star Partner (rank 1), Premium Partner (rank 2),
+// Featured Partner (rank 3, Basic), free Directory (no label). "Partner" says
+// the business pays to support FunMaps; LGBTQ+ Verified is the earned signal.
 const isGoldStar = (l) => l.rank === 1;
-const isRecommended = (l) => l.label === "Recommended" && !isGoldStar(l);
+const isPremium = (l) => l.rank === 2;
 // Free directory listings have no paid label.
 const isDirectory = (l) => !l.label;
 const DIRECTORY_PIN = "#6F6479";
-const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isRecommended(l) ? BRAND.orangeDark : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
+const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isPremium(l) ? BRAND.orangeDark : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
 const pinText = (l) => (isGoldStar(l) ? BRAND.ink : "#FFFFFF");
 
 function decode(html) {
@@ -60,17 +61,17 @@ function PaidLabel({ listing }) {
   if (isGoldStar(listing))
     return (
       <div className="flex items-center gap-1.5">
-        <span className="rounded-full px-3 py-1 text-[13px] font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink, boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>★ Gold Star</span>
+        <span className="rounded-full px-3 py-1 text-[13px] font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink, boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>★ Gold Star Partner</span>
         <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
       </div>
     );
-  return isRecommended(listing) ? (
+  return isPremium(listing) ? (
     <div className="flex items-center gap-1.5">
-      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Recommended</span>
+      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Premium Partner</span>
       <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
     </div>
   ) : (
-    <span className="text-[11px] font-bold" style={{ color: BRAND.magenta }}>Featured · paid placement</span>
+    <span className="text-[11px] font-bold" style={{ color: BRAND.magenta }}>Featured Partner · paid placement</span>
   );
 }
 
@@ -145,9 +146,9 @@ function FunMap({ dest, items }) {
     <div className="relative h-[340px] min-w-0 flex-[3_1_620px] overflow-hidden rounded-[22px] border md:h-[460px]" style={{ borderColor: "#E8DDC9", background: "#F7F1E6" }}>
       <div ref={box} role="region" aria-label={`Map of ${dest.name} with numbered pins for the places listed below`} className="h-full w-full" />
       <div className="pointer-events-none absolute bottom-3.5 left-3.5 z-[500] flex flex-wrap gap-3.5 rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFFFFFEE" }}>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Gold Star</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.orangeDark }} />Recommended</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Gold Star Partner</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.orangeDark }} />Premium Partner</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured Partner</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps LGBTQ+ Verified</span>
       </div>
@@ -402,7 +403,7 @@ export default function Destination({ slug }) {
         )}
         {all !== null && all.length > 0 && (
           <p className="m-0 text-sm" style={{ color: BRAND.muted }}>
-            Showing {shown.length} of {all.length} {all.length === 1 ? "place" : "places"}. "Gold Star", "Recommended" and "Featured" are paid placements.
+            Showing {shown.length} of {all.length} {all.length === 1 ? "place" : "places"}. Partner listings are paid placements.
           </p>
         )}
       </section>
@@ -475,7 +476,7 @@ export default function Destination({ slug }) {
 
         {basic.length > 0 && (
           <div>
-            <h2 className="mb-3 text-xl font-extrabold">More places</h2>
+            <h2 className="mb-3 text-xl font-extrabold">Featured Partners</h2>
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
               {basic.map(({ n, listing: l }) => (
                 <article key={l.id} className="flex items-start gap-3.5 rounded-2xl border p-3.5" style={{ borderColor: BRAND.line }}>

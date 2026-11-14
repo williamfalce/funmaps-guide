@@ -180,7 +180,7 @@ function toPublic(rec, card) {
   const p = card.products.find((x) => x.id === rec.product);
   if (p) {
     out.productName = p.name;
-    out.label = p.label || null; // "Recommended" or "Featured" (paid placements); none for free listings
+    out.label = p.label || null; // "Gold Star Partner", "Premium Partner" or "Featured Partner" (paid placements); none for free listings
     out.rank = p.rank;
     out.image = p.image;
   }

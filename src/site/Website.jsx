@@ -76,7 +76,7 @@ function Footer() {
           <img src={logo} alt="FunMaps" className="h-10 w-auto self-start" />
           <span className="leading-relaxed">Fort Lauderdale, Florida · <a href="mailto:info@funmaps.com">info@funmaps.com</a></span>
           <span className="leading-relaxed">
-            "Gold Star", "Recommended" and "Featured" listings, banners and sponsored stories are paid placements. FunMaps LGBTQ+ Verified is free and can't be bought.
+            Partner listings (Gold Star, Premium and Featured), banners and sponsored stories are paid placements. FunMaps LGBTQ+ Verified is free and can't be bought.
           </span>
         </div>
         <nav aria-label="Footer" className="flex flex-wrap content-start gap-[22px]">
