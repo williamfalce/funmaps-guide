@@ -39,6 +39,8 @@ export const COMPASS_URL = "https://compass.funmaps.com/";
 export const ADVERTISE_URL = "mailto:info@funmaps.com?subject=Advertising%20on%20FunMaps";
 
 // Destinations with a map-first city page at /destinations/<slug>.
+// "hook" and "image" are the homepage card defaults; admins can change both in
+// the admin screen (Settings → Destinations), saved through /api/destinations.
 // "cities" and "regions" decide which website listings belong to the page:
 // a listing's city is stored as "City, ST" or "City, Country".
 // "query" searches today's WordPress site for the matching city guide.
@@ -50,39 +52,39 @@ export const DESTINATIONS = [
   // pages share the same places (BROWARD_GAY_AREA); each map stays zoomed on
   // its own city ("fitToPins: false") instead of zooming out to every pin.
   {
-    slug: "fort-lauderdale", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
+    slug: "fort-lauderdale", hook: "Beaches, resorts and Las Olas nights, minutes from Wilton Drive", image: "", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
     cities: BROWARD_GAY_AREA, regions: [], center: [26.135, -80.135], zoom: 12, fitToPins: false, tint: "#B7563C",
   },
   {
-    slug: "wilton-manors", name: "Wilton Manors", query: "Wilton Manors", compass: "Wilton Manors, FL",
+    slug: "wilton-manors", hook: "Wilton Drive's bars, brunches and guesthouses, all walkable", image: "/site/destinations/wilton-manors.jpg", name: "Wilton Manors", query: "Wilton Manors", compass: "Wilton Manors, FL",
     cities: BROWARD_GAY_AREA, regions: [], center: [26.1606, -80.1376], zoom: 15, fitToPins: false, tint: "#C2477A",
   },
   {
-    slug: "oakland-park", name: "Oakland Park", query: "Oakland Park", compass: "Oakland Park, FL",
+    slug: "oakland-park", hook: "Laid-back bars and local eats right next door to Wilton Drive", image: "/site/destinations/oakland-park.jpg", name: "Oakland Park", query: "Oakland Park", compass: "Oakland Park, FL",
     cities: BROWARD_GAY_AREA, regions: [], center: [26.1723, -80.132], zoom: 14, fitToPins: false, tint: "#A86A2E",
   },
   {
-    slug: "new-york-city", name: "New York City", query: "New York", compass: "New York, NY",
+    slug: "new-york-city", hook: "Stonewall, Hell's Kitchen nights and Broadway in one trip", image: "/site/destinations/new-york-city.jpg", name: "New York City", query: "New York", compass: "New York, NY",
     cities: ["New York", "New York City", "Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"], regions: [],
     center: [40.735, -73.99], zoom: 12, tint: "#4E5B8C",
   },
   {
-    slug: "atlanta", name: "Atlanta", query: "Atlanta", compass: "Atlanta, GA",
+    slug: "atlanta", hook: "Midtown nightlife, Pride in October and Southern hospitality", image: "/site/destinations/atlanta.jpg", name: "Atlanta", query: "Atlanta", compass: "Atlanta, GA",
     cities: ["Atlanta", "Decatur"], regions: [],
     center: [33.78, -84.38], zoom: 12, tint: "#7D3A86",
   },
   {
-    slug: "san-juan", name: "San Juan", query: "San Juan", compass: "San Juan, Puerto Rico",
+    slug: "san-juan", hook: "Condado beaches, Old San Juan nights and Pride in June", image: "/site/destinations/san-juan.jpg", name: "San Juan", query: "San Juan", compass: "San Juan, Puerto Rico",
     cities: ["San Juan", "Condado", "Carolina", "Isla Verde"], regions: [],
     center: [18.45, -66.06], zoom: 12, tint: "#2F7F88",
   },
   {
-    slug: "costa-rica", name: "Costa Rica", query: "Costa Rica", compass: "Costa Rica",
+    slug: "costa-rica", hook: "Waterfalls, rainforest and Manuel Antonio's gay-friendly beaches", image: "/site/destinations/costa-rica.jpg", name: "Costa Rica", query: "Costa Rica", compass: "Costa Rica",
     cities: [], regions: ["Costa Rica"],
     center: [9.75, -84.0], zoom: 7, tint: "#5E7C4A",
   },
   {
-    slug: "michigan", name: "Michigan", query: "Michigan", compass: "Michigan",
+    slug: "michigan", hook: "Saugatuck's dunes, Ferndale's scene and Great Lakes summers", image: "/site/destinations/michigan.jpg", name: "Michigan", query: "Michigan", compass: "Michigan",
     cities: [], regions: ["MI", "Michigan"],
     center: [43.4, -85.4], zoom: 6, tint: "#9E4466",
   },

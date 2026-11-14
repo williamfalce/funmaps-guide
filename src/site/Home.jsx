@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DESTINATIONS, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND, postImage } from "./siteData.js";
+import { DESTINATIONS, inDestination, TRIBES, LEGACY, COMPASS_URL, ADVERTISE_URL, WORDPRESS_URL, BRAND, postImage } from "./siteData.js";
 import { href } from "./Website.jsx";
 import { openSignup } from "./SignupPopup.jsx";
 
@@ -193,22 +193,55 @@ function StoryTopics() {
   );
 }
 
+// Destination cards: photo, name, one-line hook and live counts from the
+// website listings. Photos and hooks can be changed in the admin screen.
 function Destinations() {
+  const [custom, setCustom] = useState({});
+  const [listings, setListings] = useState([]);
+  useEffect(() => {
+    fetch("/api/destinations")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d) => setCustom(d.destinations || {}))
+      .catch(() => {});
+    fetch("/api/listings")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d) => setListings(d.listings || []))
+      .catch(() => {});
+  }, []);
   return (
     <section id="destinations" className="mx-auto max-w-[1280px] px-6 pt-14">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.01em]">Popular destinations</h2>
         <a href={`${WORDPRESS_URL}/`} className="text-[15px] font-bold">All destinations</a>
       </div>
-      <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-        {DESTINATIONS.map((d) => (
-          <a key={d.slug} href={href(`/destinations/${d.slug}`)} className="relative flex h-[220px] flex-col justify-end overflow-hidden rounded-[20px] p-5 text-white no-underline" style={{ background: d.tint }}>
-            <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: "#FFFFFFE6", color: BRAND.ink }}>
-              <MapIcon color={BRAND.ink} size={12} /> Map guide
-            </span>
-            <span className="text-2xl font-extrabold">{d.name}</span>
-          </a>
-        ))}
+      <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(270px, 100%), 1fr))" }}>
+        {DESTINATIONS.map((d) => {
+          const image = custom[d.slug]?.imageUrl || d.image;
+          const hook = custom[d.slug]?.hook || d.hook;
+          const here = listings.filter((l) => inDestination(d, l.city));
+          const verified = here.filter((l) => l.verified).length;
+          return (
+            <a key={d.slug} href={href(`/destinations/${d.slug}`)} className="group relative flex h-[260px] flex-col justify-end overflow-hidden rounded-[20px] text-white no-underline" style={{ background: d.tint }}>
+              {image && (
+                <img src={image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              )}
+              <div aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(0deg, #1A1226E6 0%, #1A122680 45%, #1A122600 75%)" }} />
+              <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold" style={{ background: "#FFFFFFE6", color: BRAND.ink }}>
+                <MapIcon color={BRAND.ink} size={12} /> Map guide
+              </span>
+              <div className="relative flex flex-col gap-1 p-5">
+                <span className="text-[24px] font-extrabold leading-tight">{d.name}</span>
+                {hook && <span className="text-[14px] leading-snug" style={{ color: "#F3EDF7" }}>{hook}</span>}
+                {here.length > 0 && (
+                  <span className="mt-1 text-[12.5px] font-bold" style={{ color: "#FFFFFF" }}>
+                    {here.length} {here.length === 1 ? "place" : "places"}
+                    {verified > 0 ? ` · ${verified} LGBTQ+ Verified` : ""}
+                  </span>
+                )}
+              </div>
+            </a>
+          );
+        })}
       </div>
     </section>
   );

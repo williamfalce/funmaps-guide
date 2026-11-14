@@ -18,6 +18,10 @@
       "destination": "/api/listings?resource=subscribe"
     },
     {
+      "source": "/api/destinations",
+      "destination": "/api/listings?resource=destinations"
+    },
+    {
       "source": "/api/latest",
       "destination": "/api/listings?resource=latest"
     },
