@@ -52,7 +52,7 @@ export const DESTINATIONS = [
   // pages share the same places (BROWARD_GAY_AREA); each map stays zoomed on
   // its own city ("fitToPins: false") instead of zooming out to every pin.
   {
-    slug: "fort-lauderdale", hook: "Beaches, resorts and Las Olas nights, minutes from Wilton Drive", image: "", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
+    slug: "fort-lauderdale", hook: "Beaches, resorts and Las Olas nights, minutes from Wilton Drive", image: "/site/destinations/fort-lauderdale.jpg", name: "Fort Lauderdale", query: "Fort Lauderdale", compass: "Fort Lauderdale, FL",
     cities: BROWARD_GAY_AREA, regions: [], center: [26.135, -80.135], zoom: 12, fitToPins: false, tint: "#B7563C",
   },
   {
