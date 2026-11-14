@@ -8,7 +8,7 @@ import { apiCall, buildCityString } from "./adminShared.jsx";
 // Each row becomes a free Directory listing, approved, with its map pin looked
 // up from the address. Rows already listed (same name and city) are skipped.
 
-function parseCsv(text) {
+function parseCsv(text, sep = ",") {
   const rows = [];
   let row = [];
   let cell = "";
@@ -22,7 +22,7 @@ function parseCsv(text) {
       } else if (ch === '"') quoted = false;
       else cell += ch;
     } else if (ch === '"') quoted = true;
-    else if (ch === ",") {
+    else if (ch === sep) {
       row.push(cell);
       cell = "";
     } else if (ch === "\n" || ch === "\r") {
@@ -59,13 +59,33 @@ export function ImportListings({ adminKey, rateCard, listings, onDone, inputStyl
     if (!file) return;
     setError("");
     setProgress(null);
-    const text = (await file.text()).replace(/^﻿/, "");
-    const table = parseCsv(text);
+    setRows(null);
+    // Excel saves "CSV" several ways: commas, semicolons or tabs between
+    // columns, in UTF-8 or UTF-16 text, sometimes as a workbook. Handle them all.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if ((bytes[0] === 0x50 && bytes[1] === 0x4b) || (bytes[0] === 0xd0 && bytes[1] === 0xcf)) {
+      return setError('This is an Excel workbook (.xlsx), not a CSV file. In Excel choose File → Save As → "CSV UTF-8 (Comma delimited) (*.csv)", then choose that new file here.');
+    }
+    const encoding = bytes[0] === 0xff && bytes[1] === 0xfe ? "utf-16le" : bytes[0] === 0xfe && bytes[1] === 0xff ? "utf-16be" : "utf-8";
+    let text = new TextDecoder(encoding).decode(bytes);
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+    const firstLine = text.split(/\r?\n/).find((l) => l.trim()) || "";
+    const sep = [",", ";", "\t"].sort((a, b) => firstLine.split(b).length - firstLine.split(a).length)[0];
+    const parsed = parseCsv(text, sep);
+    // The column names may sit below a title row: start at the first row that names them.
+    const isHeader = (r) => {
+      const h = r.map(norm);
+      return h.some((x) => x.includes("businessname") || x === "name" || x === "business") && h.some((x) => x.includes("category"));
+    };
+    const headerAt = Math.max(0, parsed.slice(0, 6).findIndex(isHeader));
+    const table = parsed.slice(headerAt);
     if (table.length < 2) return setError("That file has no rows to import.");
     const head = table[0].map(norm);
-    const col = (...names) => head.findIndex((h) => names.some((n) => h.includes(n)));
-    const ix = { name: col("businessname", "name"), category: col("category"), address: col("streetaddress", "address"), city: col("city"), state: col("state"), phone: col("phone"), website: col("website", "url"), notes: col("notes") };
-    if (ix.name < 0 || ix.category < 0 || ix.city < 0) return setError('The first row needs column names, including "Business name", "Category" and "City".');
+    const col = (...names) => head.findIndex((h) => names.some((n) => h === n || h.includes(n)));
+    const ix = { name: col("businessname", "business", "name"), category: col("category"), address: col("streetaddress", "address"), city: col("city"), state: col("state"), phone: col("phone"), website: col("website", "url"), notes: col("notes") };
+    if (ix.name < 0 || ix.category < 0 || ix.city < 0 || new Set([ix.name, ix.category, ix.city]).size < 3) {
+      return setError(`Couldn't find the columns "Business name", "Category" and "City". The first row reads: ${table[0].slice(0, 8).map((c) => `"${String(c).trim()}"`).join(", ")}. If that looks right, tell Claude what it says.`);
+    }
     const existing = new Set(listings.map((l) => `${norm(l.businessName)}|${norm(String(l.city).split(",")[0])}`));
     const seenInFile = new Set();
     setRows(
