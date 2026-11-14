@@ -485,10 +485,10 @@ export default function Destination({ slug }) {
             <h2 className="mb-3 text-xl font-extrabold">Featured Partners</h2>
             <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(380px, 100%), 1fr))" }}>
               {basic.map(({ n, listing: l }) => (
-                <article key={l.id} className="flex flex-col items-start gap-3.5 rounded-2xl border p-3.5 sm:flex-row" style={{ borderColor: BRAND.line }}>
-                  <div className="relative shrink-0 overflow-visible rounded-xl" style={{ width: 136, height: 80, background: dest.tint }}>
-                    {l.imageUrl && <img src={l.imageUrl} alt="" className="block h-full w-full rounded-xl object-cover" loading="lazy" />}
-                    <div className="absolute -left-2 -top-2"><PinNumber n={n} listing={l} size={26} /></div>
+                <article key={l.id} className="flex flex-col gap-3 rounded-2xl border p-3.5" style={{ borderColor: BRAND.line }}>
+                  <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: "765 / 450", background: dest.tint }}>
+                    {l.imageUrl && <img src={l.imageUrl} alt="" className="block h-full w-full object-cover" loading="lazy" />}
+                    <div className="absolute bottom-2.5 left-2.5"><PinNumber n={n} listing={l} size={28} /></div>
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap gap-1.5">
