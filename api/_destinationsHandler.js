@@ -4,7 +4,7 @@
 // /api/destinations to /api/listings?resource=destinations).
 //
 // GET /api/destinations           -> { destinations: { <slug>: { imageUrl?, hook? } } }  (public)
-// PUT /api/destinations (admin)   { slug, imageUrl?, hook? }   ("" clears back to the default)
+// PUT /api/destinations (admin)   { slug, imageUrl?, hook?, showOnHome? }   ("" clears back to the default)
 
 const { getRedis, getAuth } = require("./_auth");
 
@@ -22,7 +22,7 @@ async function handleDestinations(req, res) {
     if (!db) return void res.status(501).json({ error: "Storage not configured" });
     const auth = await getAuth(req, db);
     if (!auth || auth.role !== "admin") return void res.status(403).json({ error: "Only an admin can change destination cards" });
-    const { slug, imageUrl, hook } = req.body || {};
+    const { slug, imageUrl, hook, showOnHome } = req.body || {};
     if (!/^[a-z0-9-]{1,60}$/.test(String(slug || ""))) return void res.status(400).json({ error: "Unknown destination" });
     const all = parse(await db.get(KEY)) || {};
     const entry = { ...(all[slug] || {}) };
@@ -37,6 +37,7 @@ async function handleDestinations(req, res) {
       if (h) entry.hook = h;
       else delete entry.hook;
     }
+    if (showOnHome !== undefined) entry.showOnHome = !!showOnHome;
     entry.updatedBy = auth.name;
     entry.updatedAt = Date.now();
     all[slug] = entry;

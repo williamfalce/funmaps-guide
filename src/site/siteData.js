@@ -39,7 +39,7 @@ export const COMPASS_URL = "https://compass.funmaps.com/";
 export const ADVERTISE_URL = "mailto:info@funmaps.com?subject=Advertising%20on%20FunMaps";
 
 // Destinations with a map-first city page at /destinations/<slug>.
-// "hook" and "image" are the homepage card defaults; admins can change both in
+// "hook", "image" and "showOnHome" (default true) are the homepage card defaults; admins can change both in
 // the admin screen (Settings → Destinations), saved through /api/destinations.
 // "cities" and "regions" decide which website listings belong to the page:
 // a listing's city is stored as "City, ST" or "City, Country".
@@ -84,7 +84,12 @@ export const DESTINATIONS = [
     center: [9.75, -84.0], zoom: 7, tint: "#5E7C4A",
   },
   {
-    slug: "michigan", hook: "Saugatuck's dunes, Ferndale's scene and Great Lakes summers", image: "/site/destinations/michigan.jpg", name: "Michigan", query: "Michigan", compass: "Michigan",
+    slug: "san-diego", hook: "Hillcrest's bars, La Jolla's coves and sunshine all winter", image: "/site/destinations/san-diego.jpg", name: "San Diego", query: "San Diego", compass: "San Diego, CA",
+    cities: ["San Diego", "La Jolla", "Coronado", "Hillcrest"], regions: [],
+    center: [32.75, -117.17], zoom: 12, tint: "#2E6F95",
+  },
+  {
+    slug: "michigan", showOnHome: false, hook: "Saugatuck's dunes, Ferndale's scene and Great Lakes summers", image: "/site/destinations/michigan.jpg", name: "Michigan", query: "Michigan", compass: "Michigan",
     cities: [], regions: ["MI", "Michigan"],
     center: [43.4, -85.4], zoom: 6, tint: "#9E4466",
   },

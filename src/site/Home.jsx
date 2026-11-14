@@ -215,7 +215,7 @@ function Destinations() {
         <a href={`${WORDPRESS_URL}/`} className="text-[15px] font-bold">All destinations</a>
       </div>
       <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(270px, 100%), 1fr))" }}>
-        {DESTINATIONS.map((d) => {
+        {DESTINATIONS.filter((d) => custom[d.slug]?.showOnHome ?? d.showOnHome ?? true).map((d) => {
           const image = custom[d.slug]?.imageUrl || d.image;
           const hook = custom[d.slug]?.hook || d.hook;
           const here = listings.filter((l) => inDestination(d, l.city));

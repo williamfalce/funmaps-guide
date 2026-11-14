@@ -3,7 +3,7 @@ import { apiCall } from "./adminShared.jsx";
 import { DESTINATIONS } from "./site/siteData.js";
 
 // ---------- Destination cards (admin only) ----------
-// The photo and one-line hook on each homepage destination card.
+// The photo and one-line hook on each homepage destination card, and which destinations the homepage shows (for seasonal swaps; hidden ones keep their map pages).
 
 const HOOK_MAX = 90;
 
@@ -89,7 +89,7 @@ export function DestinationCardsPanel({ adminKey, inputStyle, labelStyle }) {
     <div style={{ background: "#241640", borderRadius: 14, padding: 20, marginBottom: 24 }}>
       <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: "#1C9C9C" }}>Destination cards</h2>
       <p style={{ fontSize: 12.5, color: "#F5EFE6aa", lineHeight: 1.6, marginBottom: 14 }}>
-        The photo and one-line hook on each homepage destination card. Use landscape photos 1,200 pixels wide or more, that FunMaps owns or has permission to use. The place counts on the cards update by themselves from the listings.
+        The photo and one-line hook on each homepage destination card, and which destinations the homepage shows (for seasonal swaps; hidden ones keep their map pages). Use landscape photos 1,200 pixels wide or more, that FunMaps owns or has permission to use. The place counts on the cards update by themselves from the listings.
       </p>
       {DESTINATIONS.map((d) => {
         const c = custom[d.slug] || {};
@@ -102,7 +102,19 @@ export function DestinationCardsPanel({ adminKey, inputStyle, labelStyle }) {
               {image ? <img src={image} alt={`${d.name} card photo`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#FFFFFFcc" }}>No photo yet</span>}
             </div>
             <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{d.name}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{d.name}</span>
+                <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={c.showOnHome ?? d.showOnHome ?? true}
+                    disabled={busy === d.slug}
+                    onChange={(e) => save(d.slug, { showOnHome: e.target.checked }, e.target.checked ? "Now shown on the homepage." : "Hidden from the homepage. Its map page still works.")}
+                    style={{ accentColor: "#D9662E" }}
+                  />
+                  Show on homepage
+                </label>
+              </div>
               <label htmlFor={`dc-hook-${d.slug}`} style={labelStyle}>HOOK LINE · {hook.length} / {HOOK_MAX}</label>
               <input id={`dc-hook-${d.slug}`} value={hook} maxLength={HOOK_MAX} onChange={(e) => setHooks({ ...hooks, [d.slug]: e.target.value })} style={{ ...inputStyle, marginBottom: 10 }} />
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
