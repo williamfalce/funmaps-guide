@@ -382,7 +382,9 @@ export default function Destination({ slug }) {
 
       <section className="mx-auto flex max-w-[1280px] flex-col gap-3.5 px-6 pt-7">
         {categories.length > 1 && (
-          <div role="group" aria-label="Category" className="flex gap-1.5 overflow-x-auto whitespace-nowrap border-b" style={{ borderColor: BRAND.line }}>
+          <div>
+          <p id="cat-filter-label" className="m-0 mb-1 text-[12.5px] font-bold uppercase tracking-[0.08em]" style={{ color: BRAND.muted }}>Filter by category</p>
+          <div role="group" aria-labelledby="cat-filter-label" className="flex gap-1.5 overflow-x-auto whitespace-nowrap border-b" style={{ borderColor: BRAND.line }}>
             {[["all", "All"], ...categories.map((c) => [c, prettyCategory(c)])].map(([id, label]) => (
               <button
                 key={id}
@@ -395,6 +397,7 @@ export default function Destination({ slug }) {
                 {label}
               </button>
             ))}
+          </div>
           </div>
         )}
         {all !== null && all.length > 0 && (
