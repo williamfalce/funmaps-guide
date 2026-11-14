@@ -34,7 +34,7 @@ const SYSTEM_FIELDS = ["id", "clicks", "createdBy", "createdByName", "createdByU
 // Only admins may change these; sales values are dropped.
 // "verified" is FunMaps LGBTQ+ Verified: earned through the free Verified review, never
 // tied to advertising, so only admins set it.
-const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate", "verified"];
+const ADMIN_ONLY_FIELDS = ["contractSigned", "repCommissionRate", "verified", "repName"];
 // Fields travelers (and the public website) may see.
 const PUBLIC_FIELDS = ["id", "city", "businessName", "category", "address", "phone", "website", "googleUrl", "description", "imageUrl", "product", "verified", "tribes", "lat", "lng"];
 const PENDING_META = ["pendingChanges", "pendingChangesAt", "pendingChangesBy"];
@@ -118,6 +118,7 @@ function normalize(input, card, { creating }) {
     if (out.signerEmail && !validEmail(out.signerEmail)) return { error: "Enter a valid signer email" };
   }
   if (has("partnerId")) out.partnerId = str("partnerId", 100);
+  if (has("repName")) out.repName = str("repName", 100); // the rep who sold it, when entered by an admin (e.g. imported)
   if (has("addOns")) {
     const ids = Array.isArray(input.addOns) ? input.addOns : [];
     out.addOns = card.addOns.filter((a) => ids.includes(a.id)).map((a) => a.id);

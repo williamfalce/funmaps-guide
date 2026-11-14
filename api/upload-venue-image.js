@@ -41,6 +41,43 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Copy an existing image from the current funmaps.com (WordPress) into
+    // our own storage, so it keeps working after the old site moves.
+    // Admins only; only funmaps.com addresses are fetched.
+    if ((req.body || {}).copyFromUrl) {
+      const auth = await getAuth(req, getRedis());
+      if (!auth || auth.role !== "admin") {
+        res.status(403).json({ error: "Only an admin can copy images" });
+        return;
+      }
+      let src;
+      try {
+        src = new URL(String(req.body.copyFromUrl));
+      } catch {
+        res.status(400).json({ error: "Not a web address" });
+        return;
+      }
+      if (src.protocol !== "https:" || !["funmaps.com", "www.funmaps.com"].includes(src.hostname)) {
+        res.status(400).json({ error: "Only images on funmaps.com can be copied" });
+        return;
+      }
+      const r = await fetch(src.href, { redirect: "error" });
+      const type = (r.headers.get("content-type") || "").split(";")[0].trim();
+      if (!r.ok || !/^image\/(jpeg|png|webp|avif|gif)$/.test(type)) {
+        res.status(400).json({ error: `Couldn't fetch that image (${r.status})` });
+        return;
+      }
+      const buffer = Buffer.from(await r.arrayBuffer());
+      if (buffer.length > 5 * 1024 * 1024) {
+        res.status(413).json({ error: "That image is over 5 MB" });
+        return;
+      }
+      const name = src.pathname.split("/").pop().replace(/[^a-zA-Z0-9.-]/g, "_");
+      const blob = await put(`venue-photos/${Date.now()}-${name}`, buffer, { access: "public", contentType: type });
+      res.status(200).json({ url: blob.url });
+      return;
+    }
+
     const { imageDataUrl, filename } = req.body || {};
     if (!imageDataUrl || !filename) {
       res.status(400).json({ error: "Missing imageDataUrl or filename" });

@@ -764,6 +764,7 @@ export function WebsiteListingsPanel({ adminKey, adminRole, inputStyle, labelSty
                 <p style={{ fontSize: 12.5, color: "#1C9C9C", marginTop: 4, fontWeight: 600 }}>
                   Contract {l.contractSigned ? "signed ✓" : "not signed"} · Payment {l.paymentReceived ? "received ✓" : "not received"} · Signer: {l.signerName || "—"}
                   {(l.createdByName || l.createdBy) && ` · added by ${l.createdByName || l.createdBy}`}
+                  {l.repName && ` · Rep: ${l.repName}`}
                 </p>
                 </>
                 )}
