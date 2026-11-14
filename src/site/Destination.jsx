@@ -10,11 +10,15 @@ import RATE_CARD from "../rateCard.json";
 // paid-placement labels, and "Add to my trip" which hands the picks to Compass.
 
 const prettyCategory = (c) => String(c || "").replace(/&/g, " & ");
-const isRecommended = (l) => l.label === "Recommended";
+// Tiers, top to bottom: Gold Star (rank 1), Premium shown as Recommended
+// (rank 2), Basic shown as Featured (rank 3), free Directory (no label).
+const isGoldStar = (l) => l.rank === 1;
+const isRecommended = (l) => l.label === "Recommended" && !isGoldStar(l);
 // Free directory listings have no paid label.
 const isDirectory = (l) => !l.label;
 const DIRECTORY_PIN = "#6F6479";
-const pinColor = (l) => (isRecommended(l) ? BRAND.gold : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
+const pinColor = (l) => (isGoldStar(l) ? BRAND.gold : isRecommended(l) ? BRAND.orangeDark : isDirectory(l) ? DIRECTORY_PIN : BRAND.magenta);
+const pinText = (l) => (isGoldStar(l) ? BRAND.ink : "#FFFFFF");
 
 function decode(html) {
   const t = document.createElement("textarea");
@@ -53,9 +57,16 @@ function VerifiedBadge({ small }) {
 
 function PaidLabel({ listing }) {
   if (isDirectory(listing)) return null;
+  if (isGoldStar(listing))
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="rounded-full px-3 py-1 text-[13px] font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink, boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>★ Gold Star</span>
+        <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
+      </div>
+    );
   return isRecommended(listing) ? (
     <div className="flex items-center gap-1.5">
-      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold" style={{ background: BRAND.gold, color: BRAND.ink }}>★ Recommended</span>
+      <span className="rounded-full px-2.5 py-1 text-xs font-extrabold text-white" style={{ background: BRAND.orangeDark }}>Recommended</span>
       <span className="rounded-full px-2 py-1 text-[11px] font-semibold text-white" style={{ background: "#1A1226b3" }}>Paid placement</span>
     </div>
   ) : (
@@ -68,7 +79,7 @@ function PinNumber({ n, listing, size = 30 }) {
     <span
       aria-label={`Map pin ${n}`}
       className="inline-flex shrink-0 items-center justify-center rounded-full font-extrabold"
-      style={{ width: size, height: size, fontSize: size * 0.42, background: pinColor(listing), color: isRecommended(listing) ? BRAND.ink : "#FFFFFF", boxShadow: listing.verified ? `0 0 0 3px ${BRAND.teal}` : "none" }}
+      style={{ width: size, height: size, fontSize: size * 0.42, background: pinColor(listing), color: pinText(listing), boxShadow: listing.verified ? `0 0 0 3px ${BRAND.teal}` : "none" }}
     >
       {n}
     </span>
@@ -114,13 +125,12 @@ function FunMap({ dest, items }) {
     layer.current.clearLayers();
     const placed = items.filter(({ listing }) => listing.lat != null && listing.lng != null);
     placed.forEach(({ n, listing }) => {
-      const rec = isRecommended(listing);
-      const sz = isDirectory(listing) ? 26 : 34;
+      const sz = isDirectory(listing) ? 26 : isGoldStar(listing) ? 40 : 34;
       const icon = L.divIcon({
         className: "",
         iconSize: [sz, sz],
         iconAnchor: [sz / 2, sz],
-        html: `<span style="display:flex;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${BRAND.teal},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 ${sz === 26 ? 11 : 13}px 'Plus Jakarta Sans',sans-serif;color:${rec ? BRAND.ink : "#fff"}">${n}</span></span>`,
+        html: `<span style="display:flex;width:${sz}px;height:${sz}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor(listing)};box-shadow:${listing.verified ? `0 0 0 3px ${BRAND.teal},` : ""}0 4px 10px rgba(0,0,0,.35);align-items:center;justify-content:center"><span style="transform:rotate(45deg);font:800 ${sz === 26 ? 11 : 13}px 'Plus Jakarta Sans',sans-serif;color:${pinText(listing)}">${isGoldStar(listing) ? "★" : ""}${n}</span></span>`,
       });
       L.marker([listing.lat, listing.lng], { icon, title: `${n}. ${listing.businessName}` })
         .bindPopup(`<strong>${n}. ${listing.businessName.replace(/</g, "&lt;")}</strong><br>${prettyCategory(listing.category)}`)
@@ -135,7 +145,8 @@ function FunMap({ dest, items }) {
     <div className="relative h-[340px] min-w-0 flex-[3_1_620px] overflow-hidden rounded-[22px] border md:h-[460px]" style={{ borderColor: "#E8DDC9", background: "#F7F1E6" }}>
       <div ref={box} role="region" aria-label={`Map of ${dest.name} with numbered pins for the places listed below`} className="h-full w-full" />
       <div className="pointer-events-none absolute bottom-3.5 left-3.5 z-[500] flex flex-wrap gap-3.5 rounded-xl px-3 py-2.5 text-xs" style={{ background: "#FFFFFFEE" }}>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Recommended</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.gold }} />Gold Star</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.orangeDark }} />Recommended</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: BRAND.magenta }} />Featured</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full" style={{ background: DIRECTORY_PIN }} />Directory</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-full bg-white" style={{ boxShadow: `0 0 0 3px ${BRAND.teal}` }} />FunMaps LGBTQ+ Verified</span>
@@ -388,7 +399,7 @@ export default function Destination({ slug }) {
         )}
         {all !== null && all.length > 0 && (
           <p className="m-0 text-sm" style={{ color: BRAND.muted }}>
-            Showing {shown.length} of {all.length} {all.length === 1 ? "place" : "places"}. "Recommended" and "Featured" are paid placements.
+            Showing {shown.length} of {all.length} {all.length === 1 ? "place" : "places"}. "Gold Star", "Recommended" and "Featured" are paid placements.
           </p>
         )}
       </section>
